@@ -1,6 +1,13 @@
 #ifndef timespec_h
 #define timespec_h
 #include <time.h>
+#include <stdio.h> /* for sprintf */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef CONFIG_RTL
 /*
 * User-level doesn't have some of these utilities.
 * In fact, POSIX entirely ignores the idea of SMP or
@@ -8,8 +15,6 @@
 * timespec values.
 * -- Cort <cort@fsmlabs.com>
 */
-
-#ifndef CONFIG_RTL
 
 #define NSECS_PER_SEC 1000000000
 
@@ -51,11 +56,15 @@ extern const struct timespec TIMESPEC_ZERO, TIMESPEC_ONESEC, TIMESPEC_NANOSEC,
 /*
   Forms a string using floating point calculation.  Note that we do not
   allocate a new string, so the caller must supply a different string
-  for each number to convert.
+  for each number to convert.  For performance, this is implemented as a MACRO
+  whose signature is like this:
+
+  void timespec_toString(const struct timespec* t, char* s,
+		       float multiplier, unsigned int decimal);
 
   @param t "this" pointer to struct timespec
 
-  @param s In pointer to char to hold the resultant string.  Must be
+  @param s InOut pointer to char to hold the resultant string.  Must be
   TIMESPEC_STRING_LEN bytes or longer.
 
   @param multiplier For printing convenience, you may supply a multiplier.
@@ -64,11 +73,16 @@ extern const struct timespec TIMESPEC_ZERO, TIMESPEC_ONESEC, TIMESPEC_NANOSEC,
 	 multiplier of 1000.0f means in millisec
 
   @param decimal
-
-  @return On success, the same pointer as the input pointer, for convenience.
-  On failure, NULL.
 */
-const char* timespec_toString(const struct timespec* t, char* s,
-			      float multiplier, unsigned int decimal);
+#define timespec_toString(t, s, multiplier, decimal) { \
+  char fmt[8];\
+  sprintf(s, "%%.%df", decimal);\
+  float numf = (multiplier) * ((t)->tv_sec + (float)(t)->tv_nsec / 1E9f);\
+  sprintf(s, fmt, numf);\
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif/* timespec_h */
