@@ -3,29 +3,62 @@
 
 int init_suite() { return 0; }
 int clean_suite() { return 0; }
-void test_sub() {
-  struct timespec time = TIMESPEC_ZERO;
+
+void test_arithmetic() {
+  struct timespec time, t1, t2;
+  time = TIMESPEC_ZERO; t1 = TIMESPEC_ZERO;
+  timespec_sub(time, t1);
+  CU_ASSERT_FALSE(timespec_nz(time));
+
+  time = TIMESPEC_ZERO; t1 = TIMESPEC_NANOSEC;
+  timespec_sub(time, t1);
+  timespec_add_ns(time, 1);
+  CU_ASSERT_FALSE(timespec_nz(time));
+
+  time = TIMESPEC_ZERO; t1 = TIMESPEC_NANOSEC, t2 = TIMESPEC_MICROSEC;
+  timespec_add_ns(time, 1001);
+  timespec_sub(time, t1);
+  CU_ASSERT_TRUE(timespec_equal(time, t2));
 }
 void test_toString() {
    char s[TIMESPEC_STRING_LEN];
-   struct timespec time = TIMESPEC_ZERO;
-#if 0
-   printf("TIMESPEC_ZERO = %s s\n", timespec_toString(&time, s, 1.0f, 3));
-   printf("TIMESPEC_ZERO = %s ms\n", timespec_toString(&time, s, 1E3f, 1));
-   printf("TIMESPEC_ZERO = %s us\n", timespec_toString(&time, s, 1E6f, 1));
+   struct timespec time;
 
-   time = TIMESPEC_ONESEC;
-   printf("TIMESPEC_ONESEC = %s s\n", timespec_toString(&time, s, 1.0f, 3));
-   printf("TIMESPEC_ONESEC = %s ms\n", timespec_toString(&time, s, 1E3f, 1));
-   printf("TIMESPEC_ONESEC = %s us\n", timespec_toString(&time, s, 1E6f, 1));
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_ZERO,s,1.f, 0), "0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_ZERO,s,1.f, 1), "0.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_ZERO,s,1000.f, 1), "0.0");
 
-   timespec_sub(&time, &TIMESPEC_ONESEC);
-   printf("-1 s = %s ns\n", timespec_toString(&time, s, 1.0f, 3);
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_SEC,s,1.f, 0), "1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_SEC,s,1.f, 1), "1.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_SEC,s,1000.f,1), "1000.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_SEC,s,.001f, 1), "0.0");
 
-   time = TIMESPEC_ZERO;
-   timespec_sub(&time, &TIMESPEC_NANOSEC);
-   printf("-1 ns = %s ns\n", timespec_toString(&time, s, 1E9f, 0);
-#endif
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1.f, 0), "0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1.f, 1), "0.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1.f, 2), "0.00");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1.f, 3), "0.001");
+
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1E1f, 1), "0.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1E2f, 1), "0.1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1E3f, 1), "1.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1E3f, 0), "1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_MILLISEC,s, 1E3f, 2), "1.00");
+
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_NANOSEC,s, 1E0f, 0), "0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_NANOSEC,s, 1E0f, 1), "0.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_NANOSEC,s, 1E8f, 1), "0.1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_NANOSEC,s, 1E9f, 0), "1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(TIMESPEC_NANOSEC,s, 1E9f, 1), "1.0");
+
+   time = TIMESPEC_ZERO; timespec_sub(time, TIMESPEC_NANOSEC);
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E9f, 0), "-1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E9f, 1), "-1.0");
+
+   time = TIMESPEC_ZERO; timespec_sub(time, TIMESPEC_MICROSEC);
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E6f, 0), "-1");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E6f, 1), "-1.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E9f, 1), "-1000.0");
+   CU_ASSERT_STRING_EQUAL(timespec_toString(time, s, 1E3f, 3), "-0.001");
 }
 
 /* The main() function for setting up and running the tests.
@@ -39,16 +72,14 @@ int main() {
   if (CUE_SUCCESS != CU_initialize_registry())
     return CU_get_error();
 
-  /* add a suite to the registry */
-  pSuite = CU_add_suite("timespec_suite", init_suite, clean_suite);
-  if (NULL == pSuite) {
+  /* add a suite to the registry */  
+  if (!(pSuite = CU_add_suite("timespec_suite", init_suite, clean_suite))) {
     CU_cleanup_registry();
     return CU_get_error();
   }
 
-  /* add the tests to the suite */
-  /* NOTE - ORDER IS IMPORTANT - MUST TEST fread() AFTER fprintf() */
-  if (!CU_add_test(pSuite, "test_sub", test_sub)
+  /* add the tests to the suite NOTE - ORDER IS IMPORTANT */
+  if (!CU_add_test(pSuite, "test_arithmetic", test_arithmetic)
       || !CU_add_test(pSuite, "test_toString", test_toString)) {
     CU_cleanup_registry();
     return CU_get_error();

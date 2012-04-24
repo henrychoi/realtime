@@ -3,7 +3,7 @@ LIB=lib$(TARGET).a
 TEST=test_$(TARGET)
 LIBSRC=
 THIRDPARTY=../../ThirdParty
-CUNIT=$(THIRDPARTY)/c-unit-1.1.1/CUnit
+CUNIT=$(THIRDPARTY)/CUnit-2.1-2/CUnit
 
 _OBJECTS=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
 

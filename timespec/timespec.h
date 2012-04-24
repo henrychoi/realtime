@@ -19,50 +19,53 @@ extern "C" {
 #define NSECS_PER_SEC 1000000000
 
 #define timespec_normalize(t) {\
-   if ((t) ->tv_nsec >= NSECS_PER_SEC) { \
-       (t) ->tv_nsec -= NSECS_PER_SEC; \
-       (t) ->tv_sec++; \
-   } else if ((t) ->tv_nsec < 0) { \
-       (t) ->tv_nsec += NSECS_PER_SEC; \
-       (t) ->tv_sec -- ; \
+   if ((t).tv_nsec >= NSECS_PER_SEC) { \
+       (t).tv_nsec -= NSECS_PER_SEC; \
+       (t).tv_sec++; \
+   } else if ((t).tv_nsec < 0) { \
+       (t).tv_nsec += NSECS_PER_SEC; \
+       (t).tv_sec -- ; \
    } \
 }
 
 #define timespec_sub(t1, t2) do { \
-   (t1) ->tv_nsec -= (t2) ->tv_nsec; \
-   (t1) ->tv_sec  -= (t2) ->tv_sec; \
+   (t1).tv_nsec -= (t2).tv_nsec; \
+   (t1).tv_sec  -= (t2).tv_sec; \
    timespec_normalize(t1); \
 } while (0)
 
 #define timespec_add_ns(t,n) do { \
-   (t) ->tv_nsec += (n); \
+   (t).tv_nsec += (n); \
    timespec_normalize(t); \
 } while (0)
 
 #define timespec_lt(t1, t2) \
-   ((t1) ->tv_sec < (t2) ->tv_sec \
-|| ((t1) ->tv_sec == (t2) ->tv_sec && (t1)->tv_nsec < (t2) ->tv_nsec))
-#define timespec_nz(t) ((t) ->tv_sec != 0 || (t) ->tv_nsec != 0)
+   ((t1).tv_sec < (t2).tv_sec \
+|| ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec < (t2).tv_nsec))
+
+#define timespec_nz(t) ((t).tv_sec != 0 || (t).tv_nsec != 0)
+#define timespec_equal(t1,t2) \
+  ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec == (t2).tv_nsec)
 
 #endif //ndef CONFIG_RTL
 
 /* Convenient constants.  Never modify them
  */
-extern const struct timespec TIMESPEC_ZERO, TIMESPEC_ONESEC, TIMESPEC_NANOSEC,
+extern const struct timespec TIMESPEC_ZERO, TIMESPEC_SEC, TIMESPEC_NANOSEC,
   TIMESPEC_MICROSEC, TIMESPEC_MILLISEC;
 
-#define TIMESPEC_STRING_LEN 16
+#define TIMESPEC_STRING_LEN 24
 
 /*
   Forms a string using floating point calculation.  Note that we do not
   allocate a new string, so the caller must supply a different string
   for each number to convert.  For performance, this is implemented as a MACRO
-  whose signature is like this:
+  whose logical signature is like this (the macro gives us the reference
+  semantics):
+  const char* timespec_toString(const struct timespec& t, char* s,
+		                float multiplier, unsigned int decimal);
 
-  void timespec_toString(const struct timespec* t, char* s,
-		       float multiplier, unsigned int decimal);
-
-  @param t "this" pointer to struct timespec
+  @param t The timespec to convert to string
 
   @param s InOut pointer to char to hold the resultant string.  Must be
   TIMESPEC_STRING_LEN bytes or longer.
@@ -73,13 +76,14 @@ extern const struct timespec TIMESPEC_ZERO, TIMESPEC_ONESEC, TIMESPEC_NANOSEC,
 	 multiplier of 1000.0f means in millisec
 
   @param decimal
+
+  @return NULL on error, the pointer to the passed in out string on success.
 */
-#define timespec_toString(t, s, multiplier, decimal) { \
-  char fmt[8];\
-  sprintf(s, "%%.%df", decimal);\
-  float numf = (multiplier) * ((t)->tv_sec + (float)(t)->tv_nsec / 1E9f);\
-  sprintf(s, fmt, numf);\
-}
+#define timespec_toString(t, s, multiplier, decimal) \
+  sprintf((s)+16, "%%.%df", decimal), \
+    snprintf(s, 15, (s)+16, \
+             (multiplier) * ((t).tv_sec + (float)(t).tv_nsec/1E9f)), \
+  (s)
 
 #ifdef __cplusplus
 }
