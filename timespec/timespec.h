@@ -42,6 +42,12 @@ extern "C" {
 #define timespec_lt(t1, t2) \
    ((t1).tv_sec < (t2).tv_sec \
 || ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec < (t2).tv_nsec))
+#define timespec_gt(t1, t2) \
+   ((t1).tv_sec > (t2).tv_sec \
+|| ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec > (t2).tv_nsec))
+
+#define timespec_lz(t) ((t).tv_sec < 0)
+#define timespec_gz(t) (timespec_nz(t) && !timespec_lz(t))
 
 #define timespec_nz(t) ((t).tv_sec != 0 || (t).tv_nsec != 0)
 #define timespec_equal(t1,t2) \
@@ -54,16 +60,12 @@ extern "C" {
 extern const struct timespec TIMESPEC_ZERO, TIMESPEC_SEC, TIMESPEC_NANOSEC,
   TIMESPEC_MICROSEC, TIMESPEC_MILLISEC;
 
-#define TIMESPEC_STRING_LEN 24
+#define TIMESPEC_STRING_LEN 16
 
 /*
   Forms a string using floating point calculation.  Note that we do not
   allocate a new string, so the caller must supply a different string
-  for each number to convert.  For performance, this is implemented as a MACRO
-  whose logical signature is like this (the macro gives us the reference
-  semantics):
-  const char* timespec_toString(const struct timespec& t, char* s,
-		                float multiplier, unsigned int decimal);
+  for each number to convert.
 
   @param t The timespec to convert to string
 
@@ -79,12 +81,8 @@ extern const struct timespec TIMESPEC_ZERO, TIMESPEC_SEC, TIMESPEC_NANOSEC,
 
   @return NULL on error, the pointer to the passed in out string on success.
 */
-#define timespec_toString(t, s, multiplier, decimal) \
-  sprintf((s)+16, "%%.%df", decimal), \
-    snprintf(s, 15, (s)+16, \
-             (multiplier) * ((t).tv_sec + (float)(t).tv_nsec/1E9f)), \
-  (s)
-
+const char* timespec_toString(const struct timespec* t, char* s,
+			      float multiplier, unsigned int decimal);
 #ifdef __cplusplus
 }
 #endif

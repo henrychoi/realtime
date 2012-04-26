@@ -1,23 +1,36 @@
-TARGET = jitter
-# Only support C file for now. Example: bug hello
-DEPENDENCY=timespec
-CCFLAGS=-Wno-pointer-to-int-cast
-LDFLAGS=-lpthread -lrt
-_HEADERS = $(patsubst %, %.h, $(DEPENDENCY))
-_SOURCES = $(patsubst %, %.c, $(TARGET) $(DEPENDENCY))
-_OBJECTS = $(patsubst %, %.o, $(TARGET) $(DEPENDENCY))
+# Invoke with this make command:
+# make DURATION=<number between 1 and 60> FREQ=<1 to 1000>
+TARGET=jitter
+LIB=lib$(TARGET).a
+TEST=test_$(TARGET)
+LIBSRC=
+THIRDPARTY=../../ThirdParty
+CUNIT=$(THIRDPARTY)/CUnit-2.1-2/CUnit
+
+_OBJECTS=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
 
 # Rules ##################################
-all: $(TARGET)
-$(TARGET): $(_OBJECTS)
-	 gcc -o $@ $^ $(LDFLAGS)
-debug: $(_OBJECTS)
-	 @echo "ld -o $@ $^ $(LDFLAGS)"
+all: $(TEST)
+$(TEST): $(TEST).c #$(LIB)
+	gcc -g -static -mtune=core2 -o $@ $^ \
+	-Wno-pointer-to-int-cast \
+	-DTEST_DURATION=$(DURATION) -DLOOP_FREQ=$(FREQ) \
+	-I$(CUNIT)/Headers -I../timespec \
+	-L$(CUNIT)/Sources/.libs -lcunit -L../timespec -ltimespec -pthread -lrt
+debug: $(TEST).c #$(TARGET).c
+	gcc -S -g $^ \
+	-Wno-pointer-to-int-cast \
+	-DTEST_DURATION=$(DURATION) -DLOOP_FREQ=$(FREQ) \
+	-I$(CUNIT)/Headers -I../timespec
+
+$(LIB): $(_OBJECTS)
+	ar -rs $@ $^
 %.o: %.c
-	gcc -c $(CCFLAGS) $< -o $@
+	gcc -c -g $< -o $@
+
 .PHONY: clean
 clean:
-	rm -f $(TARGET) $(_OBJECTS)
+	rm -f $(TEST) $(LIB) $(_OBJECTS)
 
 # Appendix ###########################################
 # $@ means the target of the rule
@@ -27,5 +40,5 @@ clean:
 
 # If you don't mind compiling all sources each time, this is a much
 # simpler rule
-#$(TARGET): $(_SOURCES) $(_HEADERS)
+#$(TEST): $(_SOURCES) $(_HEADERS)
 #	gcc $(CCFLAGS) $(_SOURCES) -o $@ $(LDFLAGS)

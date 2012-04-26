@@ -1,19 +1,16 @@
 /*
 */
 #include <stdio.h>
+#include <string.h> /* for memset */
 #include <pthread.h>
 #include <unistd.h>
 #include <semaphore.h>
 #include "timespec.h"
 
+#define CPUS_MAX 1
+#define num_cpus() (CPUS_MAX)
 
-#ifndef CONFIG_RTL
-#define RTL_CPUS_MAX 1
-#define rtl_num_cpus() (RTL_CPUS_MAX)
-#endif //ndef CONFIG_RTL
-
-pthread_t thread[RTL_CPUS_MAX], print_thread;
-struct timespec early[RTL_CPUS_MAX],  late[RTL_CPUS_MAX];
+struct timespec worst[CPUS_MAX];
 sem_t irqsem;
 struct timespec abs_start;
 
@@ -23,14 +20,12 @@ struct timespec abs_start;
 void *print_code(void *t)
 { 
    int i;
-   char searly[TIMESPEC_STRING_LEN], slate[TIMESPEC_STRING_LEN];
+   char sworst[TIMESPEC_STRING_LEN];
    while ( 1 ) { 
-      /* wait for a thread to signal us */
-      sem_wait( &irqsem );
-      for ( i = 0 ; i < rtl_num_cpus() ; i++ ) {
-         printf("CPU%d: [%s, %s] us, ", i
-		, timespec_toString(&early[i], searly, 1E6f, 1)
-		, timespec_toString(&late[i], slate, 1E6f, 1));
+      sem_wait( &irqsem );/* wait for a thread to signal us */
+      for ( i = 0 ; i < num_cpus() ; i++ ) {
+         printf("CPU%d: %s us, ", i
+		, timespec_toString(&worst[i], sworst, 1E6f, 1));
       } printf("\n");
    }
    return NULL;
@@ -47,29 +42,30 @@ void *thread_code(void *t)
     * at the same time and creating unnecessary resource contention.
     */
    next = abs_start;
-   timespec_add_ns( &next, (PERIOD/rtl_num_cpus())*cpu );
+   timespec_add_ns(next, (PERIOD/num_cpus())*cpu );
    clock_gettime( CLOCK_REALTIME, &cur );
    /* If thread spawning took more time than the desired wakeup time,
       just add multiples of period period */
-   while ( timespec_lt( &next, &cur ) ) timespec_add_ns( &next, PERIOD );
+   while ( timespec_lt(next, cur)) timespec_add_ns(next, PERIOD);
 
    while ( 1 ) { 
       /* set the period so that we're running at PERIOD */
-      timespec_add_ns( &next, PERIOD );
+      timespec_add_ns(next, PERIOD);
       /* sleep */
-      clock_nanosleep( CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
+      clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
       /* compute the error between now and when
        * we expected to return from the sleep
        */
       clock_gettime( CLOCK_REALTIME, &cur );
-      timespec_sub( &cur, &next );
+      timespec_sub(cur, next);
       /* if this is the first run, set the "late" value */
-      if ( !timespec_nz(&late[cpu]) ) { 
-         late[cpu] = cur;
+      if ( !timespec_nz(worst[cpu])) { 
+         worst[cpu] = cur;
          sem_post( &irqsem );
       } else { /* if this is the late we have seen so far, print it */
-	if ( timespec_lt( &late[cpu], &cur ) ) { 
-	  late[cpu] = cur;
+	if ( timespec_lt(worst[cpu], cur) ) { 
+	better_be_atomic:
+	  worst[cpu] = cur;
 	  sem_post( &irqsem );
 	}
       } 
@@ -77,18 +73,21 @@ void *thread_code(void *t)
    return NULL;
 }
 
-void test_jitter()
+void main()
 { 
    int i;
    pthread_attr_t attr;
    struct sched_param sched_param;
+   pthread_t thread[CPUS_MAX], print_thread;
 
    /* zero the global struct, so the threads don't have to */
-   memset(early, sizeof(early), 0);
-   memset(late, sizeof(late), 0);
+   memset(worst, sizeof(worst), 0);
 
    /* initialize the semaphore */
    sem_init( &irqsem, 1, 0 );
+
+   /* get the current time that the threads can base their scheduling on */
+   clock_gettime( CLOCK_REALTIME, &abs_start );
 
    /*
     * Start the thread that prints the timing values.
@@ -100,19 +99,10 @@ void test_jitter()
    pthread_attr_setschedparam( &attr, &sched_param );
    pthread_create( &print_thread, &attr, print_code, (void *)0 );
    
-   /* get the current time that the threads can base their scheduling on */
-   clock_gettime( CLOCK_REALTIME, &abs_start );
-
-   /* create the threads to do the timing */
-   for ( i = 0; i < rtl_num_cpus(); i++ ) { 
-      /* initialize the thread attributes and set the CPU to run on */
+   for ( i = 0; i < num_cpus(); i++ ) { 
+      /* initialize the thread attributes and set the CPU to run on
+	 (if possible) */
       pthread_attr_init( &attr );
-
-#ifdef CONFIG_RTL
-      /* Linux does not allow us to set the CPU to run on */
-      pthread_attr_setcpu_np( &attr, i );
-#endif
-
       sched_param.sched_priority = sched_get_priority_max(SCHED_OTHER);
       pthread_attr_setschedparam( &attr, &sched_param );
       pthread_create( &thread[i], &attr, thread_code, (void *)i );
@@ -125,14 +115,14 @@ void test_jitter()
    rtl_main_wait();
 
    /* cancel the threads */
-   for ( i = 0 ; i < rtl_num_cpus() ; i++ )
+   for ( i = 0 ; i < num_cpus() ; i++ )
       pthread_cancel( thread[i] );
    /* cancel the print thread */
    pthread_cancel( print_thread );
 #endif
 
    /* join the threads */
-   for ( i = 0 ; i < rtl_num_cpus() ; i++ )
+   for ( i = 0 ; i < num_cpus() ; i++ )
       pthread_join( thread[i], NULL );
 
    /* join the print thread */

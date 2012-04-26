@@ -9,19 +9,19 @@ _OBJECTS=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
 
 # Rules ##################################
 all: $(TEST)
-debug:
-	echo $(_OBJECTS)
-$(TEST): $(TEST).o $(LIB)
-	gcc -static -o $@ $^ -L$(CUNIT)/Sources/.libs -lcunit -L. -l$(TARGET)
-# Alternative rule would be
-# ld -static -o $@ $^\
-#        -L`gcc -print-file-name=` \
-#        /usr/lib/crt1.o /usr/lib/crti.o /usr/lib/crtn.o -lc -lgcc
+$(TEST): $(TEST).c $(LIB)
+	gcc -g -static -I$(CUNIT)/Headers -o $@ $^ \
+	-Wno-pointer-to-int-cast \
+	-L$(CUNIT)/Sources/.libs -lcunit -L. -l$(TARGET)
+debug: $(TEST).c #$(TARGET).c
+	gcc -S -g $^ \
+	-mtune=core2 -Wno-pointer-to-int-cast \
+	-I$(CUNIT)/Headers -I../timespec
 
 $(LIB): $(_OBJECTS)
 	ar -rs $@ $^
 %.o: %.c
-	gcc -c -I$(CUNIT)/Headers $< -o $@
+	gcc -c -g $< -o $@
 
 .PHONY: clean debug
 clean:
