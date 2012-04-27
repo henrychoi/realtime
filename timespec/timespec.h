@@ -50,6 +50,7 @@ extern "C" {
 #define timespec_gz(t) (timespec_nz(t) && !timespec_lz(t))
 
 #define timespec_nz(t) ((t).tv_sec != 0 || (t).tv_nsec != 0)
+#define timespec_zero(t) (!timespec_nz(t))
 #define timespec_equal(t1,t2) \
   ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec == (t2).tv_nsec)
 
