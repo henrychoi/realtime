@@ -5,34 +5,6 @@
 #include "timespec.h"
 #include "Basic.h"
 
-#ifdef N_CPU
-#  if (N_CPU < 0 || N_CPU > 16)
-#    error Invalid TEST_DURATION specified; (1, 16) supported.
-#  endif
-#else
-#  warning "N_CPU undefined; defaulting to 1."
-#  define N_CPU 1
-#endif
-
-#ifdef LOOP_FREQ
-#  if (LOOP_FREQ < 1 || LOOP_FREQ > 10000)
-#    error "Unsupported LOOP_FREQ"
-#  endif
-#else
-#  warning LOOP_FREQ undefined; defaulting to 1.
-#  define LOOP_FREQ 1
-#endif
-#define PERIOD (1000000000/LOOP_FREQ) /* in nanoseconds */
-
-#ifdef TEST_DURATION
-#  if (TEST_DURATION < 0 || TEST_DURATION > 3600)
-#    error Unsupported TEST_DURATION specified; (1, 3600) supported.
-#  endif
-#else
-#  warning TEST_DURATION undefined; defaulting to 60.
-#  define TEST_DURATION 60
-#endif   
-
 struct timespec g_early[N_CPU], g_late[N_CPU];/*g_ for global */
 
 sem_t irqsem;
@@ -65,16 +37,17 @@ void *thread_code(void *t) {
   int i;
 
   next = abs_start;
+#define PERIOD (1000000000 / LOOP_FREQ)
   timespec_add_ns( next, (PERIOD/N_CPU)*cpu );
   clock_gettime( CLOCK_REALTIME, &cur );
   /* If thread spawning took more time than the desired wakeup time,
      just add multiples of period period */
-  while ( timespec_lt( next, cur ) ) timespec_add_ns( next, PERIOD );
+  while(timespec_lt(next, cur)) timespec_add_ns(next, PERIOD);
 
   while(bTesting) {
     timespec_add_ns(next, PERIOD);
 
-    clock_nanosleep( CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
+    clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
     if(!bTesting) break;
 
     clock_gettime( CLOCK_REALTIME, &cur );
@@ -122,7 +95,7 @@ void test1()
   printf("LOOP_FREQ: %d Hz\n", LOOP_FREQ);
 
   /* zero the global struct, so the threads don't have to */
-  memset(early, sizeof(early), 0); memset(late, sizeof(late), 0);
+  memset(g_early, sizeof(g_early), 0); memset(g_late, sizeof(g_late), 0);
 
   /*
    * Start the thread that prints the timing values.
