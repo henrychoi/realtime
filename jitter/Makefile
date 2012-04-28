@@ -4,6 +4,7 @@ LOOP_FREQ ?=1
 N_WORKER ?=2
 TARGET := jitter
 LIBSRC :=
-APP_CFLAGS := -I../timespec -DLOOP_FREQ=$(LOOP_FREQ) -DN_WORKER=$(N_WORKER)
-APP_LDFLAGS := -L../timespec -ltimespec -pthread -lrt
+APP_CFLAGS := -I../timespec -I../rtdb\
+	-DLOOP_FREQ=$(LOOP_FREQ) -DN_WORKER=$(N_WORKER)
+APP_LDFLAGS := -L../timespec -ltimespec -L../rtdb -lrtdb -pthread -lrt
 include ../base.mk ##################################

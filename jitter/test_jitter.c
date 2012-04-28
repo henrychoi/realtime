@@ -12,11 +12,17 @@ int verbosity = 0
   , n_worker=N_WORKER
   , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
 #define N_WORKER_MAX 16
-struct timespec g_early[N_WORKER_MAX], g_late[N_WORKER_MAX];/*g_ for global */
+
+struct loop { /* the node I am going to shove into the llsq */
+  struct timespec jitter;
+  int count;
+  int period;
+};
 
 sem_t irqsem;
 struct timespec abs_start;
 int bTesting = 1;
+struct llsq* g_q[N_WORKER_MAX];
 
 void *print_code(void *t) { 
   printf("print thread waiting for data...\n");
@@ -26,62 +32,60 @@ void *print_code(void *t) {
     sem_wait( &irqsem );/* wait for the worker to signal me */
     if(!bTesting) break;
 
-    for ( i = 0 ; i < n_worker ; i++ ) {
-      char searly[TIMESPEC_STRING_LEN], slate[TIMESPEC_STRING_LEN];
-      printf("worker %d: [%s, %s] us, ", i
-	     , timespec_toString(&g_early[i], searly, 1E6f, 1)
-	     , timespec_toString(&g_late[i], slate, 1E6f, 1));
-    } printf("\n");
+    /* Don't know which worker signalled me; have to check all of them;
+       a select() on different semaphores would be doing essentially the
+       same thing.  WaitForMultipleObjects() is nice in this regard.
+    */
+    for(i = 0; i < n_worker; ++i) {
+      struct loop* loop;
+      if(llsq_pop(g_q[i], &loop)) {
+	char s[TIMESPEC_STRING_LEN];
+	printf("%d, %d, %d, %s\n", i, loop->count, loop->period
+	       , timespec_toString(&loop->jitter, s, 1E6f, 1));
+	llsmp_return(&g_pool, loop);
+      }
+    }
   }
 
   printf("print thread exiting...\n");
   return NULL;
 }
 
-void *worker_code(void *t) { 
+void *worker_code(void *t) {
+  struct loop loop;
   struct timespec next, cur;
   unsigned char worker_id = (unsigned char)t;
-  int i = 0 /* loop counter */
-    , period = start_period / n_worker;
+  loop.count = 0;
+  loop.period = start_period / n_worker;
 
   next = abs_start;
-  timespec_add_ns(next, period*worker_id);
-  clock_gettime( CLOCK_REALTIME, &cur );
+  timespec_add_ns(next, loop.period*worker_id);
+  clock_gettime(CLOCK_REALTIME, &cur);
   /* If thread spawning took more time than the desired wakeup time,
      just add multiples of period period */
-  while(timespec_lt(next, cur)) timespec_add_ns(next, period);
+  while(timespec_lt(next, cur)) timespec_add_ns(next, loop.period);
 
   while(bTesting) {
-    timespec_add_ns(next, period);
+    struct loop* node = NULL;
+    timespec_add_ns(next, loop.period);
 
     clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
     if(!bTesting) break;
 
     /* Begin "work" ****************************************/
-    clock_gettime(CLOCK_REALTIME, &cur);
-    timespec_sub(cur, next);
-    {
-      //char s[TIMESPEC_STRING_LEN];
-      //printf("WORKER %d delta: %s\n", worker_id, timespec_toString(&cur, s, 1E6f, 1));
-    }
-
-    if(timespec_nz(cur)) {
-      if(timespec_lz(cur)) { /* early! */
-	if (timespec_lt(cur, g_early[worker_id])) {
-	  g_early[worker_id] = cur;
-	  sem_post(&irqsem);
-	}
-      } else { /* if this is later we have seen so far, print it */
-	if (timespec_gt(cur, g_late[worker_id])) { 
-	  g_late[worker_id] = cur;
-	  sem_post(&irqsem);
-	}
-      }
+    clock_gettime(CLOCK_REALTIME, &loop.jitter); /* jitter = now - next */
+    timespec_sub(loop.jitter, next);
+    node = llsmp_get(&pool);
+    *node = loop; /* shallow copy good enough */
+    if(llsq_push(g_q[worker_id], data)) {
+      sem_post(&irqsem);
+    } else { /* Have to throw away data; need to alarm! */
+      llsmp_return(node);
     }
     /* decrement the period by a fraction */
-    period -= dec_ppm ? period / (1000000 / dec_ppm) : 0;
-    if(period < 1000000) break; /* Limit at 1 ms */
-    ++i; /* going to log the loop counter */
+    loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;
+    if(loop.period < 1000000) break; /* Limit at 1 ms */
+    ++loop.count;
     /* End "work" ****************************************/
   }
 
@@ -115,9 +119,16 @@ int init_suite() {
   int ok;
    /* initialize the semaphore */
   ok = sem_init( &irqsem, 1, 0 );
+  for(i = 0; i < n_worker; ++i)
+    g_q[i] = llsq_new(6); /* 2^5 = 32 should be sufficient queue size */
+
   return ok;
 }
-int clean_suite() { return 0; }
+int clean_suite() {
+  for(i = 0; i < n_worker; ++i)
+    llsq_delete(g_q[i]);
+  return 0;
+}
 
 void test_jitter()
 { 
@@ -125,9 +136,6 @@ void test_jitter()
   pthread_t worker_thread[N_WORKER_MAX], print_thread;
   pthread_attr_t attr;
   struct sched_param sched_param;
-
-  /* zero the global struct, so the threads don't have to */
-  memset(g_early, sizeof(g_early), 0); memset(g_late, sizeof(g_late), 0);
 
   /*
    * Start the thread that prints the timing values.

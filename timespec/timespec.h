@@ -1,13 +1,11 @@
 #ifndef timespec_h
 #define timespec_h
 #include <time.h>
-#include <stdio.h> /* for sprintf */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifndef CONFIG_RTL
 /*
 * User-level doesn't have some of these utilities.
 * In fact, POSIX entirely ignores the idea of SMP or
@@ -53,8 +51,6 @@ extern "C" {
 #define timespec_zero(t) (!timespec_nz(t))
 #define timespec_equal(t1,t2) \
   ((t1).tv_sec == (t2).tv_sec && (t1).tv_nsec == (t2).tv_nsec)
-
-#endif //ndef CONFIG_RTL
 
 /* Convenient constants.  Never modify them
  */
