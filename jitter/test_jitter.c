@@ -22,7 +22,8 @@ struct loop { /* the node I am going to shove into the llsq */
 sem_t irqsem;
 struct timespec abs_start;
 int bTesting = 1;
-struct llsq* g_q[N_WORKER_MAX];
+struct llsMP g_mp[N_WORKER_MAX];
+struct llsQ g_q[N_WORKER_MAX];
 
 void *print_code(void *t) { 
   printf("print thread waiting for data...\n");
@@ -38,11 +39,13 @@ void *print_code(void *t) {
     */
     for(i = 0; i < n_worker; ++i) {
       struct loop* loop;
-      if(llsq_pop(g_q[i], &loop)) {
+      if(llsq_pop(&g_q[i], &loop)) {
 	char s[TIMESPEC_STRING_LEN];
 	printf("%d, %d, %d, %s\n", i, loop->count, loop->period
 	       , timespec_toString(&loop->jitter, s, 1E6f, 1));
-	llsmp_return(&g_pool, loop);
+	if(!llsMP_return(&g_mp[i], loop)) { /* alarm! */
+	  
+	}
       }
     }
   }
@@ -75,12 +78,14 @@ void *worker_code(void *t) {
     /* Begin "work" ****************************************/
     clock_gettime(CLOCK_REALTIME, &loop.jitter); /* jitter = now - next */
     timespec_sub(loop.jitter, next);
-    node = llsmp_get(&pool);
-    *node = loop; /* shallow copy good enough */
-    if(llsq_push(g_q[worker_id], data)) {
-      sem_post(&irqsem);
-    } else { /* Have to throw away data; need to alarm! */
-      llsmp_return(node);
+    if(!(node = (struct loop*)llsMP_get(&g_mp[worker_id]))) { /* alarm! */
+    } else {
+      *node = loop; /* shallow copy good enough for the loop data */
+      if(llsQ_push(&g_q[worker_id], node)) {
+	sem_post(&irqsem);
+      } else { /* Have to throw away data; need to alarm! */
+	llsmp_return(node);
+      }
     }
     /* decrement the period by a fraction */
     loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;

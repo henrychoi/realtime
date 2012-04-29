@@ -1,3 +1,3 @@
 TARGET := rtdb
-LIBSRC := llsMP llsQ
+LIBSRC := llsMP llsQ llsMQ
 include ../base.mk ##################################

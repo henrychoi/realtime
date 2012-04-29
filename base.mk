@@ -17,7 +17,7 @@ $(LIB): $(_OBJECTS)
 	ar -rs $@ $^
 %.s: %.c
 	$(CC) -S $(CFLAGS) $^ $(LDFLAGS)
-clean:;rm -f $(TEST) $(LIB) $(_OBJECTS)
+clean:;rm -f $(TEST) $(LIB) $(_OBJECTS) *~
 .PHONY: clean
 
 # Appendix ###########################################
