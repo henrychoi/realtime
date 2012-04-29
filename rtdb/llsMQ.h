@@ -1,6 +1,6 @@
 #ifndef llsMQ_h
 #define llsMQ_h
-
+#include <stddef.h> /* for offsetof */
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -11,9 +11,8 @@ extern "C" {
   } llsMQ;
 
 #ifndef alignmentof
-#define alignmentof(testType) \
-  offsetof(struct { char c; testType _testMem; }, _testMem)
-  /*(sizeof(struct { char c; testType _testMem; }) - sizeof(testType))*/
+#define alignmentof(_testType_) \
+  offsetof(struct { char c; _testType_ _testMem; }, _testMem)
 #endif
 
   unsigned char llsMQ_alloc(struct llsMQ* me, unsigned char exponent
