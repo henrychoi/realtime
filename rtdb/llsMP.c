@@ -39,7 +39,7 @@ unsigned char llsMP_alloc(struct llsMP* me,
   memsize/*me->_memSize*/ = alignSize(memsize, alignment);
   if(alignment < sizeof(void*)) alignment = sizeof(void*);
   /*me->_memAlignment = alignment;*/
-  if(posix_memalign(&me->_pool, alignment, memsize)) {
+  if(posix_memalign(&me->_pool, alignment, memsize * capacity)) {
     free(me->_book);
     return 0;
   }

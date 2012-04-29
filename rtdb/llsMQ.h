@@ -6,7 +6,7 @@ extern "C" {
 #endif
   /* SINGLE writer, SINGLE reader queue */
   typedef struct llsMQ {
-    size_t _size, _mask, _head, _tail, _memsize;
+    size_t _head, _tail, _memsize, _size;
     void* _pool;/* correctly aligned memory pool */
   } llsMQ;
 
