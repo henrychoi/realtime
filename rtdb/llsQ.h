@@ -6,7 +6,7 @@ extern "C" {
 #endif
   /* SINGLE writer, SINGLE reader queue */
   typedef struct llsQ {
-    size_t _head, _tail, _size;
+    size_t _head, _tail, _mask;
     void* *_q;/* array of pointers */
   } llsQ;
 
