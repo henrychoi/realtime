@@ -3,20 +3,23 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <getopt.h>
-#include <sys/time.h> /* for getrusage */
 #include <sys/resource.h>
 #include <Basic.h> /* CUnit */
 #include <TestDB.h> /* CUnit */
 #include "timespec.h"
 #include "llsMQ.h"
+#include "loop.h"
 
+#define LOOP_FREQ 100
 int g_verbosity = 0
   , duration = 0
-  , n_worker=N_WORKER
+  , n_worker=1
   , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
 const char* g_outfn = NULL;
 FILE* g_outf = NULL;
-#define N_WORKER_MAX 16
+#define N_WORKER_MAX 4
+
+struct Worker g_worker[N_WORKER_MAX];
 
 struct LoopData { /* the node I am going to shove into q */
   struct timespec jitter, t_work;
@@ -24,14 +27,11 @@ struct LoopData { /* the node I am going to shove into q */
   int period;
 };
 
-pid_t g_pid;
 sem_t irqsem;
 struct timespec abs_start;
 unsigned char bTesting = 1;
-struct llsMQ g_q[N_WORKER_MAX];
 
 void *print_code(void *t) {
-  struct timeval prev_utime = {0,0}, prev_stime = {0,0};
   printf("print thread waiting for data...\n");
 
   while (bTesting) {
@@ -49,16 +49,17 @@ void *print_code(void *t) {
       struct rusage ru;
       char sjitter[TIMESPEC_STRING_LEN], swork[TIMESPEC_STRING_LEN];
 
-      if(!llsMQ_pop(&g_q[i], &loop))
+      if(!llsMQ_pop(&g_worker[i].q, &loop))
 	continue;
 
       getrusage(RUSAGE_SELF, &ru);/* I should do something with this */
 
-      if(g_outf)
+      if(g_outf) {
 	fprintf(g_outf, "%d,%d,%d,%s,%s\n"
 		, i, loop.count, loop.period
 		, timespec_toString(&loop.t_work, swork, 1E6f, 1)
 		, timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+      }
     }
   }
 
@@ -66,16 +67,12 @@ void *print_code(void *t) {
   return NULL;
 }
 
-void *worker_code(void *t) {
+void *start_worker(void *t) {
+  struct Worker* worker = (struct Worker*)t;
   struct LoopData loop;
   struct timespec next, cur;
   unsigned char worker_id = (unsigned char)t;
-#ifdef USE_PROC
-  pid_t tid = syscall(__NR_gettid);/* because gettid() is not in libc */
-  char statfn[40];
-  sprintf(statfn, "/proc/%d/task/%d/stat", g_pid, tid);
-#endif
-  printf("Worker %d starting...\n", worker_id);
+  printf("Worker %d starting...\n", worker->id);
 
   loop.count = 0;
   loop.period = start_period / n_worker;
@@ -97,34 +94,11 @@ void *worker_code(void *t) {
     clock_gettime(CLOCK_REALTIME, &t0); /* jitter = now - next */
     /* Begin "work" ****************************************/
     loop.jitter = t0; timespec_sub(loop.jitter, next); /* measure jitter */
-#ifdef USE_PROC
-    FILE* statf = NULL;
-    /* Read /proc/<pid>/task/<tid>/stat to know the CPU used by this thread */
-    if(statf = fopen(statfn, "r")) {
-      int pid, ppid, pgrp, session, tty_nr, tpgid;
-      unsigned flags;
-      unsigned long minflt, cminflt, majflt, cmajflt, utime, stime;
-      long cutime, cstime, priority, nice;
-      char state, comm[40];
-      if(fscanf(statf,
-		"%d %s %c %d %d %d %d %d "
-		"%u %lu %lu %lu %lu "
-		"%lu %lu %ld %ld %ld %ld"
-		, &pid, comm, &state, &ppid, &pgrp, &session, &tty_nr, &tpgid
-		, &flags, &minflt, &cminflt, &majflt, &cmajflt
-		, &utime, &stime, &cutime, &cstime, &priority, &nice)
-	 == 19) { /* successful conversion! */
-	if(g_verbosity)
-	  printf("%s utime %lu, stime %lu\n", statfn, utime, stime);
-      }
-      fclose(statf);
-    }
-#endif
-
+    if(worker->work) worker->work(NULL);
     /* End "work" ******************************************/
     clock_gettime(CLOCK_REALTIME, &loop.t_work); timespec_sub(loop.t_work, t0);
 
-    if(llsMQ_push(&g_q[worker_id], &loop)) {
+    if(llsMQ_push(&worker->q, &loop)) {
       sem_post(&irqsem);
     } else { /* Have to throw away data; need to alarm! */
     }
@@ -138,36 +112,10 @@ void *worker_code(void *t) {
   return NULL;
 }
 
-void test_period_dec() { 
-  struct timespec next, cur;
-  unsigned char worker_id = 0;
-  int i = 0 /* loop counter */
-    , period = start_period / n_worker;
-
-  if(dec_ppm <= 0) {
-    CU_PASS("Skipping test because dec_ppm <= 0");
-    return;
-  }
-  clock_gettime(CLOCK_REALTIME, &next);
-  timespec_add_ns(next, period*worker_id);
-  clock_gettime(CLOCK_REALTIME, &cur);
-  while(timespec_lt(next, cur)) timespec_add_ns(next, period);
-
-  while(period > 1000000) { /* Limit at 1 ms period */
-    timespec_add_ns(next, period);
-    if(g_verbosity > 2 && (i % 100) == 0) printf("period[%9d]: %9d\n", i, period);
-
-    /* You would do work here */
-    /* decrement the period by a fraction */
-    period -= dec_ppm ? period / (1000000 / dec_ppm) : 1;
-    CU_ASSERT(++i < 10000000);
-  }
-}
-
 int init_suite() {
   int err = 0;
-  g_pid = getpid();
 
+  memset(g_worker, sizeof(*g_worker), 0);
   if(!err && g_outfn
      && !(g_outf = fopen(g_outfn, "w"))) {
     err = errno;
@@ -176,7 +124,7 @@ int init_suite() {
   if(!err) {
     int i;
     for(i = 0; i < n_worker; ++i) {
-      if(!llsMQ_alloc(&g_q[i], 3, sizeof(struct LoopData)
+      if(!llsMQ_alloc(&g_worker[i].q, 3, sizeof(struct LoopData)
 		      , alignmentof(struct LoopData))) {
 	err = 1;
       }
@@ -188,7 +136,7 @@ int clean_suite() {
   int err = 0;
   int i;
   for(i = 0; i < n_worker; ++i) {
-    llsMQ_free(&g_q[i]);
+    llsMQ_free(&g_worker[i].q);
   }
   err = sem_destroy(&irqsem);
   if(g_outf) {
@@ -197,7 +145,7 @@ int clean_suite() {
   return err;
 }
 
-void test_jitter()
+void test_loop()
 { 
   int i;
   pthread_t worker_thread[N_WORKER_MAX], print_thread;
@@ -223,7 +171,7 @@ void test_jitter()
     pthread_attr_init( &attr );
     sched_param.sched_priority = sched_get_priority_max(SCHED_OTHER);
     pthread_attr_setschedparam( &attr, &sched_param );
-    pthread_create(&worker_thread[i], &attr, worker_code, (void *)i);
+    pthread_create(&worker_thread[i], &attr, start_worker, &g_worker[i]);
   }
 
   sleep(duration); /* Sleep for the defined test duration */
@@ -341,35 +289,18 @@ int main(int argc, char* argv[]) {
     return CU_get_error();
 
   /* add a suite to the registry */  
-  if (!(pSuite = CU_add_suite("jitter_suite", init_suite, clean_suite))) {
+  if (!(pSuite = CU_add_suite("loop_suite", init_suite, clean_suite))) {
     CU_cleanup_registry();
     return CU_get_error();
   }
 
-  if (!CU_ADD_TEST(pSuite, test_period_dec)
-      || !CU_ADD_TEST(pSuite, test_jitter)) {
+  if (!CU_ADD_TEST(pSuite, test_loop)) {
     CU_cleanup_registry();
     return CU_get_error();
   }
 
   CU_basic_set_mode(CU_BRM_VERBOSE);
-
-#ifdef RUN_SEPARTELY
-  if((ok = CU_basic_run_test(pSuite, CU_get_test(pSuite, "test_period_dec")))
-     != CUE_SUCCESS) {
-    fprintf(stderr, "test_period_dec CUnit result: %s\n", CU_get_error_msg());
-    goto cleanup;
-  }
-
-  if((ok = CU_basic_run_test(pSuite, CU_get_test(pSuite, "test_jitter")))
-     != CUE_SUCCESS) {
-    fprintf(stderr, "test_jitter CUnit result: %s\n", CU_get_error_msg());
-    goto cleanup;
-  }
-#else
-  //CU_console_run_tests();
   CU_basic_run_tests();
-#endif
 
  cleanup:
   CU_cleanup_registry();
