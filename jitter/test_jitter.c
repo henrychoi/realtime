@@ -14,6 +14,7 @@ int g_verbosity = 0
   , duration = 0
   , n_worker=N_WORKER
   , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
+
 const char* g_outfn = NULL;
 FILE* g_outf = NULL;
 #define N_WORKER_MAX 16
@@ -48,17 +49,24 @@ void *print_code(void *t) {
       struct LoopData loop;
       struct rusage ru;
       char sjitter[TIMESPEC_STRING_LEN], swork[TIMESPEC_STRING_LEN];
+      float period; 
 
       if(!llsMQ_pop(&g_q[i], &loop))
 	continue;
 
       getrusage(RUSAGE_SELF, &ru);/* I should do something with this */
 
-      if(g_outf)
-	fprintf(g_outf, "%d,%d,%d,%s,%s\n"
-		, i, loop.count, loop.period
+      period = loop.period/1E6f;/* in ms */
+      if(g_outf) {
+	fprintf(g_outf, "%d,%d,%4.1f,%s,%s\n"
+		, i, loop.count, period
 		, timespec_toString(&loop.t_work, swork, 1E6f, 1)
 		, timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+      }
+      printf("%d,%d,%4.1f,%s,%s\n"
+	     , i, loop.count, period
+	     , timespec_toString(&loop.t_work, swork, 1E6f, 1)
+	     , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
     }
   }
 
@@ -68,7 +76,7 @@ void *print_code(void *t) {
 
 void *worker_code(void *t) {
   struct LoopData loop;
-  struct timespec next, cur;
+  struct timespec latest = {0,0}, earliest = {0,0}, next, cur;
   unsigned char worker_id = (unsigned char)t;
 #ifdef USE_PROC
   pid_t tid = syscall(__NR_gettid);/* because gettid() is not in libc */
@@ -89,12 +97,14 @@ void *worker_code(void *t) {
 
   while(bTesting) {
     struct timespec t0;
+    unsigned char bReport = g_verbosity > 0;
+
     timespec_add_ns(next, loop.period);
 
     clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
     if(!bTesting) break;
 
-    clock_gettime(CLOCK_REALTIME, &t0); /* jitter = now - next */
+    clock_gettime(CLOCK_REALTIME, &t0); /* jitter = t0 - next */
     /* Begin "work" ****************************************/
     loop.jitter = t0; timespec_sub(loop.jitter, next); /* measure jitter */
 #ifdef USE_PROC
@@ -124,9 +134,19 @@ void *worker_code(void *t) {
     /* End "work" ******************************************/
     clock_gettime(CLOCK_REALTIME, &loop.t_work); timespec_sub(loop.t_work, t0);
 
-    if(llsMQ_push(&g_q[worker_id], &loop)) {
-      sem_post(&irqsem);
-    } else { /* Have to throw away data; need to alarm! */
+    if(timespec_gt(loop.jitter, latest)) {
+      latest = loop.jitter;
+      bReport = 1;
+    } else if (timespec_lt(loop.jitter, earliest)) {
+      earliest = loop.jitter;
+      bReport = 1;
+    }
+
+    if(bReport) {
+      if(llsMQ_push(&g_q[worker_id], &loop)) {
+	sem_post(&irqsem);
+      } else { /* Have to throw away data; need to alarm! */
+      }
     }
     /* decrement the period by a fraction */
     loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;
