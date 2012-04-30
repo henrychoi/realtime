@@ -3,30 +3,37 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <getopt.h>
+#include <sys/time.h> /* for getrusage */
+#include <sys/resource.h>
 #include <Basic.h> /* CUnit */
 #include <TestDB.h> /* CUnit */
 #include "timespec.h"
 #include "llsMQ.h"
 
-int verbosity = 0
+int g_verbosity = 0
   , duration = 0
   , n_worker=N_WORKER
   , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
+const char* g_outfn = NULL;
+FILE* g_outf = NULL;
 #define N_WORKER_MAX 16
 
 struct LoopData { /* the node I am going to shove into q */
-  struct timespec jitter;
+  struct timespec jitter, t_work;
   int count;
   int period;
 };
 
+pid_t g_pid;
 sem_t irqsem;
 struct timespec abs_start;
 unsigned char bTesting = 1;
 struct llsMQ g_q[N_WORKER_MAX];
 
-void *print_code(void *t) { 
+void *print_code(void *t) {
+  struct timeval prev_utime = {0,0}, prev_stime = {0,0};
   printf("print thread waiting for data...\n");
+
   while (bTesting) {
     int i;
     
@@ -39,11 +46,18 @@ void *print_code(void *t) {
     */
     for(i = 0; i < n_worker; ++i) {
       struct LoopData loop;
-      if(llsMQ_pop(&g_q[i], &loop)) {
-	char s[TIMESPEC_STRING_LEN];
-	printf("%d, %d, %d, %s\n", i, loop.count, loop.period
-	       , timespec_toString(&loop.jitter, s, 1E6f, 1));
-      }
+      struct rusage ru;
+      char sjitter[TIMESPEC_STRING_LEN], swork[TIMESPEC_STRING_LEN];
+
+      if(!llsMQ_pop(&g_q[i], &loop))
+	continue;
+
+      getrusage(RUSAGE_SELF, &ru);/* I should do something with this */
+
+      fprintf(g_outf, "%d,%d,%d,%s,%s\n"
+	      , i, loop.count, loop.period
+	      , timespec_toString(&loop.t_work, swork, 1E6f, 1)
+	      , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
     }
   }
 
@@ -55,6 +69,13 @@ void *worker_code(void *t) {
   struct LoopData loop;
   struct timespec next, cur;
   unsigned char worker_id = (unsigned char)t;
+#ifdef USE_PROC
+  pid_t tid = syscall(__NR_gettid);/* because gettid() is not in libc */
+  char statfn[40];
+  sprintf(statfn, "/proc/%d/task/%d/stat", g_pid, tid);
+#endif
+  printf("Worker %d starting...\n", worker_id);
+
   loop.count = 0;
   loop.period = start_period / n_worker;
 
@@ -66,14 +87,42 @@ void *worker_code(void *t) {
   while(timespec_lt(next, cur)) timespec_add_ns(next, loop.period);
 
   while(bTesting) {
+    struct timespec t0;
     timespec_add_ns(next, loop.period);
 
     clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &next, NULL);
     if(!bTesting) break;
 
+    clock_gettime(CLOCK_REALTIME, &t0); /* jitter = now - next */
     /* Begin "work" ****************************************/
-    clock_gettime(CLOCK_REALTIME, &loop.jitter); /* jitter = now - next */
-    timespec_sub(loop.jitter, next);
+    loop.jitter = t0; timespec_sub(loop.jitter, next); /* measure jitter */
+#ifdef USE_PROC
+    FILE* statf = NULL;
+    /* Read /proc/<pid>/task/<tid>/stat to know the CPU used by this thread */
+    if(statf = fopen(statfn, "r")) {
+      int pid, ppid, pgrp, session, tty_nr, tpgid;
+      unsigned flags;
+      unsigned long minflt, cminflt, majflt, cmajflt, utime, stime;
+      long cutime, cstime, priority, nice;
+      char state, comm[40];
+      if(fscanf(statf,
+		"%d %s %c %d %d %d %d %d "
+		"%u %lu %lu %lu %lu "
+		"%lu %lu %ld %ld %ld %ld"
+		, &pid, comm, &state, &ppid, &pgrp, &session, &tty_nr, &tpgid
+		, &flags, &minflt, &cminflt, &majflt, &cmajflt
+		, &utime, &stime, &cutime, &cstime, &priority, &nice)
+	 == 19) { /* successful conversion! */
+	if(g_verbosity)
+	  printf("%s utime %lu, stime %lu\n", statfn, utime, stime);
+      }
+      fclose(statf);
+    }
+#endif
+
+    /* End "work" ******************************************/
+    clock_gettime(CLOCK_REALTIME, &loop.t_work); timespec_sub(loop.t_work, t0);
+
     if(llsMQ_push(&g_q[worker_id], &loop)) {
       sem_post(&irqsem);
     } else { /* Have to throw away data; need to alarm! */
@@ -82,7 +131,6 @@ void *worker_code(void *t) {
     loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;
     if(loop.period < 1000000) break; /* Limit at 1 ms */
     ++loop.count;
-    /* End "work" ****************************************/
   }
 
   printf("Worker %d exiting...\n", worker_id);
@@ -106,7 +154,7 @@ void test_period_dec() {
 
   while(period > 1000000) { /* Limit at 1 ms period */
     timespec_add_ns(next, period);
-    if(verbosity > 2 && (i % 100) == 0) printf("period[%9d]: %9d\n", i, period);
+    if(g_verbosity > 2 && (i % 100) == 0) printf("period[%9d]: %9d\n", i, period);
 
     /* You would do work here */
     /* decrement the period by a fraction */
@@ -117,6 +165,12 @@ void test_period_dec() {
 
 int init_suite() {
   int err = 0;
+  g_pid = getpid();
+
+  if(!err && g_outfn
+     && !(g_outf = fopen(g_outfn, "w"))) {
+    err = errno;
+  }
   if(!err) err = sem_init(&irqsem, 1, 0);
   if(!err) {
     int i;
@@ -136,6 +190,9 @@ int clean_suite() {
     llsMQ_free(&g_q[i]);
   }
   err = sem_destroy(&irqsem);
+  if(g_outf) {
+    fclose(g_outf); g_outf = NULL;
+  }
   return err;
 }
 
@@ -187,7 +244,8 @@ int main(int argc, char* argv[]) {
   const char* usage =
     "--duration=(10,3600]\n"
     "[--n_worker=[1,16]]\n"
-    "[--start_period=[1000000,1000000000]] [--dec_ppm=[0,1000]]";
+    "[--start_period=[1000000,1000000000]] [--dec_ppm=[0,1000]]\n"
+    "[--outfile=<CSV file to record the result>]";
   static struct option long_options[] = {
     /* explanation of struct option {
        const char *name;
@@ -201,6 +259,7 @@ int main(int argc, char* argv[]) {
     {"n_worker", required_argument, NULL, 'w'},
     {"start_period", required_argument, NULL, 's'},
     {"dec_ppm", required_argument, NULL, 'p'},
+    {"outfile", required_argument, NULL, 'f'},
     {"verbosity", optional_argument, NULL, 'v'},
     {NULL, no_argument, NULL, 0} /* brackets the end of the options */
   };
@@ -216,8 +275,8 @@ int main(int argc, char* argv[]) {
     //int this_option_optind = optind ? optind : 1;
     switch (c) {
     case 'v': /* optarg is NULL if I don't specify an arg */
-      verbosity = optarg ? atoi(optarg) : 1;
-      printf("verbosity: %d\n", verbosity);
+      g_verbosity = optarg ? atoi(optarg) : 1;
+      printf("verbosity: %d\n", g_verbosity);
       break;
     case 'd':
       duration = atoi(optarg);
@@ -234,6 +293,10 @@ int main(int argc, char* argv[]) {
     case 'p':
       dec_ppm = atoi(optarg);
       printf("dec_ppm: 0.%04d %%\n", dec_ppm);
+      break;
+    case 'f':
+      g_outfn = optarg;
+      printf("outfile: %s\n", g_outfn);
       break;
     case 0:
       printf("option %s", long_options[option_index].name);
