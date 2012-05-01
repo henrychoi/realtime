@@ -196,8 +196,7 @@ int init_suite() {
   if(!err) {
     int i;
     for(i = 0; i < n_worker; ++i) {
-      if(!llsMQ_alloc(&g_q[i], 3, sizeof(struct LoopData)
-		      , alignmentof(struct LoopData))) {
+      if(!llsMQ_alloc(&g_q[i], 3, sizeof(struct LoopData))) {
 	err = 1;
       }
     }

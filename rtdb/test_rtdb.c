@@ -124,7 +124,7 @@ void llsMQ_testSingleThread() {
   struct timespec ts1, ts2;
   struct MyStruct ms1, ms2;
 
-  CU_ASSERT_FATAL(llsMQ_alloc(&s, 0, sizeof(long long), alignmentof(long long)));
+  CU_ASSERT_FATAL(llsMQ_alloc(&s, 0, sizeof(long long)));
   CU_ASSERT_EQUAL(s._memsize, sizeof(long long));
   CU_ASSERT(llsMQ_push(&s, &ll1));
   CU_ASSERT_FALSE(llsMQ_push(&s, &ll2));
@@ -135,7 +135,7 @@ void llsMQ_testSingleThread() {
   CU_ASSERT(llsMQ_push(&s, &ll2));
   llsMQ_free(&s);
 
-  CU_ASSERT_FATAL(llsMQ_alloc(&s, 1, sizeof(long long), alignmentof(long long)));
+  CU_ASSERT_FATAL(llsMQ_alloc(&s, 1, sizeof(long long)));
   CU_ASSERT_EQUAL(s._memsize, sizeof(long long));
   CU_ASSERT(llsMQ_push(&s, &ll1));
   CU_ASSERT(llsMQ_push(&s, &ll2));
@@ -151,8 +151,8 @@ void llsMQ_testSingleThread() {
   CU_ASSERT(llsMQ_push(&s, &ll2));
   llsMQ_free(&s);
 
-  CU_ASSERT_FATAL(llsMQ_alloc(&s, 0, sizeof(char), alignmentof(char)));
-  CU_ASSERT_EQUAL(s._memsize, alignmentof(char));
+  CU_ASSERT_FATAL(llsMQ_alloc(&s, 0, sizeof(char)));
+  CU_ASSERT_EQUAL(s._memsize, sizeof(char));
   CU_ASSERT(llsMQ_push(&s, &c1));
   CU_ASSERT_FALSE(llsMQ_push(&s, &c2));
   CU_ASSERT(llsMQ_pop(&s, &c2));

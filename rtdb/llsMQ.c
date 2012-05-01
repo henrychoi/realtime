@@ -17,15 +17,20 @@ void llsMQ_free(struct llsMQ* me) {
   free(me->_pool); me->_pool = NULL;
 }
 unsigned char llsMQ_alloc(struct llsMQ* me, unsigned char exponent
-			 , size_t memsize, size_t alignment) {
+			  , size_t memsize/*, size_t alignment*/) {
   me->_mask = (1 << (exponent+1)) - 1;
+#ifdef ALIGN_MEMORY_NECESSARY
   me->_memsize = alignSize(memsize, alignment);
   if(alignment < sizeof(void*))
     alignment = sizeof(void*);
   if(posix_memalign(&me->_pool, alignment
-		    , me->_memsize * (me->_mask + 1) /* 1 slot is wasted */)) {
+		    , me->_memsize * (me->_mask + 1) /* 1 more needed */)) {
     return 0;
   }
+#else
+  me->_memsize = memsize;
+  me->_pool = malloc(me->_memsize * (me->_mask + 1));
+#endif
   if(!llsMQ_init(me)) {
     llsMQ_free(me);
     return 0;
@@ -36,13 +41,13 @@ void llsMQ_delete(struct llsMQ* me) {
   llsMQ_dispose(me);
   free(me);
 }
-struct llsMQ* llsMQ_new(unsigned char exponent
-			, size_t memsize, size_t alignment) {
+struct llsMQ* llsMQ_new(unsigned char exponent, size_t memsize
+			/*, size_t alignment*/) {
   struct llsMQ* me = NULL;
   if(!(me = (struct llsMQ*)malloc(sizeof(*me)))) {
     return NULL;
   }
-  if(!(llsMQ_alloc(me, exponent, memsize, alignment))) {
+  if(!(llsMQ_alloc(me, exponent, memsize/*, alignment*/))) {
     free(me);
     return NULL;
   }  

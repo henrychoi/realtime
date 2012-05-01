@@ -1,3 +1,4 @@
+#include <stdio.h> /* for snprintf */
 #include "timespec.h"
 
 /* These constants will exist in the timespec library */
