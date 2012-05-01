@@ -12,7 +12,7 @@ struct Worker {
   unsigned char id;
   WorkFunction work;
   struct llsMQ q;
-  unsigned somekindofdata[10];
+  unsigned somekindofdata[2];
 };
 
 #ifdef __cplusplus

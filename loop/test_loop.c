@@ -114,7 +114,6 @@ void *start_worker(void *t) {
 
 int init_suite() {
   int err = 0;
-
   memset(g_worker, sizeof(*g_worker), 0);
   if(!err && g_outfn
      && !(g_outf = fopen(g_outfn, "w"))) {
@@ -124,8 +123,7 @@ int init_suite() {
   if(!err) {
     int i;
     for(i = 0; i < n_worker; ++i) {
-      if(!llsMQ_alloc(&g_worker[i].q, 3, sizeof(struct LoopData)
-		      , alignmentof(struct LoopData))) {
+      if(!llsMQ_alloc(&g_worker[i].q, 3, sizeof(struct LoopData))) {
 	err = 1;
       }
     }
