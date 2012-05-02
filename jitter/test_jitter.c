@@ -38,7 +38,12 @@ void *print_code(void *t) {
   while (bTesting) {
     int i;
     
-    sem_wait( &irqsem );/* wait for the worker to signal me */
+    if(g_verbosity) { /* If the worker will always publish, let's read the
+			 message as fast as we can without spinning */
+      usleep(10000); /* sleep 10 ms, which is a Linux scheduling gradularity */
+    } else {
+      sem_wait(&irqsem);/* wait for the worker to signal me */
+    }
     if(!bTesting) break;
 
     /* Don't know which worker signalled me; have to check all of them;
@@ -47,26 +52,25 @@ void *print_code(void *t) {
     */
     for(i = 0; i < n_worker; ++i) {
       struct LoopData loop;
-      struct rusage ru;
-      char sjitter[TIMESPEC_STRING_LEN], swork[TIMESPEC_STRING_LEN];
-      float period; 
 
-      if(!llsMQ_pop(&g_q[i], &loop))
-	continue;
-
-      getrusage(RUSAGE_SELF, &ru);/* I should do something with this */
-
-      period = loop.period/1E6f;/* in ms */
-      if(g_outf) {
-	fprintf(g_outf, "%d,%d,%4.1f,%s,%s\n"
-		, i, loop.count, period
-		, timespec_toString(&loop.t_work, swork, 1E6f, 1)
-		, timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+      while(llsMQ_pop(&g_q[i], &loop)) {
+	char sjitter[TIMESPEC_STRING_LEN], swork[TIMESPEC_STRING_LEN];
+	float period; 
+	/*struct rusage ru; I should do something with this
+	getrusage(RUSAGE_SELF, &ru);
+	*/
+	period = loop.period/1E6f;/* in ms */
+	if(g_outf) {
+	  fprintf(g_outf, "%d,%d,%4.1f,%s,%s\n"
+		  , i, loop.count, period
+		  , timespec_toString(&loop.t_work, swork, 1E6f, 1)
+		  , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+	}
+	printf("%d,%d,%4.1f,%s,%s\n"
+	       , i, loop.count, period
+	       , timespec_toString(&loop.t_work, swork, 1E6f, 1)
+	       , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
       }
-      printf("%d,%d,%4.1f,%s,%s\n"
-	     , i, loop.count, period
-	     , timespec_toString(&loop.t_work, swork, 1E6f, 1)
-	     , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
     }
   }
 
@@ -144,7 +148,8 @@ void *worker_code(void *t) {
 
     if(bReport) {
       if(llsMQ_push(&g_q[worker_id], &loop)) {
-	sem_post(&irqsem);
+	if(!g_verbosity)
+	  sem_post(&irqsem);
       } else { /* Have to throw away data; need to alarm! */
       }
     }
@@ -198,7 +203,7 @@ int init_suite() {
   if(!err) {
     int i;
     for(i = 0; i < n_worker; ++i) {
-      if(!llsMQ_alloc(&g_q[i], 3, sizeof(struct LoopData))) {
+      if(!llsMQ_alloc(&g_q[i], 5, sizeof(struct LoopData))) {
 	err = 1;
       }
     }
