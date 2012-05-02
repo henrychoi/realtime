@@ -189,7 +189,7 @@ int init_suite() {
   g_pid = getpid();
 
   if(!err && g_outfn
-     && (!g_outf = fopen(g_outfn, "w")
+     && (!(g_outf = fopen(g_outfn, "w"))
 	 || (fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
 	     < 0))) {
     err = errno;
