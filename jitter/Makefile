@@ -1,5 +1,4 @@
-# Invoke with this make command:
-# make LOOP_FREQ=<1 to 1000> N_CPU=<1 to 16>
+BASEDIR := ..
 LOOP_FREQ ?=1
 N_WORKER ?=1
 TARGET := jitter
