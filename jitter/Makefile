@@ -5,7 +5,7 @@ TARGET := jitter
 LIBSRC :=
 NEEDLIBS := timespec rtds
 APP_CFLAGS := -DLOOP_FREQ=$(LOOP_FREQ) -DN_WORKER=$(N_WORKER)
-APP_LDFLAGS := -pthread -lrt
+APP_LDFLAGS := -lrt
 include ../base.mk ##################################
 debug:
 	echo $(LDFLAGS)

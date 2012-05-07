@@ -1,12 +1,5 @@
 #ifndef llsMQ_h
 #define llsMQ_h
-/*Since I am copying memory, I don't need to worry about alignment
-#include <stddef.h>
-#ifndef alignmentof
-#define alignmentof(_testType_) \
-  offsetof(struct { char c; _testType_ _testMem; }, _testMem)
-#endif
-*/
 
 #ifdef __cplusplus
 extern "C" {

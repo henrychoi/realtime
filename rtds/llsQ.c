@@ -33,7 +33,7 @@ struct llsQ* llsQ_new(unsigned char exponent) {
   if(!(me = (struct llsQ*)malloc(sizeof(*me)))) {
     return NULL;
   }
-  if(!(llsMQ_alloc(me, exponent))) {
+  if(!(llsQ_alloc(me, exponent))) {
     free(me);
     return NULL;
   }  

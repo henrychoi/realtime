@@ -1,9 +1,13 @@
 #ifndef llsMP_h
 #define llsMP_h
 
-#include <stddef.h> /* for offsetof */
-
-#ifdef __cplusplus
+#ifndef __cplusplus
+#  ifndef __alignof__ /* g++ has this */
+#    include <stddef.h> /* for offsetof */
+#    define __alignof__(testType) \
+  offsetof(struct { char c; testType _testMem; }, _testMem)
+#  endif
+#else
 extern "C" {
 #endif
 
@@ -13,12 +17,6 @@ typedef struct llsMP {
   void* _pool;/* the memory itself */
   void* *_book;/* Array for book keeping, but don't know the size till ctor */
 } llsMP;
-
-#ifndef alignmentof
-#define alignmentof(testType) \
-  offsetof(struct { char c; testType _testMem; }, _testMem)
-  /*(sizeof(struct { char c; testType _testMem; }) - sizeof(testType))*/
-#endif
 
   unsigned char llsMP_alloc(struct llsMP* me,
 			    size_t capacity, size_t memsize, size_t alignment);

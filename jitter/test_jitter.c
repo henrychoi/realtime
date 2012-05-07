@@ -5,8 +5,7 @@
 #include <getopt.h>
 #include <sys/time.h> /* for getrusage */
 #include <sys/resource.h>
-#include <Basic.h> /* CUnit */
-#include <TestDB.h> /* CUnit */
+#include "gtest/gtest.h"
 #include "timespec.h"
 #include "llsMQ.h"
 
@@ -81,7 +80,7 @@ void *print_code(void *t) {
 void *worker_code(void *t) {
   struct LoopData loop;
   struct timespec latest = {0,0}, earliest = {0,0}, next, cur;
-  unsigned char worker_id = (unsigned char)t;
+  unsigned worker_id = (unsigned)t;
 #ifdef USE_PROC
   pid_t tid = syscall(__NR_gettid);/* because gettid() is not in libc */
   char statfn[40];
@@ -163,14 +162,13 @@ void *worker_code(void *t) {
   return NULL;
 }
 
-void test_period_dec() { 
+TEST(LoopTest, DecrementPeriod) { 
   struct timespec next, cur;
   unsigned char worker_id = 0;
   int i = 0 /* loop counter */
     , period = start_period / n_worker;
 
   if(dec_ppm <= 0) {
-    CU_PASS("Skipping test because dec_ppm <= 0");
     return;
   }
   clock_gettime(CLOCK_REALTIME, &next);
@@ -185,50 +183,26 @@ void test_period_dec() {
     /* You would do work here */
     /* decrement the period by a fraction */
     period -= dec_ppm ? period / (1000000 / dec_ppm) : 1;
-    CU_ASSERT(++i < 10000000);
+    EXPECT_LT(++i, 10000000);
   }
 }
 
-int init_suite() {
-  int err = 0;
-  g_pid = getpid();
-
-  if(!err && g_outfn
-     && (!(g_outf = fopen(g_outfn, "w"))
-	 || (fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
-	     < 0))) {
-    err = errno;
-  }
-  if(!err) err = sem_init(&irqsem, 1, 0);
-  if(!err) {
-    int i;
-    for(i = 0; i < n_worker; ++i) {
-      if(!llsMQ_alloc(&g_q[i], 5, sizeof(struct LoopData))) {
-	err = 1;
-      }
-    }
-  }
-  return err;
-}
-int clean_suite() {
-  int err = 0;
-  int i;
-  for(i = 0; i < n_worker; ++i) {
-    llsMQ_free(&g_q[i]);
-  }
-  err = sem_destroy(&irqsem);
-  if(g_outf) {
-    fclose(g_outf); g_outf = NULL;
-  }
-  return err;
-}
-
-void test_jitter()
-{ 
+TEST(JitterTest, Loop) { 
   int i;
   pthread_t worker_thread[N_WORKER_MAX], print_thread;
   pthread_attr_t attr;
   struct sched_param sched_param;
+
+  g_pid = getpid();
+
+  if(g_outfn && !(g_outf = fopen(g_outfn, "w"))) {
+    ASSERT_GE(fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
+	      , 0);
+  }
+  ASSERT_FALSE(sem_init(&irqsem, 1, 0));
+  for(i = 0; i < n_worker; ++i) {
+    ASSERT_TRUE(llsMQ_alloc(&g_q[i], 5, sizeof(struct LoopData)));
+  }
 
   /*
    * Start the thread that prints the timing values.
@@ -258,15 +232,18 @@ void test_jitter()
   bTesting = 0;/* signal the worker threads to exit then wait for them */
   for (i = 0 ; i < n_worker ; ++i) pthread_join(worker_thread[i], NULL);
   sem_post(&irqsem); pthread_join( print_thread, NULL );
+
+  for(i = 0; i < n_worker; ++i) {
+    llsMQ_free(&g_q[i]);
+  }
+  sem_destroy(&irqsem);
+  if(g_outf) {
+    fclose(g_outf); g_outf = NULL;
+  }
 }
 
-/* The main() function for setting up and running the tests.
- * Returns a CUE_SUCCESS on successful running, another
- * CUnit error code on failure.
- */
 int main(int argc, char* argv[]) {
-  CU_pSuite pSuite = NULL;
-  CU_ErrorCode ok = CUE_SUCCESS;
+  ::testing::InitGoogleTest(&argc, argv);
 
   const char* usage =
     "--duration=(10,3600]\n"
@@ -362,42 +339,5 @@ int main(int argc, char* argv[]) {
     return -1;
   }
 
-  /* initialize the CUnit test registry */
-  if (CUE_SUCCESS != CU_initialize_registry())
-    return CU_get_error();
-
-  /* add a suite to the registry */  
-  if (!(pSuite = CU_add_suite("jitter_suite", init_suite, clean_suite))) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  if (!CU_ADD_TEST(pSuite, test_period_dec)
-      || !CU_ADD_TEST(pSuite, test_jitter)) {
-    CU_cleanup_registry();
-    return CU_get_error();
-  }
-
-  CU_basic_set_mode(CU_BRM_VERBOSE);
-
-#ifdef RUN_SEPARTELY
-  if((ok = CU_basic_run_test(pSuite, CU_get_test(pSuite, "test_period_dec")))
-     != CUE_SUCCESS) {
-    fprintf(stderr, "test_period_dec CUnit result: %s\n", CU_get_error_msg());
-    goto cleanup;
-  }
-
-  if((ok = CU_basic_run_test(pSuite, CU_get_test(pSuite, "test_jitter")))
-     != CUE_SUCCESS) {
-    fprintf(stderr, "test_jitter CUnit result: %s\n", CU_get_error_msg());
-    goto cleanup;
-  }
-#else
-  //CU_console_run_tests();
-  CU_basic_run_tests();
-#endif
-
- cleanup:
-  CU_cleanup_registry();
-  return (ok != CUE_SUCCESS) ? CU_get_error() : ok;
+  return RUN_ALL_TESTS();
 }
