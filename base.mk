@@ -1,12 +1,6 @@
-CC=$(CROSS)g++
-AR=$(CROSS)ar
-
-THIRDPARTY :=$(BASEDIR)/../ThirdParty
-#CUNIT :=$(THIRDPARTY)/CUnit-2.1-2/CUnit
-#UNITTEST_FLAGS :=-Wno-pointer-to-int-cast -Wno-int-to-pointer_cast\
-#	-I$(CUNIT)/Headers\
-#	-static -L$(CUNIT)/Sources/.libs -lcunit
-GTEST :=$(THIRDPARTY)/gtest-1.6.0
+CC :=$(CROSS)g++
+AR :=$(CROSS)ar
+GTEST :=$(BASEDIR)/ThirdParty/gtest-1.6.0
 
 LIB :=lib$(TARGET).a
 TEST :=test_$(TARGET)
