@@ -32,7 +32,7 @@ struct llsMQ g_q[N_WORKER_MAX];
 
 void *print_code(void *t) {
   struct timeval prev_utime = {0,0}, prev_stime = {0,0};
-  printf("print thread waiting for data...\n");
+  printf("print thread starting...\n");
 
   while (bTesting) {
     int i;
@@ -43,7 +43,7 @@ void *print_code(void *t) {
     } else {
       sem_wait(&irqsem);/* wait for the worker to signal me */
     }
-    if(!bTesting) break;
+    /* if(!bTesting) break; */
 
     /* Don't know which worker signalled me; have to check all of them;
        a select() on different semaphores would be doing essentially the
@@ -65,10 +65,12 @@ void *print_code(void *t) {
 		  , timespec_toString(&loop.t_work, swork, 1E6f, 1)
 		  , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
 	}
-	printf("%d,%d,%4.1f,%s,%s\n"
-	       , i, loop.count, period
-	       , timespec_toString(&loop.t_work, swork, 1E6f, 1)
-	       , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+	if(g_verbosity > 1) {
+	  printf("%d,%d,%4.1f,%s,%s\n"
+		 , i, loop.count, period
+		 , timespec_toString(&loop.t_work, swork, 1E6f, 1)
+		 , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
+	}
       }
     }
   }
@@ -147,8 +149,10 @@ void *worker_code(void *t) {
 
     if(bReport) {
       if(llsMQ_push(&g_q[worker_id], &loop)) {
-	if(!g_verbosity)
+	if(!g_verbosity) {
+	  /*printf("Waking up the print thread...\n");*/
 	  sem_post(&irqsem);
+	}
       } else { /* Have to throw away data; need to alarm! */
       }
     }
@@ -195,7 +199,8 @@ TEST(JitterTest, Loop) {
 
   g_pid = getpid();
 
-  if(g_outfn && !(g_outf = fopen(g_outfn, "w"))) {
+  if(g_outfn) {
+    ASSERT_TRUE(g_outf = fopen(g_outfn, "w"));
     ASSERT_GE(fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
 	      , 0);
   }
@@ -249,7 +254,8 @@ int main(int argc, char* argv[]) {
     "--duration=(10,3600]\n"
     "[--n_worker=[1,16]]\n"
     "[--start_period=[1000000,1000000000]] [--dec_ppm=[0,1000]]\n"
-    "[--outfile=<CSV file to record the result>]";
+    "[--outfile=<CSV file to record the result>]\n"
+    "[--verbosity=[0,2]]\n";
   static struct option long_options[] = {
     /* explanation of struct option {
        const char *name;
