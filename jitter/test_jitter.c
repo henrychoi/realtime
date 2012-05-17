@@ -213,6 +213,10 @@ TEST(JitterTest, Loop) {
    * Start the thread that prints the timing values.
    * We set the thread priority very low to make sure that it does
    * not interfere with the threads that are doing the actual timing
+   * From 'man sched_setscheduler':
+   For processes scheduled under one of the normal scheduling policies
+   (SCHED_OTHER, SCHED_IDLE, SCHED_BATCH), sched_priority is not used in
+   scheduling decisions (it must be specified as 0).
    */
   pthread_attr_init( &attr );
   sched_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
@@ -226,7 +230,8 @@ TEST(JitterTest, Loop) {
   for ( i = 0; i < n_worker; i++ ) { 
     /* initialize the thread attributes and set the WORKER to run on */
     pthread_attr_init( &attr );
-    sched_param.sched_priority = sched_get_priority_max(SCHED_OTHER);
+    ASSERT_EQ(pthread_attr_setschedpolicy(&attr, SCHED_FIFO), 0);
+    sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
     pthread_attr_setschedparam( &attr, &sched_param );
     pthread_create(&worker_thread[i], &attr, worker_code, (void *)i);
   }
