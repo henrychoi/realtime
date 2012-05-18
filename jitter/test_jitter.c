@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <sys/time.h> /* for getrusage */
 #include <sys/resource.h>
+#include <sys/mman.h> /* for mlockall */
 #include "gtest/gtest.h"
 #include "timespec.h"
 #include "llsMQ.h"
@@ -349,6 +350,9 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Invalid argument.  Usage:\n%s", usage);
     return -1;
   }
+
+  /* Avoids memory swapping for this program */
+  mlockall(MCL_CURRENT|MCL_FUTURE);
 
   return RUN_ALL_TESTS();
 }
