@@ -1,22 +1,11 @@
 #ifndef loop_h
 #define loop_h
-#include <time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef void (*WorkFunction)(void*);
-
-struct Worker {
+class Worker {
+ public:
   unsigned char id;
-  WorkFunction work;
-  struct llsMQ q;
-  unsigned somekindofdata[2];
+  void work() {};
+  RT_TASK task;
 };
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif/* loop_h */

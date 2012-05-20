@@ -1,11 +1,16 @@
-CC :=$(CROSS)g++
-AR :=$(CROSS)ar
+ifdef CROSS
+  CC :=$(CROSS)-g++
+  AR :=$(CROSS)-ar
+else
+  CC :=g++
+  AR :=ar
+endif
 GTEST :=$(BASEDIR)/ThirdParty/gtest-1.6.0
 
 LIB :=lib$(TARGET).a
 TEST :=test_$(TARGET)
 _objects :=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
-CFLAGS := -g $(patsubst %, -I$(BASEDIR)/%, $(NEEDLIBS)) $(APP_CFLAGS)\
+CFLAGS :=-g $(patsubst %, -I$(BASEDIR)/%, $(NEEDLIBS)) $(APP_CFLAGS)\
 	-I${GTEST}/include
 LDFLAGS := -L. -l$(TARGET)\
 	$(foreach module, $(NEEDLIBS), -L$(BASEDIR)/$(module) -l$(module))\

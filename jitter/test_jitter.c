@@ -1,8 +1,7 @@
 #include <stdio.h>
+#include <getopt.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <semaphore.h>
-#include <getopt.h>
 #include <sys/time.h> /* for getrusage */
 #include <sys/resource.h>
 #include <sys/mman.h> /* for mlockall */
@@ -25,10 +24,9 @@ struct LoopData { /* the node I am going to shove into q */
   int period;
 };
 
-pid_t g_pid;
-sem_t irqsem;
-struct timespec abs_start;
 unsigned char bTesting = 1;
+pid_t g_pid;
+struct timespec abs_start;
 struct llsMQ g_q[N_WORKER_MAX];
 
 void *print_code(void *t) {
@@ -38,12 +36,7 @@ void *print_code(void *t) {
   while (bTesting) {
     int i;
     
-    if(g_verbosity) { /* If the worker will always publish, let's read the
-			 message as fast as we can without spinning */
-      usleep(10000); /* sleep 10 ms, which is a Linux scheduling gradularity */
-    } else {
-      sem_wait(&irqsem);/* wait for the worker to signal me */
-    }
+    usleep(10000); /* sleep 10 ms, which is a Linux scheduling gradularity */
     /* if(!bTesting) break; */
 
     /* Don't know which worker signalled me; have to check all of them;
@@ -66,7 +59,7 @@ void *print_code(void *t) {
 		  , timespec_toString(&loop.t_work, swork, 1E6f, 1)
 		  , timespec_toString(&loop.jitter, sjitter, 1E6f, 1));
 	}
-	if(g_verbosity > 1) {
+	if(g_verbosity) {
 	  printf("%d,%d,%4.1f,%s,%s\n"
 		 , i, loop.count, period
 		 , timespec_toString(&loop.t_work, swork, 1E6f, 1)
@@ -82,7 +75,7 @@ void *print_code(void *t) {
 
 void *worker_code(void *t) {
   struct LoopData loop;
-  struct timespec latest = {0,0}, earliest = {0,0}, next, cur;
+  struct timespec next, cur;
   unsigned worker_id = (unsigned)t;
 #ifdef USE_PROC
   pid_t tid = syscall(__NR_gettid);/* because gettid() is not in libc */
@@ -103,7 +96,6 @@ void *worker_code(void *t) {
 
   while(bTesting) {
     struct timespec t0;
-    unsigned char bReport = g_verbosity > 0;
 
     timespec_add_ns(next, loop.period);
 
@@ -140,22 +132,8 @@ void *worker_code(void *t) {
     /* End "work" ******************************************/
     clock_gettime(CLOCK_REALTIME, &loop.t_work); timespec_sub(loop.t_work, t0);
 
-    if(timespec_gt(loop.jitter, latest)) {
-      latest = loop.jitter;
-      bReport = 1;
-    } else if (timespec_lt(loop.jitter, earliest)) {
-      earliest = loop.jitter;
-      bReport = 1;
-    }
-
-    if(bReport) {
-      if(llsMQ_push(&g_q[worker_id], &loop)) {
-	if(!g_verbosity) {
-	  /*printf("Waking up the print thread...\n");*/
-	  sem_post(&irqsem);
-	}
-      } else { /* Have to throw away data; need to alarm! */
-      }
+    if(llsMQ_push(&g_q[worker_id], &loop)) {
+    } else { /* Have to throw away data; need to alarm! */
     }
     /* decrement the period by a fraction */
     loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;
@@ -205,7 +183,6 @@ TEST(JitterTest, Loop) {
     ASSERT_GE(fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
 	      , 0);
   }
-  ASSERT_FALSE(sem_init(&irqsem, 1, 0));
   for(i = 0; i < n_worker; ++i) {
     ASSERT_TRUE(llsMQ_alloc(&g_q[i], 5, sizeof(struct LoopData)));
   }
@@ -220,10 +197,15 @@ TEST(JitterTest, Loop) {
    scheduling decisions (it must be specified as 0).
    */
   pthread_attr_init( &attr );
-  sched_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
+  ASSERT_EQ(pthread_attr_setschedpolicy(&attr, SCHED_FIFO), 0);
+  sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO);
+  /* sched_param.sched_priority = sched_get_priority_min(SCHED_OTHER); */
   pthread_attr_setschedparam( &attr, &sched_param );
   pthread_create( &print_thread, &attr, print_code, (void *)0 );
   
+  /* Avoids memory swapping for this program */
+  ASSERT_EQ(mlockall(MCL_CURRENT|MCL_FUTURE), 0);
+
   /* get the current time that the threads can base their scheduling on */
   clock_gettime( CLOCK_REALTIME, &abs_start );
 
@@ -232,7 +214,7 @@ TEST(JitterTest, Loop) {
     /* initialize the thread attributes and set the WORKER to run on */
     pthread_attr_init( &attr );
     ASSERT_EQ(pthread_attr_setschedpolicy(&attr, SCHED_FIFO), 0);
-    sched_param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    sched_param.sched_priority = sched_get_priority_min(SCHED_FIFO) + 1;
     pthread_attr_setschedparam( &attr, &sched_param );
     pthread_create(&worker_thread[i], &attr, worker_code, (void *)i);
   }
@@ -242,12 +224,11 @@ TEST(JitterTest, Loop) {
   printf("Shutting down...\n");
   bTesting = 0;/* signal the worker threads to exit then wait for them */
   for (i = 0 ; i < n_worker ; ++i) pthread_join(worker_thread[i], NULL);
-  sem_post(&irqsem); pthread_join( print_thread, NULL );
+  pthread_join(print_thread, NULL);
 
   for(i = 0; i < n_worker; ++i) {
     llsMQ_free(&g_q[i]);
   }
-  sem_destroy(&irqsem);
   if(g_outf) {
     fclose(g_outf); g_outf = NULL;
   }
@@ -350,9 +331,6 @@ int main(int argc, char* argv[]) {
     fprintf(stderr, "Invalid argument.  Usage:\n%s", usage);
     return -1;
   }
-
-  /* Avoids memory swapping for this program */
-  mlockall(MCL_CURRENT|MCL_FUTURE);
 
   return RUN_ALL_TESTS();
 }
