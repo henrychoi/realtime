@@ -3,6 +3,7 @@
 #include "llsQ.h"
 #include "llsMP.h"
 #include "llsMQ.h"
+#include "CircQ.h"
 
 struct MyStruct {
   char ca, cb;
@@ -166,6 +167,60 @@ TEST(llsMQ_Test, Character) {
   c2 = 'c';
   EXPECT_TRUE(llsMQ_push(&s, &c2));
   llsMQ_free(&s);
+}
+
+class CircQ_Test : public ::testing::Test {
+ protected:
+  // You can remove any or all of the following functions if its body
+  // is empty.
+
+  CircQ_Test() {
+    // You can do set-up work for each test here.
+  }
+  virtual ~CircQ_Test() {
+    // You can do clean-up work that doesn't throw exceptions here.
+  }
+  // If the constructor and destructor are not enough for setting up
+  // and cleaning up each test, you can define the following methods:
+  virtual void SetUp() {
+    // Code here will be called immediately after the constructor (right
+    // before each test).
+  }
+  virtual void TearDown() {
+    // Code here will be called immediately after each test (right
+    // before the destructor).
+  }
+  // Objects declared here can be used by all tests in the test case for Foo.
+};
+
+TEST(CircQ_Test, LongInteger) {
+  long long ll1 = 0x1234567890abcdef, ll2 = 0x234567890abcdef1;
+
+  {
+    CircQ<long long> s(1);
+
+    EXPECT_TRUE(s.push(ll1));
+    EXPECT_FALSE(s.push(ll2));
+    EXPECT_TRUE(s.pop(ll2));
+    EXPECT_EQ(ll2, ll1);
+    EXPECT_FALSE(s.pop(ll1));
+    ll2 = 0x234567890abcdef1;
+    EXPECT_TRUE(s.push(ll2));
+  }
+
+  {
+    CircQ<long long> s(2);
+    EXPECT_TRUE(s.push(ll1));
+    EXPECT_TRUE(s.push(ll2));
+    EXPECT_FALSE(s.push(ll1));
+    EXPECT_TRUE(s.pop(ll2));
+    EXPECT_EQ(ll2, ll1);
+    EXPECT_TRUE(s.pop(ll2));
+    EXPECT_EQ(ll2, 0x234567890abcdef1);
+    EXPECT_FALSE(s.pop(ll1));
+    ll2 = 0x234567890abcdef1;
+    EXPECT_TRUE(s.push(ll2));
+  }
 }
 
 int main(int argc, char* argv[]) {

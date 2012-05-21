@@ -1,5 +1,5 @@
 BASEDIR := ..
-TARGET := loop
+TARGET := xenomai
 LIBSRC :=
 NEEDLIBS :=rtds
 BUILDROOT :=$(BASEDIR)/ThirdParty/buildroot-2012.02-i386

@@ -1,3 +1,4 @@
+// system calls ///////////////////////////////////////////
 #include <stdio.h>
 #include <getopt.h>
 #include <unistd.h>
@@ -7,47 +8,66 @@
 #include <sys/mman.h> // for mlockall()
 #include <native/task.h>
 #include <native/timer.h>
-#include "loop.h"
-#include "llsMQ.h"
+
+// 3rd party stuff ////////////////////////////////////////
 #include "gtest/gtest.h"
+#include "log4cpp/Category.hh"
+#include "log4cpp/RollingFileAppender.hh"
+#include "log4cpp/BasicLayout.hh"
+#include "log4cpp/PatternLayout.hh"
 
-#define LOOP_FREQ 100
-int g_verbosity = 0
-  , duration = 0
-  , n_worker=1
-  , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
-const char* g_outfn = NULL;
-FILE* g_outf = NULL;
-#define N_WORKER_MAX 4
-struct llsMQ g_q[N_WORKER_MAX];
-
-RTIME abs_start;
+// my code ////////////////////////////////////////////////
+#include "CircQ.h"
 
 struct LoopData { /* the node I am going to shove into q */
   SRTIME jitter;
   RTIME t_work, period;
-  int count;
+  unsigned long long count;
 };
 
-unsigned char bTesting = 1;
+class Worker {
+ public:
+  unsigned char id;
+  RT_TASK thread;
+  CircQ<struct LoopData> loopdata_q, late_q;
 
-void* printloop(void *t) {
-  printf("print thread starting.\n");
+  virtual ~Worker() {};
+ Worker() : loopdata_q(30), late_q(10) {};
+
+ protected:
+  void work();
+};
+
+using namespace log4cpp;
+
+// globals ////////////////////////////////////////////////
+int g_verbosity = 0
+  , duration = 0
+  , n_worker=N_WORKER
+  , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
+
+const char* g_outfn = NULL;
+FILE* g_outf = NULL;
+bool bTesting = 1;
+RTIME abs_start;
+
+// functions ////////////////////////////////////////////
+Void *printloop(void *t) {
+  Worker* worker = (Worker*)t;
+  Category& logger = Category::getInstance(__FILE__);
+  logger.info("print thread starting.");
 
   while (bTesting) {
-    if(!bTesting) break;
-    rt_task_sleep(10000);
+    usleep(10000);// sleep 10 ms, which is a Linux scheduling gradularity
 
     for(int i = 0; i < n_worker; ++i) {
       struct LoopData loop;
-      while(llsMQ_pop(&g_q[i], &loop)) {
+
+      while(worker[i].loopdata_q.pop(loop)) {
 	char line[80];
-	int bts = sprintf(line
-			  //, "%d,%d,%.2f,%lld.%1d,%lld\n"
-			  , "%d,%d,%.2f,%.1f,%.1f\n"
+	int bts = sprintf(line, "%d,%lld,%.2f,%.1f,%.1f\n"
 			  , i, loop.count, loop.period/1E6f //[ms]
-			  , loop.t_work/1000.0f //[us]
-			  , loop.jitter/1000.0f)
+			  , loop.t_work/1E3f, loop.jitter/1E3F)
 	  + 1;
 	if(g_outf) fprintf(g_outf, "%s", line);
 	if(g_verbosity) printf("%s", line);
@@ -55,7 +75,7 @@ void* printloop(void *t) {
     }
   }
 
-  printf("print thread exiting.\n");
+  logger.info("print thread exiting.");
   return NULL;
 }
 
@@ -75,69 +95,89 @@ void warn_upon_switch(int sig __attribute__((unused)))
 
 void workloop(void *t) {
   Worker* me = (Worker*)t;
-  struct LoopData loop;
-  loop.count = 0; loop.period = start_period;
+  Category& logger = Category::getInstance(__FILE__);
+  logger.info("Worker %d starting.", me->id);
 
-  printf("Worker %d starting.\n", me->id);
+  struct LoopData loop;
+  loop.count = 0;
+  loop.period = start_period / n_worker;
+  loop.deadline = abs_start + loop.period*me->id;
+
   // entering primary mode
   rt_task_set_mode(0, T_WARNSW, NULL);/* Ask Xenomai to warn us upon
 					 switches to secondary mode. */
 
-  RTIME next = abs_start + loop.period * me->id
-    , cur = rt_timer_read();
-  while(next < cur) next += loop.period;
+  RTIME now = rt_timer_read();
+  while(loop.deadline < now) loop.deadline += loop.period;
 
   while(bTesting) {
-    next += loop.period;
-    //printf(".");
-    rt_task_sleep_until(next);//blocks /////////////////////
+    rt_task_sleep_until(loop.deadline);//blocks /////////////////////
     if(!bTesting) break;
 
-    cur = rt_timer_read();
-    loop.jitter = cur - next;//measure jitter
+    now = rt_timer_read();
+    loop.jitter = now - loop.deadline;//measure jitter
 
     /* Begin "work" ****************************************/
     me->work(); //rt_task_sleep(100000000); //for debugging
-
     /* End "work" ******************************************/
-    loop.t_work = rt_timer_read() - cur;
-    if(llsMQ_push(&g_q[me->id], &loop)) {
-    } else { /* Have to throw away data; need to alarm! */
+    RTIME t0 = now;//use an easy to remember var
+    now = rt_timer_read();
+
+    // Post work book keeping ///////////////////////////////
+    if(!me->late_q.isEmpty()// Manage the late q
+       && me->late_q[0].count < (loop.count - 100)) {
+      me->late_q.pop(); // if sufficiently old, forget about it
     }
+
+    //to report how much the work took
+    loop.t_work = now - t0;
+    if(me->loopdata_q.push(loop)) {
+    } else { /* Have to throw away data; need to alarm! */
+      logger.alert("Loop data full");
+    }
+
+    loop.deadline += loop.period;
+    if(now > loop.deadline) { // Did I miss the deadline?
+      // How badly did I miss the deadline?
+      // Definition of "badness": just a simple count over the past N loop
+      if(me->late_q.isFull()) { //FATAL
+	logger.fatal("Missed too many deadlines");
+	break;
+      }
+    }
+
     /* decrement the period by a fraction */
     loop.period -= dec_ppm ? loop.period / (1000000 / dec_ppm) : 0;
-    if(loop.period < 1000000) break; /* Limit at 1 ms */
+    if(loop.period < 1000000) break; /* Limit at 1 ms for now */
     ++loop.count;
   }
 
   rt_task_set_mode(T_WARNSW, 0, NULL);// popping out of primary mode
-  printf("Worker %d exiting.\n", me->id);
+  logger.info("Worker %d exiting.", me->id);
 }
 
 TEST(JitterTest, Loop) { 
   int i;
-  struct Worker worker[N_WORKER_MAX];
-
-  if(g_outfn) {
-    ASSERT_TRUE(g_outf = fopen(g_outfn, "w"));
-    ASSERT_GE(fprintf(g_outf, "worker_id,loop,period[ms],work[us],jitter[us]\n")
-	      , 0);
-  }
-  for(i = 0; i < n_worker; ++i) {
-    ASSERT_TRUE(llsMQ_alloc(&g_q[i], 5 /* 2^5 */, sizeof(struct LoopData)));
-  }
+  Category& logger = Category::getInstance(__FILE__);
 
   ASSERT_EQ(/* Avoids memory swapping for this program */
 	    mlockall(MCL_CURRENT|MCL_FUTURE)
 	    , 0);
 
+  if(g_outfn) {
+    ASSERT_TRUE(g_outf = fopen(g_outfn, "w"));
+    ASSERT_GE(fprintf(g_outf, "worker.id,loop,period[ms],work[us],jitter[us]\n")
+	      , 0);
+  }
+  Worker worker[] = new Worker[n_worker];
+
   pthread_t print_thread;
   pthread_attr_t attr;
   struct sched_param sched_param;
-  pthread_attr_init( &attr );
+  pthread_attr_init(&attr);
   sched_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
   pthread_attr_setschedparam(&attr, &sched_param);
-  pthread_create(&print_thread, &attr, printloop, NULL);
+  pthread_create(&print_thread, &attr, printloop, (void*)worker);
 
   abs_start = rt_timer_read();/* get the current time that the threads
 				 can base their scheduling on */
@@ -154,20 +194,20 @@ TEST(JitterTest, Loop) {
 			     , T_FPU | T_JOINABLE)
 	      , 0);
     worker[i].id = i;
-    ASSERT_EQ(rt_task_start(&worker[i].task, &workloop, (void*)&worker[i])
+    ASSERT_EQ(rt_task_start(&worker[i].thread, &workloop, (void*)&worker[i])
 	      , 0);
   }
 
   sleep(duration); /* Sleep for the defined test duration */
 
-  printf("Shutting down.\n");
+  logger.info("Shutting down.");
   bTesting = 0;/* signal the worker threads to exit then wait for them */
-
   for (i = 0 ; i < n_worker ; ++i) {
-    EXPECT_EQ(rt_task_join(&worker[i].task), 0);
+    EXPECT_EQ(rt_task_join(&worker[i].thread), 0);
   }
   EXPECT_EQ(pthread_join(print_thread, NULL), 0);
 
+  delete[] worker;
   if(g_outf) {
     fclose(g_outf); g_outf = NULL;
   }
@@ -175,6 +215,14 @@ TEST(JitterTest, Loop) {
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
+  RollingFileAppender appender(__FILE__, __FILE__".log"
+			       //everything else is default; e.g. 10 MB roll
+			       );
+  BasicLayout* layout = new BasicLayout();
+  appender.setLayout(layout);
+  Category& logger = Category::getInstance(__FILE__);
+  logger.setAdditivity(false); logger.setAppender(appender);
+  logger.setPriority(Priority::INFO);
 
   const char* usage =
     "\n--duration=(10,3600]\n"
@@ -213,44 +261,46 @@ int main(int argc, char* argv[]) {
     switch (c) {
     case 'v': /* optarg is NULL if I don't specify an arg */
       g_verbosity = optarg ? atoi(optarg) : 1;
-      printf("verbosity: %d\n", g_verbosity);
+      logger.info("verbosity: %d", g_verbosity);
       break;
     case 'd':
       duration = atoi(optarg);
-      printf("duration: %d s\n", duration);
+      logger.info("duration: %d s", duration);
       break;
     case 'w':
       n_worker = atoi(optarg);
-      printf("worker: %d\n", n_worker);
+      logger.info("worker: %d", n_worker);
       break;
     case 's':
       start_period = atoi(optarg);
-      printf("start_period: %d ns\n", start_period);
+      logger.info("start_period: %d ns", start_period);
       break;
     case 'p':
       dec_ppm = atoi(optarg);
-      printf("dec_ppm: 0.%04d %%\n", dec_ppm);
+      logger.info("dec_ppm: 0.%04d %%", dec_ppm);
       break;
     case 'f':
       g_outfn = optarg;
-      printf("outfile: %s\n", g_outfn);
+      logger.info("outfile: %s", g_outfn);
       break;
-    case 0:
-      printf("option %s", long_options[option_index].name);
-      if(optarg) printf(" with arg %s", optarg);
-      printf ("\n");
+    case 0: {
+      char line[160];
+      sprintf(line, "option %s", long_options[option_index].name);
+      if(optarg) sprintf(line, " with arg %s", optarg);
+      logger.info(line);
+    }
       break;
     case '?':/* ambiguous match or extraneous param */
     default:
-      printf ("?? getopt returned character code 0%o ??\n", c);
+      logger.error("?? getopt returned character code 0%o ??", c);
       break;
     }
   }
   if (optind < argc) {
-    printf ("non-option ARGV-elements: ");
-    while (optind < argc)
-      printf ("%s ", argv[optind++]);
-    printf ("\n");
+    char line[160];
+    sprintf(line, "non-option ARGV-elements: ");
+    while (optind < argc) sprintf(line, "%s ", argv[optind++]);
+    logger.warn(line);
   }
   /*
   else {
@@ -268,9 +318,14 @@ int main(int argc, char* argv[]) {
      || n_worker < 1 || n_worker > 16
      || start_period < 1000000 || start_period > 1000000000
      || dec_ppm < 0 || dec_ppm > 1000) {
-    fprintf(stderr, "Invalid argument.  Usage:\n%s", usage);
+    logger.fatal("Invalid argument.  Usage:\n%s", usage);
     return -1;
   }
 
-  return RUN_ALL_TESTS();
+  int ret = RUN_ALL_TESTS();
+  Category::shutdown();
+  return ret;
+  //} catch(...) {
+  //  logger.fatal("Exception");
+  //}
 }
