@@ -9,14 +9,11 @@
 
 // 3rd party stuff ////////////////////////////////////////
 #include "gtest/gtest.h"
-#include "log4cpp/Category.hh"
-#include "log4cpp/RollingFileAppender.hh"
-#include "log4cpp/BasicLayout.hh"
-#include "log4cpp/PatternLayout.hh"
 
 // my code ////////////////////////////////////////////////
+#include "log.h"
 #include "timespec.h"
-#include "CircQ.h"
+#include "pipe.h"
 struct LoopData { /* the node I am going to shove into q */
   struct timespec deadline, jitter, t_work;
   int period;
@@ -27,14 +24,13 @@ class Worker {
  public:
   unsigned char id;
   pthread_t thread;
-  CircQ<struct LoopData> loopdata_q, late_q;
+  Pipe<struct LoopData> loopdata_q, late_q;
 
   virtual ~Worker() {};
- Worker() : loopdata_q(30), late_q(10) {};
+ Worker(size_t loopq_size = 30, size_t lateq_size = 10)
+   : loopdata_q(loopq_size), late_q(lateq_size) {};
   virtual void work() {}
 };
-
-using namespace log4cpp;
 
 // globals ////////////////////////////////////////////////
 int g_verbosity = 0
@@ -51,8 +47,7 @@ struct timespec abs_start;
 // functions ////////////////////////////////////////////
 void *printloop(void *t) {
   Worker* worker = (Worker*)t;
-  Category& logger = Category::getInstance(__FILE__);
-  logger.info("print thread starting.");
+  log_info("print thread starting.");
 
   while (bTesting) {
     usleep(10000);//sleep 10 ms, which is a Linux scheduling gradularity
@@ -76,14 +71,13 @@ void *printloop(void *t) {
     }
   }
 
-  logger.info("print thread exiting.");
+  log_info("print thread exiting.");
   return NULL;
 }
 
 void *workloop(void *t) {
   Worker* me = (Worker*)t;
-  Category& logger = Category::getInstance(__FILE__);
-  logger.info("Worker %d starting.", me->id);
+  log_info("Worker %d starting.", me->id);
 
   struct LoopData loop;
   loop.count = 0;
@@ -121,7 +115,7 @@ void *workloop(void *t) {
     loop.t_work = now; timespec_sub(loop.t_work, t0);
     if(me->loopdata_q.push(loop)) {
     } else { /* Have to throw away data; need to alarm! */
-      logger.alert("Loop data full");
+      log_alert("Loop data full");
     }
 
     timespec_add_ns(loop.deadline, loop.period);
@@ -129,7 +123,7 @@ void *workloop(void *t) {
       // How badly did I miss the deadline?
       // Definition of "badness": just a simple count over the past N loop
       if(me->late_q.isFull()) { //FATAL
-	logger.fatal("Missed too many deadlines");
+	log_fatal("Missed too many deadlines");
 	break;
       }
     }
@@ -140,12 +134,11 @@ void *workloop(void *t) {
     ++loop.count;
   }
 
-  logger.info("Worker %d exiting.", me->id);
+  log_info("Worker %d exiting.", me->id);
   return NULL;
 }
 
 TEST(LoopTest, DecrementPeriod) { 
-  Category& logger = Category::getInstance(__FILE__);
   struct timespec next, cur;
   unsigned char worker_id = 0;
   int i = 0 /* loop counter */
@@ -162,7 +155,7 @@ TEST(LoopTest, DecrementPeriod) {
   while(period > 1000000) { /* Limit at 1 ms period */
     timespec_add_ns(next, period);
     if(g_verbosity > 2 && (i % 100) == 0)
-      logger.debug("period[%9d]: %9d", i, period);
+      log_debug("period[%9d]: %9d", i, period);
 
     /* You would do work here */
     /* decrement the period by a fraction */
@@ -173,7 +166,6 @@ TEST(LoopTest, DecrementPeriod) {
 
 TEST(JitterTest, Loop) { 
   int i;
-  Category& logger = Category::getInstance(__FILE__);
 
   //g_pid = getpid();
 
@@ -221,7 +213,7 @@ TEST(JitterTest, Loop) {
 
   sleep(duration); /* Sleep for the defined test duration */
 
-  logger.info("Shutting down.");
+  log_info("Shutting down.");
   bTesting = 0;/* signal the worker threads to exit then wait for them */
   for(i = 0 ; i < n_worker ; ++i) {
     EXPECT_EQ(pthread_join(worker[i].thread, NULL), 0);
@@ -236,15 +228,6 @@ TEST(JitterTest, Loop) {
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
-  RollingFileAppender appender(__FILE__, __FILE__".log"
-			       //everything else is default; e.g. 10 MB roll
-			       );
-  BasicLayout* layout = new BasicLayout();
-  appender.setLayout(layout);
-  Category& logger = Category::getInstance(__FILE__);
-  logger.setAdditivity(false); logger.setAppender(appender);
-  logger.setPriority(Priority::INFO);
-
   const char* usage =
     "--duration=(10,3600]\n"
     "[--n_worker=[1,16]]\n"
@@ -281,38 +264,38 @@ int main(int argc, char* argv[]) {
     switch (c) {
     case 'v': /* optarg is NULL if I don't specify an arg */
       g_verbosity = optarg ? atoi(optarg) : 1;
-      logger.info("verbosity: %d", g_verbosity);
+      log_info("verbosity: %d", g_verbosity);
       break;
     case 'd':
       duration = atoi(optarg);
-      logger.info("duration: %d s", duration);
+      log_info("duration: %d s", duration);
       break;
     case 'w':
       n_worker = atoi(optarg);
-      logger.info("worker: %d", n_worker);
+      log_info("worker: %d", n_worker);
       break;
     case 's':
       start_period = atoi(optarg);
-      logger.info("start_period: %d ns", start_period);
+      log_info("start_period: %d ns", start_period);
       break;
     case 'p':
       dec_ppm = atoi(optarg);
-      logger.info("dec_ppm: 0.%04d %%", dec_ppm);
+      log_info("dec_ppm: 0.%04d %%", dec_ppm);
       break;
     case 'f':
       g_outfn = optarg;
-      logger.info("outfile: %s", g_outfn);
+      log_info("outfile: %s", g_outfn);
       break;
     case 0: {
       char line[160];
       sprintf(line, "option %s", long_options[option_index].name);
       if(optarg) sprintf(line, " with arg %s", optarg);
-      logger.info(line);
+      log_info(line);
     }
       break;
     case '?':/* ambiguous match or extraneous param */
     default:
-      logger.error("?? getopt returned character code 0%o ??", c);
+      log_error("?? getopt returned character code 0%o ??", c);
       break;
     }
   }
@@ -320,7 +303,7 @@ int main(int argc, char* argv[]) {
     char line[160];
     sprintf(line, "non-option ARGV-elements: ");
     while (optind < argc) sprintf(line, "%s ", argv[optind++]);
-    logger.warn(line);
+    log_warn(line);
   }
   /*
   else {
@@ -338,14 +321,9 @@ int main(int argc, char* argv[]) {
      || n_worker < 1 || n_worker > 16
      || start_period < 1000000 || start_period > 1000000000
      || dec_ppm < 0 || dec_ppm > 1000) {
-    logger.fatal("Invalid argument.  Usage:\n%s", usage);
+    log_fatal("Invalid argument.  Usage:\n%s", usage);
     return -1;
   }
 
-  int ret = RUN_ALL_TESTS();
-  Category::shutdown();
-  return ret;
-  //} catch(...) {
-  //  logger.fatal("Exception");
-  //}
+  return RUN_ALL_TESTS();
 }

@@ -3,7 +3,7 @@
 #include "llsQ.h"
 #include "llsMP.h"
 #include "llsMQ.h"
-#include "CircQ.h"
+#include "pipe.h"
 
 struct MyStruct {
   char ca, cb;
@@ -169,15 +169,15 @@ TEST(llsMQ_Test, Character) {
   llsMQ_free(&s);
 }
 
-class CircQ_Test : public ::testing::Test {
+class Pipe_Test : public ::testing::Test {
  protected:
   // You can remove any or all of the following functions if its body
   // is empty.
 
-  CircQ_Test() {
+  Pipe_Test() {
     // You can do set-up work for each test here.
   }
-  virtual ~CircQ_Test() {
+  virtual ~Pipe_Test() {
     // You can do clean-up work that doesn't throw exceptions here.
   }
   // If the constructor and destructor are not enough for setting up
@@ -193,11 +193,11 @@ class CircQ_Test : public ::testing::Test {
   // Objects declared here can be used by all tests in the test case for Foo.
 };
 
-TEST(CircQ_Test, LongInteger) {
+TEST(Pipe_Test, LongInteger) {
   long long ll1 = 0x1234567890abcdef, ll2 = 0x234567890abcdef1;
 
   {
-    CircQ<long long> s(1);
+    Pipe<long long> s(1);
 
     EXPECT_TRUE(s.push(ll1));
     EXPECT_FALSE(s.push(ll2));
@@ -209,7 +209,7 @@ TEST(CircQ_Test, LongInteger) {
   }
 
   {
-    CircQ<long long> s(2);
+    Pipe<long long> s(2);
     EXPECT_TRUE(s.push(ll1));
     EXPECT_TRUE(s.push(ll2));
     EXPECT_FALSE(s.push(ll1));

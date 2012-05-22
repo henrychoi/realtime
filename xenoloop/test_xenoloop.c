@@ -11,40 +11,34 @@
 
 // 3rd party stuff ////////////////////////////////////////
 #include "gtest/gtest.h"
-#include "log4cpp/Category.hh"
-#include "log4cpp/RollingFileAppender.hh"
-#include "log4cpp/BasicLayout.hh"
-#include "log4cpp/PatternLayout.hh"
 
 // my code ////////////////////////////////////////////////
-#include "CircQ.h"
+#include "log.h"
+#include "pipe.h"
 
 struct LoopData { /* the node I am going to shove into q */
   SRTIME jitter;
-  RTIME t_work, period;
+  RTIME t_work, deadline, period;
   unsigned long long count;
 };
 
-class Worker {
+class Loop {
  public:
   unsigned char id;
+  char name[20];
   RT_TASK thread;
-  CircQ<struct LoopData> loopdata_q, late_q;
+  Pipe<struct LoopData> loopdata_q, late_q;
 
-  virtual ~Worker() {};
- Worker() : loopdata_q(30), late_q(10) {};
-
- protected:
-  void work();
+  virtual ~Loop() {};
+ Loop() : loopdata_q(30), late_q(10) {};
+  void work() {};
 };
-
-using namespace log4cpp;
 
 // globals ////////////////////////////////////////////////
 int g_verbosity = 0
   , duration = 0
-  , n_worker=N_WORKER
-  , start_period = 1000000000/LOOP_FREQ, dec_ppm = 0;
+  , n_worker=1
+  , start_period = 1000000000, dec_ppm = 0;
 
 const char* g_outfn = NULL;
 FILE* g_outf = NULL;
@@ -52,17 +46,15 @@ bool bTesting = 1;
 RTIME abs_start;
 
 // functions ////////////////////////////////////////////
-Void *printloop(void *t) {
-  Worker* worker = (Worker*)t;
-  Category& logger = Category::getInstance(__FILE__);
-  logger.info("print thread starting.");
+void *printloop(void *t) {
+  Loop* worker = (Loop*)t;
+  log_info("print thread starting.");
 
   while (bTesting) {
     usleep(10000);// sleep 10 ms, which is a Linux scheduling gradularity
 
     for(int i = 0; i < n_worker; ++i) {
-      struct LoopData loop;
-
+      LoopData loop;
       while(worker[i].loopdata_q.pop(loop)) {
 	char line[80];
 	int bts = sprintf(line, "%d,%lld,%.2f,%.1f,%.1f\n"
@@ -75,7 +67,7 @@ Void *printloop(void *t) {
     }
   }
 
-  logger.info("print thread exiting.");
+  log_info("print thread exiting.");
   return NULL;
 }
 
@@ -94,11 +86,10 @@ void warn_upon_switch(int sig __attribute__((unused)))
 }
 
 void workloop(void *t) {
-  Worker* me = (Worker*)t;
-  Category& logger = Category::getInstance(__FILE__);
-  logger.info("Worker %d starting.", me->id);
+  Loop* me = (Loop*)t;
+  log_info("%s starting.", me->name);
 
-  struct LoopData loop;
+  LoopData loop;
   loop.count = 0;
   loop.period = start_period / n_worker;
   loop.deadline = abs_start + loop.period*me->id;
@@ -133,7 +124,7 @@ void workloop(void *t) {
     loop.t_work = now - t0;
     if(me->loopdata_q.push(loop)) {
     } else { /* Have to throw away data; need to alarm! */
-      logger.alert("Loop data full");
+      log_alert("Loop data full");
     }
 
     loop.deadline += loop.period;
@@ -141,7 +132,7 @@ void workloop(void *t) {
       // How badly did I miss the deadline?
       // Definition of "badness": just a simple count over the past N loop
       if(me->late_q.isFull()) { //FATAL
-	logger.fatal("Missed too many deadlines");
+	log_fatal("Missed too many deadlines");
 	break;
       }
     }
@@ -153,13 +144,13 @@ void workloop(void *t) {
   }
 
   rt_task_set_mode(T_WARNSW, 0, NULL);// popping out of primary mode
-  logger.info("Worker %d exiting.", me->id);
+  log_info("%s exiting.", me->name);
 }
 
 TEST(JitterTest, Loop) { 
   int i;
-  Category& logger = Category::getInstance(__FILE__);
-
+ 
+  Loop* worker = new Loop[n_worker];
   ASSERT_EQ(/* Avoids memory swapping for this program */
 	    mlockall(MCL_CURRENT|MCL_FUTURE)
 	    , 0);
@@ -169,7 +160,6 @@ TEST(JitterTest, Loop) {
     ASSERT_GE(fprintf(g_outf, "worker.id,loop,period[ms],work[us],jitter[us]\n")
 	      , 0);
   }
-  Worker worker[] = new Worker[n_worker];
 
   pthread_t print_thread;
   pthread_attr_t attr;
@@ -186,9 +176,8 @@ TEST(JitterTest, Loop) {
 
   /* create the threads to do the timing */
   for(i = 0; i < n_worker; i++) {
-    char name[8];/* doc say name is copied -> safe to use stack */
-    sprintf(name, "worker%d", i);
-    ASSERT_EQ(rt_task_create(&worker[i].task, name
+    sprintf(worker[i].name, "Worker%d", i);
+    ASSERT_EQ(rt_task_create(&worker[i].thread, worker[i].name
 			     , 0 /* default stack size*/
 			     , 1 /* 0 is the lowest priority */
 			     , T_FPU | T_JOINABLE)
@@ -200,7 +189,7 @@ TEST(JitterTest, Loop) {
 
   sleep(duration); /* Sleep for the defined test duration */
 
-  logger.info("Shutting down.");
+  log_info("Shutting down.");
   bTesting = 0;/* signal the worker threads to exit then wait for them */
   for (i = 0 ; i < n_worker ; ++i) {
     EXPECT_EQ(rt_task_join(&worker[i].thread), 0);
@@ -215,14 +204,7 @@ TEST(JitterTest, Loop) {
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
-  RollingFileAppender appender(__FILE__, __FILE__".log"
-			       //everything else is default; e.g. 10 MB roll
-			       );
-  BasicLayout* layout = new BasicLayout();
-  appender.setLayout(layout);
-  Category& logger = Category::getInstance(__FILE__);
-  logger.setAdditivity(false); logger.setAppender(appender);
-  logger.setPriority(Priority::INFO);
+  log_level = INFO;
 
   const char* usage =
     "\n--duration=(10,3600]\n"
@@ -261,38 +243,38 @@ int main(int argc, char* argv[]) {
     switch (c) {
     case 'v': /* optarg is NULL if I don't specify an arg */
       g_verbosity = optarg ? atoi(optarg) : 1;
-      logger.info("verbosity: %d", g_verbosity);
+      log_info("verbosity: %d", g_verbosity);
       break;
     case 'd':
       duration = atoi(optarg);
-      logger.info("duration: %d s", duration);
+      log_info("duration: %d s", duration);
       break;
     case 'w':
       n_worker = atoi(optarg);
-      logger.info("worker: %d", n_worker);
+      log_info("worker: %d", n_worker);
       break;
     case 's':
       start_period = atoi(optarg);
-      logger.info("start_period: %d ns", start_period);
+      log_info("start_period: %d ns", start_period);
       break;
     case 'p':
       dec_ppm = atoi(optarg);
-      logger.info("dec_ppm: 0.%04d %%", dec_ppm);
+      log_info("dec_ppm: 0.%04d %%", dec_ppm);
       break;
     case 'f':
       g_outfn = optarg;
-      logger.info("outfile: %s", g_outfn);
+      log_info("outfile: %s", g_outfn);
       break;
     case 0: {
       char line[160];
       sprintf(line, "option %s", long_options[option_index].name);
       if(optarg) sprintf(line, " with arg %s", optarg);
-      logger.info(line);
+      log_info(line);
     }
       break;
     case '?':/* ambiguous match or extraneous param */
     default:
-      logger.error("?? getopt returned character code 0%o ??", c);
+      log_error("?? getopt returned character code 0%o ??", c);
       break;
     }
   }
@@ -300,7 +282,7 @@ int main(int argc, char* argv[]) {
     char line[160];
     sprintf(line, "non-option ARGV-elements: ");
     while (optind < argc) sprintf(line, "%s ", argv[optind++]);
-    logger.warn(line);
+    log_warn(line);
   }
   /*
   else {
@@ -318,14 +300,9 @@ int main(int argc, char* argv[]) {
      || n_worker < 1 || n_worker > 16
      || start_period < 1000000 || start_period > 1000000000
      || dec_ppm < 0 || dec_ppm > 1000) {
-    logger.fatal("Invalid argument.  Usage:\n%s", usage);
+    log_fatal("Invalid argument.  Usage:\n%s", usage);
     return -1;
   }
 
-  int ret = RUN_ALL_TESTS();
-  Category::shutdown();
-  return ret;
-  //} catch(...) {
-  //  logger.fatal("Exception");
-  //}
+  return RUN_ALL_TESTS();
 }
