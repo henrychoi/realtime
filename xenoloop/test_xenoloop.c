@@ -81,7 +81,7 @@ void warn_upon_switch(int sig __attribute__((unused)))
   nentries = backtrace(bt,sizeof(bt) / sizeof(bt[0]));
   backtrace_symbols_fd(bt,nentries,fileno(stdout));
 #else
-  printf("ERROR, Switched to 2ndary mode\n");
+  log_alert("Switched to 2ndary mode\n");
 #endif
 }
 
@@ -115,11 +115,6 @@ void workloop(void *t) {
     now = rt_timer_read();
 
     // Post work book keeping ///////////////////////////////
-    if(!me->late_q.isEmpty()// Manage the late q
-       && me->late_q[0].count < (loop.count - 100)) {
-      me->late_q.pop(); // if sufficiently old, forget about it
-    }
-
     //to report how much the work took
     loop.t_work = now - t0;
     if(me->loopdata_q.push(loop)) {
@@ -127,6 +122,10 @@ void workloop(void *t) {
       log_alert("Loop data full");
     }
 
+    if(!me->late_q.isEmpty()// Manage the late q
+       && me->late_q[0].count < (loop.count - 100)) {
+      me->late_q.pop(); // if sufficiently old, forget about it
+    }
     loop.deadline += loop.period;
     if(now > loop.deadline) { // Did I miss the deadline?
       // How badly did I miss the deadline?

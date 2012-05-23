@@ -106,11 +106,6 @@ void *workloop(void *t) {
     clock_gettime(CLOCK_REALTIME, &now);
 
     // Post work book keeping ///////////////////////////////
-    if(!me->late_q.isEmpty() // Manage the late q
-       && me->late_q[0].count < (loop.count - 100)) {
-      me->late_q.pop(); // if sufficiently old, forget about it
-    }
-
     //to report how much the work took
     loop.t_work = now; timespec_sub(loop.t_work, t0);
     if(me->loopdata_q.push(loop)) {
@@ -118,6 +113,10 @@ void *workloop(void *t) {
       log_alert("Loop data full");
     }
 
+    if(!me->late_q.isEmpty() // Manage the late q
+       && me->late_q[0].count < (loop.count - 100)) {
+      me->late_q.pop(); // if sufficiently old, forget about it
+    }
     timespec_add_ns(loop.deadline, loop.period);
     if(timespec_gt(now, loop.deadline)) { // Did I miss the deadline?
       // How badly did I miss the deadline?
