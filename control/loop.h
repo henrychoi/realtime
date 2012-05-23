@@ -1,7 +1,7 @@
 #ifndef loop_h
 #define loop_h
 
-#include "pipe.h"
+#include "rtds/pipe.h"
 
 template<typename STimeType, typename UTimeType>
 class LoopData { /* the node I am going to shove into q */

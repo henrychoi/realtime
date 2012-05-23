@@ -8,9 +8,10 @@
 #include "gtest/gtest.h"
 
 // my code ////////////////////////////////////////////////
-#include "log.h"
-#include "estimator.h"
-#include "model.h"
+#include "log/log.h"
+#include "control/model.h"
+#include "control/sensor.h"
+#include "control/estimator.h"
 
 class ThermalTest : public ::testing::Test {
  protected:
@@ -67,32 +68,67 @@ TEST_F(ThermalTest, impulse_ambient) {
 
 TEST_F(ThermalTest, impulse_heat) {
   Thermal well(period, ambient, R, C, disturbance=0.05f);
-  float qin = 0.5f;
+  float qin;
   for(int i = 0; i < 200; ++i) {
-    well.update(qin, ambient);
+    well.update(qin = 0.5f, ambient);
     fprintf(outf, "%f\n", well.T);
   }
   float Te = ambient + R * C * qin;
   EXPECT_LT(fabs(well.T - Te), 0.1f);
 }
 
-TEST_F(ThermalTest, dirac_heat) {
+TEST_F(ThermalTest, delta_heat) {
   Thermal well(period, ambient, R, C, disturbance=0.05f);
-  float qin = 0.5f;
-  well.update(qin, ambient);
+  float qin;
+  well.update(qin = 0.5f, ambient);
   for(int i = 0; i < 200; ++i) {
-    well.update(0, ambient);
+    well.update(qin = 0, ambient);
     fprintf(outf, "%f\n", well.T);
   }
   EXPECT_LT(fabs(well.T - ambient), 0.1f);
+}
+
+TEST_F(ThermalTest, read) {
+  Thermal well(period, ambient, R, C, disturbance=0.05f);
+  float noise, bad_fraction;
+  BadThermalSensor sensor(well, noise = 0.25f, bad_fraction = 0.01f);
+  float qin;
+
+  for(int i = 0; i < 200; ++i) {
+    well.update(qin = 0, ambient);
+    fprintf(outf, "%f\n", sensor.read());
+  }
+}
+
+TEST_F(ThermalTest, estimate) {
+  Thermal well(period, ambient, R, C, disturbance=0.05f);
+  float noise, bad_fraction;
+  BadThermalSensor sensor(well, noise = 0.25f, bad_fraction = 0.7f);
+  Lowpass estimator;
+  float cutoffhz = 1.f/(R*C), sampling_period = 0.1f / cutoffhz;
+  ASSERT_TRUE(estimator.reset(ambient, cutoffhz, sampling_period));
+
+  const float qin = 0;
+  int n_outlier = 0;
+  for(int i = 0; i < 2000; ++i) {
+    well.update(0, ambient);
+    float raw = sensor.read();
+    if(!estimator.update(raw)) {
+      n_outlier++;
+      estimator.reset(estimator.xe //reset with last good estimate
+		      , cutoffhz, sampling_period);
+    }
+    fprintf(outf, "%f, %f\n", raw, estimator.xe);
+  }
+  EXPECT_GT(n_outlier, 0);
 }
 
 TEST(LowpassTest, impulse) {
   float z[30];
   size_t i, window = 20, order = 1;
   Lowpass f(window, 1);
-  float cutoffhz = 1.0f, sampling_period = 0.1f;
-  ASSERT_TRUE(f.reset(cutoffhz, sampling_period));
+  float cutoffhz = 1.0f, sampling_period = 0.1f, initial;
+  ASSERT_TRUE(f.reset(initial = 0, cutoffhz, sampling_period));
 
   for(i = 0; i < 19; ++i) {
     EXPECT_TRUE(f.update(0));

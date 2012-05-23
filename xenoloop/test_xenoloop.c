@@ -13,8 +13,8 @@
 #include "gtest/gtest.h"
 
 // my code ////////////////////////////////////////////////
-#include "log.h"
-#include "pipe.h"
+#include "log/log.h"
+#include "rtds/pipe.h"
 
 struct LoopData { /* the node I am going to shove into q */
   SRTIME jitter;

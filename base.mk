@@ -12,8 +12,7 @@ LIB :=lib$(TARGET).a
 TEST :=test_$(TARGET)
 _objects :=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
 #_cppobjects :=$(patsubst %, %.o, $(TARGET) $(CPPLIBSRC))
-CFLAGS :=-g $(patsubst %, -I$(BASEDIR)/%, $(NEEDLIBS)) $(APP_CFLAGS)\
-	-I$(GTEST)/include
+CFLAGS :=-g -I$(BASEDIR) $(APP_CFLAGS) -I$(GTEST)/include
 # -I$(LOG4CPP)/include
 LDFLAGS := -L. -l$(TARGET)\
 	$(foreach module, $(NEEDLIBS), -L$(BASEDIR)/$(module) -l$(module))\

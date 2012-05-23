@@ -1,9 +1,9 @@
 #include <time.h> /* for struct timespec */
 #include "gtest/gtest.h"
-#include "llsQ.h"
-#include "llsMP.h"
-#include "llsMQ.h"
-#include "pipe.h"
+#include "rtds/llsQ.h"
+#include "rtds/llsMP.h"
+#include "rtds/llsMQ.h"
+#include "rtds/pipe.h"
 
 struct MyStruct {
   char ca, cb;

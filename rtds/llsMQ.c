@@ -1,6 +1,6 @@
 #include <stdlib.h> /* malloc */
 #include <string.h> /* memcpy */
-#include "llsMQ.h"
+#include "rtds/llsMQ.h"
 
 #define alignSize(size, alignment) \
   (((size) + ((alignment) - 1)) & ~((alignment) - 1))

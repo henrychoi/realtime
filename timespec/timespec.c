@@ -1,5 +1,5 @@
 #include <stdio.h> /* for snprintf */
-#include "timespec.h"
+#include "timespec/timespec.h"
 
 /* These constants will exist in the timespec library */
 const struct timespec TIMESPEC_ZERO = {0,0}

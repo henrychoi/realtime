@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <math.h>
-#include "log.h"
-#include "estimator.h"
+#include <algorithm>
+#include "log/log.h"
+#include "control/estimator.h"
 
 using namespace std; // for min()
 
-bool Lowpass::reset(float hz, float pd, unsigned outlierThreshold) {
+bool Lowpass::reset(float initial, float hz, float pd
+		    , unsigned outlierThreshold) {
   bool ok = true;
-
   estimator::reset();
   mean = 0, sigma = 0;
   outliers = 0;
@@ -18,21 +19,21 @@ bool Lowpass::reset(float hz, float pd, unsigned outlierThreshold) {
 
   // Sanity check
   if(order >= window) {
-    log_fatal("Filter order %d >= window %d", order, window);
+    log_fatal("Filter order %d >= window %d\n", order, window);
     ok = false;
   }
 
   if(order) {
     if(cutoffhz > 1/period) {/* Cut-off frequency should be at most
 				1/10th sampling rate */
-      log_fatal("Cutoff freq %f > 10%% * sampling rate %f"
+      log_fatal("Cutoff freq %f > 10%% * sampling rate %f\n"
 		   , cutoffhz, 1/period);
       ok = false;
     } else if(cutoffhz < 0.001f/period) {
       // Likewise, cut-off frequency should be at least 1/1000th
       // the sampling frequency or else we'll get into numerical problems,
       // especially with higher order filters.
-      log_fatal("Cutoff freq %f < 0.1%% * sampling rate %f"
+      log_fatal("Cutoff freq %f < 0.1%% * sampling rate %f\n"
 		   , cutoffhz, 1/period);
       ok = false;
     }
@@ -61,24 +62,27 @@ bool Lowpass::reset(float hz, float pd, unsigned outlierThreshold) {
     a[3] = pow(alpha, 3);  b[3] = 0;
     break;
   default:
-    log_fatal("Estimator order %d unimplemented", order);
+    log_fatal("Estimator order %d unimplemented\n", order);
     ok = false;
   }
 
+  if(isnan(initial)) {
+    log_fatal("Initial is NAN\n");
+  }
+  update(initial);
   return ok;
 }
 
 bool Lowpass::update(float input) {
-  if(k > window
-     && (isnan(input)
-	 || (sigma
+  if(isnan(input)
+     || (k > window
+	 && (sigma
 	     && fabs(input - mean) > (outlier_sigma * sigma)))) {
     if(++outliers > window/2) {
       //reset(hz, period);
       return false;//bad!
     }
-    // just use the history
-    z[k] = y[k-1];
+    z[k] = y[k-1]; //just use the history or initial in outlier case
   } else { //back to normal
     outliers = 0;
     z[k] = input;
@@ -86,10 +90,10 @@ bool Lowpass::update(float input) {
 
   x[k] = z[k];//latest measurement
  
-  size_t j;    
   if(k < (window-1)) {//If insufficient sample, do not apply the filter
-    y[k] = mean;
+    y[k] = x[k];
   } else {
+    size_t j;
     // take the average over a window up to window size
     for(j = k - window + 1, mean = 0; j <= k; ++j) {
       mean += x[j];

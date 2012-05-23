@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "llsMP.h"
+#include "rtds/llsMP.h"
 
 #define alignAddress(location, alignment) \
   (void *)((((size_t)(location)) + ((alignment) - 1)) & ~((alignment) - 1))
