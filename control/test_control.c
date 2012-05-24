@@ -12,27 +12,25 @@
 #include "control/model.h"
 #include "control/sensor.h"
 #include "control/estimator.h"
+#include "control/trajectory.h"
 
-class ThermalTest : public ::testing::Test {
+class ControlTest : public ::testing::Test {
  protected:
-  // You can remove any or all of the following functions if its body
-  // is empty.
-
-  ThermalTest() { 
-  }
-  virtual ~ThermalTest() {
-  }
-  // If the constructor and destructor are not enough for setting up
-  // and cleaning up each test, you can define the following methods:
   virtual void SetUp() { 
-    period = 1.f, ambient = 19.f, R = 10.f, C = 1.0f;
-    outf = fopen("ThermalTest.csv", "w");
+    outf = fopen(__FILE__".log", "w");
   }
   virtual void TearDown() {
     if(outf) fclose(outf);
   }
-  // Objects declared here can be used by all tests in the test case}
   FILE* outf;
+};
+
+class ThermalTest : public ControlTest {
+ protected:
+  virtual void SetUp() { 
+    ControlTest::SetUp();
+    period = 1.f, ambient = 19.f, R = 10.f, C = 1.0f;
+  }
   float period, ambient, R, C, disturbance;
 };
 
@@ -51,7 +49,7 @@ TEST_F(ThermalTest, disturbance) {
   for(int i = 0; i < N; ++i) {
     well.update(0, ambient);
     avg += well.T;
-    fprintf(outf, "%f\n", well.T);
+    if(outf) fprintf(outf, "%f\n", well.T);
   } avg /= N;
   EXPECT_LT(fabs(avg - ambient), 1E-2);
 }
@@ -61,7 +59,7 @@ TEST_F(ThermalTest, impulse_ambient) {
   ambient -= 10.f;
   for(int i = 0; i < 200; ++i) {
     well.update(0, ambient);
-    fprintf(outf, "%f\n", well.T);
+    if(outf) fprintf(outf, "%f\n", well.T);
   }
   EXPECT_LT(fabs(well.T - ambient), 0.1f);
 }
@@ -71,7 +69,7 @@ TEST_F(ThermalTest, impulse_heat) {
   float qin;
   for(int i = 0; i < 200; ++i) {
     well.update(qin = 0.5f, ambient);
-    fprintf(outf, "%f\n", well.T);
+    if(outf) fprintf(outf, "%f\n", well.T);
   }
   float Te = ambient + R * C * qin;
   EXPECT_LT(fabs(well.T - Te), 0.1f);
@@ -83,7 +81,7 @@ TEST_F(ThermalTest, delta_heat) {
   well.update(qin = 0.5f, ambient);
   for(int i = 0; i < 200; ++i) {
     well.update(qin = 0, ambient);
-    fprintf(outf, "%f\n", well.T);
+    if(outf) fprintf(outf, "%f\n", well.T);
   }
   EXPECT_LT(fabs(well.T - ambient), 0.1f);
 }
@@ -96,7 +94,7 @@ TEST_F(ThermalTest, read) {
 
   for(int i = 0; i < 200; ++i) {
     well.update(qin = 0, ambient);
-    fprintf(outf, "%f\n", sensor.read());
+    if(outf) fprintf(outf, "%f\n", sensor.read());
   }
 }
 
@@ -104,7 +102,7 @@ TEST_F(ThermalTest, estimate) {
   Thermal well(period, ambient, R, C, disturbance=0.05f);
   float noise, bad_fraction;
   BadThermalSensor sensor(well, noise = 0.25f, bad_fraction = 0.7f);
-  Lowpass estimator;
+  ScalarLowpass estimator;
   float cutoffhz = 1.f/(R*C), sampling_period = 0.1f / cutoffhz;
   ASSERT_TRUE(estimator.reset(ambient, cutoffhz, sampling_period));
 
@@ -118,7 +116,7 @@ TEST_F(ThermalTest, estimate) {
       estimator.reset(estimator.xe //reset with last good estimate
 		      , cutoffhz, sampling_period);
     }
-    fprintf(outf, "%f, %f\n", raw, estimator.xe);
+    if(outf) fprintf(outf, "%f, %f\n", raw, estimator.xe);
   }
   EXPECT_GT(n_outlier, 0);
 }
@@ -126,7 +124,7 @@ TEST_F(ThermalTest, estimate) {
 TEST(LowpassTest, impulse) {
   float z[30];
   size_t i, window = 20, order = 1;
-  Lowpass f(window, 1);
+  ScalarLowpass f(window, 1);
   float cutoffhz = 1.0f, sampling_period = 0.1f, initial;
   ASSERT_TRUE(f.reset(initial = 0, cutoffhz, sampling_period));
 
@@ -150,6 +148,36 @@ TEST(LowpassTest, impulse) {
   EXPECT_LT(fabs(error), 1E-4);
   EXPECT_GT(f.xdote, -1E-3);
 }
+
+class BangBangTest : public ControlTest {
+ protected:
+  ScalarBangBangTrajectory traj;
+  float period, x0, xf, max_vel, max_acc, max_dec;
+  virtual void SetUp() { 
+    ControlTest::SetUp();
+    period = 0.05f, max_vel = 1.1f, max_acc = 1.f, max_dec = 2.f;
+  }
+};
+
+TEST_F(BangBangTest, positive) {
+  x0 = -2.f, xf = 2.f;
+  EXPECT_TRUE(traj.reset(period, x0, xf, max_vel, max_acc, max_dec));
+  EXPECT_EQ(traj.p, x0);
+  EXPECT_EQ(traj.v, 0);
+  EXPECT_EQ(traj.a, max_acc);
+  if(outf) fprintf(outf, "%f, %f, %f\n", traj.a, traj.v, traj.p);
+  traj.update();
+  while(traj.k * period <= traj.tf[2]) {
+    traj.update();
+    if(outf) fprintf(outf, "%f, %f, %f\n", traj.a, traj.v, traj.p);
+  }
+  traj.update();
+  if(outf) fprintf(outf, "%f, %f, %f\n", traj.a, traj.v, traj.p);
+  EXPECT_LT(fabs(traj.p - xf), 1E-6);
+  EXPECT_EQ(traj.v, 0);
+  EXPECT_EQ(traj.a, 0);
+}
+
 
 int main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);

@@ -1,3 +1,5 @@
+#include <stdio.h>
 #include "log/log.h"
 
-unsigned char log_level = DEBUG;
+LogLevel log_level = DEBUG;
+FILE* log_file = stdout;

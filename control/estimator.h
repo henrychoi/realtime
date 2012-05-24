@@ -11,7 +11,7 @@ class estimator {
   void reset() { xdote = 0; }
 };
 
-class Lowpass : public estimator { // a low pass filter
+class ScalarLowpass : public estimator { // a low pass filter
  protected:
   size_t k, order, outliers, dwindow, window, outlier_sigma;
   Ring<float> x //to calculate sample variance
@@ -25,7 +25,7 @@ class Lowpass : public estimator { // a low pass filter
 		    n = filter order
 		 */
  public:
- Lowpass(size_t window = 20, size_t order = 1)
+ ScalarLowpass(size_t window = 20, size_t order = 1)
    : window(window), order(order)
     , x(window), y(window), z(window), a(order+1), b(order+1)
     {};

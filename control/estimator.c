@@ -6,9 +6,10 @@
 
 using namespace std; // for min()
 
-bool Lowpass::reset(float initial, float hz, float pd
+bool ScalarLowpass::reset(float initial, float hz, float pd
 		    , unsigned outlierThreshold) {
   bool ok = true;
+  char msg[100];
   estimator::reset();
   mean = 0, sigma = 0;
   outliers = 0;
@@ -19,22 +20,25 @@ bool Lowpass::reset(float initial, float hz, float pd
 
   // Sanity check
   if(order >= window) {
-    log_fatal("Filter order %d >= window %d\n", order, window);
+    sprintf(msg, "Filter order %d >= window %d", order, window);
+    log_fatal(NULL, msg);
     ok = false;
   }
 
   if(order) {
     if(cutoffhz > 1/period) {/* Cut-off frequency should be at most
 				1/10th sampling rate */
-      log_fatal("Cutoff freq %f > 10%% * sampling rate %f\n"
-		   , cutoffhz, 1/period);
+      sprintf(msg, "Cutoff freq %f > 10%% * sampling rate %f\n"
+	      , cutoffhz, 1/period);
+      log_fatal(NULL, msg);
       ok = false;
     } else if(cutoffhz < 0.001f/period) {
       // Likewise, cut-off frequency should be at least 1/1000th
       // the sampling frequency or else we'll get into numerical problems,
       // especially with higher order filters.
-      log_fatal("Cutoff freq %f < 0.1%% * sampling rate %f\n"
-		   , cutoffhz, 1/period);
+      sprintf(msg, "Cutoff freq %f < 0.1%% * sampling rate %f\n"
+	      , cutoffhz, 1/period);
+      log_fatal(NULL, msg);
       ok = false;
     }
   }
@@ -62,18 +66,19 @@ bool Lowpass::reset(float initial, float hz, float pd
     a[3] = pow(alpha, 3);  b[3] = 0;
     break;
   default:
-    log_fatal("Estimator order %d unimplemented\n", order);
+    sprintf(msg, "Estimator order %d unimplemented\n", order);
+    log_fatal(NULL, msg);
     ok = false;
   }
 
   if(isnan(initial)) {
-    log_fatal("Initial is NAN\n");
+    log_fatal(NULL, "initial is NAN\n");
   }
   update(initial);
   return ok;
 }
 
-bool Lowpass::update(float input) {
+bool ScalarLowpass::update(float input) {
   if(isnan(input)
      || (k > window
 	 && (sigma
