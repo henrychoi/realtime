@@ -48,7 +48,7 @@ struct timespec abs_start;
 // functions ////////////////////////////////////////////
 void *printloop(void *t) {
   Worker* worker = (Worker*)t;
-  log_info("print thread starting.");
+  log_info("print", "starting.");
 
   while (bTesting) {
     usleep(10000);//sleep 10 ms, which is a Linux scheduling gradularity
@@ -72,13 +72,15 @@ void *printloop(void *t) {
     }
   }
 
-  log_info("print thread exiting.");
+  log_info("print", "exiting.");
   return NULL;
 }
 
 void *workloop(void *t) {
   Worker* me = (Worker*)t;
-  log_info("Worker %d starting.", me->id);
+  char ctx[8];
+  sprintf(ctx, "worker%d", me->id);
+  log_info(ctx, "Starting");
 
   struct LoopData loop;
   loop.count = 0;
@@ -111,7 +113,7 @@ void *workloop(void *t) {
     loop.t_work = now; timespec_sub(loop.t_work, t0);
     if(me->loopdata_q.push(loop)) {
     } else { /* Have to throw away data; need to alarm! */
-      log_alert("Loop data full");
+      log_alert(ctx, "Loop data full");
     }
 
     if(!me->late_q.isEmpty() // Manage the late q
@@ -123,7 +125,7 @@ void *workloop(void *t) {
       // How badly did I miss the deadline?
       // Definition of "badness": just a simple count over the past N loop
       if(me->late_q.isFull()) { //FATAL
-	log_fatal("Missed too many deadlines");
+	log_info(ctx, "Missed too many deadlines");
 	break;
       }
     }
@@ -134,7 +136,7 @@ void *workloop(void *t) {
     ++loop.count;
   }
 
-  log_info("Worker %d exiting.", me->id);
+  log_info(ctx, "Exiting");
   return NULL;
 }
 
@@ -143,6 +145,7 @@ TEST(LoopTest, DecrementPeriod) {
   unsigned char worker_id = 0;
   int i = 0 /* loop counter */
     , period = start_period / n_worker;
+  char msg[100];
 
   if(dec_ppm <= 0) {
     return;
@@ -154,8 +157,10 @@ TEST(LoopTest, DecrementPeriod) {
 
   while(period > 1000000) { /* Limit at 1 ms period */
     timespec_add_ns(next, period);
-    if(g_verbosity > 2 && (i % 100) == 0)
-      log_debug("period[%9d]: %9d", i, period);
+    if(g_verbosity > 2 && (i % 100) == 0) {
+      sprintf(msg, "period[%9d]: %9d", i, period);
+      log_debug("DecrementPeriod", msg);
+    }
 
     /* You would do work here */
     /* decrement the period by a fraction */
@@ -213,7 +218,7 @@ TEST(JitterTest, Loop) {
 
   sleep(duration); /* Sleep for the defined test duration */
 
-  log_info("Shutting down.");
+  log_info("main", "Shutting down.");
   bTesting = 0;/* signal the worker threads to exit then wait for them */
   for(i = 0 ; i < n_worker ; ++i) {
     EXPECT_EQ(pthread_join(worker[i].thread, NULL), 0);
@@ -252,6 +257,8 @@ int main(int argc, char* argv[]) {
     {NULL, no_argument, NULL, 0} /* brackets the end of the options */
   };
   int option_index = 0, c;
+  const char* ctx = "main";
+  char msg[100];
 
   while((c = getopt_long_only(argc, argv, ""/* Not intuitive: cannot be NULL */
 			      , long_options, &option_index))
@@ -264,46 +271,50 @@ int main(int argc, char* argv[]) {
     switch (c) {
     case 'v': /* optarg is NULL if I don't specify an arg */
       g_verbosity = optarg ? atoi(optarg) : 1;
-      log_info("verbosity: %d", g_verbosity);
+      sprintf(msg, "verbosity: %d", g_verbosity);
+      log_info(ctx, msg);
       break;
     case 'd':
       duration = atoi(optarg);
-      log_info("duration: %d s", duration);
+      sprintf(msg, "duration: %d s", duration);
+      log_info(ctx, msg);
       break;
     case 'w':
       n_worker = atoi(optarg);
-      log_info("worker: %d", n_worker);
+      sprintf(msg, "worker: %d", n_worker);
+      log_info(ctx, msg);
       break;
     case 's':
       start_period = atoi(optarg);
-      log_info("start_period: %d ns", start_period);
+      sprintf(msg, "start_period: %d ns", start_period);
+      log_info(ctx, msg);
       break;
     case 'p':
       dec_ppm = atoi(optarg);
-      log_info("dec_ppm: 0.%04d %%", dec_ppm);
+      sprintf(msg, "dec_ppm: 0.%04d %%", dec_ppm);
+      log_info(ctx, msg);
       break;
     case 'f':
       g_outfn = optarg;
-      log_info("outfile: %s", g_outfn);
+      sprintf("outfile: %s", g_outfn);
+      log_info(ctx, msg);
       break;
-    case 0: {
-      char line[160];
-      sprintf(line, "option %s", long_options[option_index].name);
-      if(optarg) sprintf(line, " with arg %s", optarg);
-      log_info(line);
-    }
+    case 0:
+      sprintf(msg, "option %s", long_options[option_index].name);
+      if(optarg) sprintf(msg, " with arg %s", optarg);
+      log_info(ctx, msg);
       break;
     case '?':/* ambiguous match or extraneous param */
     default:
-      log_error("?? getopt returned character code 0%o ??", c);
+      sprintf(msg, "?? getopt returned character code 0%o ??", c);
+      log_error(ctx, msg);
       break;
     }
   }
   if (optind < argc) {
-    char line[160];
-    sprintf(line, "non-option ARGV-elements: ");
-    while (optind < argc) sprintf(line, "%s ", argv[optind++]);
-    log_warn(line);
+    sprintf(msg, "non-option ARGV-elements: ");
+    while (optind < argc) sprintf(msg, "%s ", argv[optind++]);
+    log_warn(ctx, msg);
   }
   /*
   else {
