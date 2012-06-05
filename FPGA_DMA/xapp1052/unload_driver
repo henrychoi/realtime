@@ -1,0 +1,5 @@
+#!/bin/sh -fx
+/sbin/rmmod xbmd
+
+
+
