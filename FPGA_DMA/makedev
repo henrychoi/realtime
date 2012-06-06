@@ -1,0 +1,15 @@
+#!/bin/sh
+dev=$1
+echo "Removing kernel module $dev"
+rmmod $dev
+echo "Removing file /dev/$dev"
+rm -rf /dev/$dev
+
+echo "Creating file /dev/$dev and setting permissions"
+mknod /dev/$dev c 241 1
+chown root /dev/$dev
+chmod 0644 /dev/$dev
+ls -l /dev/$dev
+
+echo "Inserting kernel module $dev.ko"
+insmod module/$dev.ko
