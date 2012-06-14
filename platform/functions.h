@@ -10,7 +10,7 @@
 #    define NAN std::numeric_limits<float>::quiet_NaN()
 #  endif
 #else
-#  #define platform_fopen(fpp, name, mode) *fpp = fopen(name, mode)
+#  define platform_fopen(fpp, name, mode) *fpp = fopen(name, mode)
 #endif//WIN32
 
 #endif//platform_functions_h

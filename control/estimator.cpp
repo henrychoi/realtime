@@ -75,7 +75,7 @@ bool ScalarLowpass::reset(float initial, float hz, float pd
     ok = false;
   }
 
-  if(_isnan(initial)) {
+  if(isnan(initial)) {
     log_fatal(NULL, "initial is NAN\n");
   }
   update(initial);
@@ -83,7 +83,7 @@ bool ScalarLowpass::reset(float initial, float hz, float pd
 }
 
 bool ScalarLowpass::update(float input) {
-  if(_isnan(input)
+  if(isnan(input)
      || (k > window
 	 && (sigma
 	     && fabs(input - mean) > (outlier_sigma * sigma)))) {

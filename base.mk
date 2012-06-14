@@ -6,25 +6,21 @@ else
   AR :=ar
 endif
 GTEST :=$(BASEDIR)/ThirdParty/gtest-1.6.0
-#LOG4CPP :=$(BASEDIR)/ThirdParty/log4cpp-1.1
 
 LIB :=lib$(TARGET).a
 TEST :=test_$(TARGET)
 _objects :=$(patsubst %, %.o, $(TARGET) $(LIBSRC))
-#_cppobjects :=$(patsubst %, %.o, $(TARGET) $(CPPLIBSRC))
-CFLAGS :=-g -I$(BASEDIR) $(APP_CFLAGS) -I$(GTEST)/include
-# -I$(LOG4CPP)/include
+CPPFLAGS :=-g -I$(BASEDIR) $(APP_CFLAGS) -I$(GTEST)/include
 LDFLAGS := -L. -l$(TARGET)\
 	$(foreach module, $(NEEDLIBS), -L$(BASEDIR)/$(module) -l$(module))\
 	-L$(GTEST)/lib/.libs -lgtest -lpthread $(APP_LDFLAGS)
-# -L$(LOG4CPP)/src/.libs -llog4cpp\
 .PHONY: clean
 all: $(TEST)
-$(TEST): $(TEST).c $(LIB) $(NEEDLIBS)
-	$(CC) $(CFLAGS) -o $@ $(TEST).c $(LIB) $(LDFLAGS)
+$(TEST): $(TEST).cpp $(LIB) $(NEEDLIBS)
+	$(CC) $(CPPFLAGS) -o $@ $(TEST).cpp $(LIB) $(LDFLAGS)
 $(LIB): $(_objects)
 	$(AR) -rs $@ $^
-%.s: %.c
+%.s: %.cpp
 	$(CC) -S $(CFLAGS) $^ $(LDFLAGS)
 clean.%:
 	make -C $(BASEDIR)/$(patsubst clean.%,%, $@) clean
