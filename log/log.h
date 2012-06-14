@@ -48,6 +48,10 @@ inline int log_debug_f(const char* ctx, const char* pf, const char* message)
   return log_f("DEBUG", pf, message, ctx);
 };
 
+#ifndef __PRETTY_FUNCTION__
+#define __PRETTY_FUNCTION__ __FUNCTION__
+#endif
+
 #define log_fatal(ctx, message)\
   log_fatal_f(ctx, __PRETTY_FUNCTION__, message)
 
