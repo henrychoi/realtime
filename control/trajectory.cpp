@@ -14,9 +14,9 @@ bool BangBang1::reset(float period, float convergence
   this->period = period;
   this->vi = vi;
 
-top:
-  p[0] = pi;
+  p[0] = pi;// I will always start from current position
 
+  // Firstly, which direction am I going?
   if(pf > pi) s = 1.f;
   else if(pf < pi) s = -1.f;
   else {
@@ -25,11 +25,11 @@ top:
       memset(a, 0, sizeof(a));
       p[0] = p[1] = p[2] = p[3] = pi;
       return true;
-    } else { // arbitrarily add pi to bring initial velocity down to 0
-      pi += 0.5f * vi * period;
-      goto top;// try again
+    } else {//Need to go the other way from current velocity
+		s = -fsign(vi);
     }
   }
+
   // Invariant: sign != 0 at this point
   do { // iterate until all timing constraints are met
     if(vi * s > 0) {// Is the initial velocity the same sign as s?
