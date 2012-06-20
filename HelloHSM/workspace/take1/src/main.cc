@@ -10,23 +10,27 @@
 
 static XIntc intc;//This will be initialized in init_platform()
 
-#define BUTTON5_CHANNEL 1
-static XGpio button5;
+#define GPIO_CHANNEL 1
+static XGpio led8, led5, button5;
 volatile u32 button = 0;
 volatile bool button_hot = false;
 
+#define TICK_FREQ 1000 // Run the control loop at 1 kHz
+#define TIMER_RESET_VAL ((~0 - XPAR_AXI_TIMER_0_CLOCK_FREQ_HZ/TICK_FREQ) + 1)
 #define MY_TIMER_ID 0
 static XTmrCtr timer;
 
 void PushButtons_ISR(void* p) {
-  button = XGpio_DiscreteRead((XGpio*)p, BUTTON5_CHANNEL);
+  button = XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL);
   button_hot = true;
   XIntc_Acknowledge(&intc
                   , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
-  XGpio_InterruptClear((XGpio*)p, BUTTON5_CHANNEL);
+  XGpio_InterruptClear((XGpio*)p, GPIO_CHANNEL);
 }
-void Timer_ISR(void* p, u8 timerId) {
-  print(".");
+void Timer_ISR(void* p, u8 timerId) { //print(".");
+  XGpio_DiscreteWrite(&led8, GPIO_CHANNEL, 1<<0);
+  // Do work
+  XGpio_DiscreteClear(&led8, GPIO_CHANNEL, 1<<0);
 }
 
 int init_platform() {
@@ -36,7 +40,22 @@ int init_platform() {
   Xil_ICacheEnable();
   Xil_DCacheEnable();
 
+  status = XGpio_Initialize(&led8, XPAR_LEDS_8BITS_DEVICE_ID);
+  if(status != XST_SUCCESS) {
+      print("XGpio_Initialize(LEDS_8BITS) failed");
+      return status;
+  }
+  XGpio_SetDataDirection(&led8, GPIO_CHANNEL, 0x0);//output
+
+  status = XGpio_Initialize(&led5, XPAR_LEDS_POSITIONS_DEVICE_ID);
+  if(status != XST_SUCCESS) {
+      print("XGpio_Initialize(LEDS_POSITIONS) failed");
+      return status;
+  }
+  XGpio_SetDataDirection(&led5, GPIO_CHANNEL, 0x0);//output
+
   // Q: use interrupt for URT?
+  // Not necessary for now since I don't read from console
 
   status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
   if(status != XST_SUCCESS) {
@@ -47,14 +66,14 @@ int init_platform() {
 
   status = XGpio_Initialize(&button5, XPAR_PUSH_BUTTONS_5BITS_DEVICE_ID);
   if(status != XST_SUCCESS) {
-      print("Gpio_Initialize failed");
+      print("XGpio_Initialize(PUSH_BUTTONS) failed");
       return status;
   }
   // The hardware must be built for dual channels if this function is used
   // with any channel other than 1. If it is not, this function will assert.
   // After this call, I can, if I wish, poll the GPIO with
   // u32 val = XGpio_DiscreteRead(&button5, BUTTON5_CHANNEL)
-  XGpio_SetDataDirection(&button5, BUTTON5_CHANNEL, 0xFFFFFFFF); //out: 0, in: 1
+  XGpio_SetDataDirection(&button5, GPIO_CHANNEL, 0xFFFFFFFF); //out: 0, in: 1
 
   XGpio_InterruptEnable(&button5, 0xFF);
   // Interrupts enabled through XGpio_InterruptEnable() will not be passed
@@ -81,8 +100,7 @@ int init_platform() {
 		  , &timer);
   XTmrCtr_SetOptions(&timer, MY_TIMER_ID,
 			XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
-  XTmrCtr_SetResetValue(&timer, MY_TIMER_ID
-		  , 0xF0000000);//start counting up (default) from this
+  XTmrCtr_SetResetValue(&timer, MY_TIMER_ID, TIMER_RESET_VAL);//count up (default) from this
   status = XIntc_Connect(&intc
               , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR
               , XTmrCtr_InterruptHandler, &timer);
