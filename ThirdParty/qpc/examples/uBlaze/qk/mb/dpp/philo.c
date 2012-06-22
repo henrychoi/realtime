@@ -52,8 +52,8 @@ static QState Philo_eating  (Philo *me, QEvt const *e);
 /* Local objects -----------------------------------------------------------*/
 static Philo l_philo[N_PHILO];                    /* storage for all Philos */
 
-#define THINK_TIME  (BSP_TICKS_PER_SEC/2)
-#define EAT_TIME    (BSP_TICKS_PER_SEC/5)
+#define THINK_TIME  (5*BSP_TICKS_PER_SEC)
+#define EAT_TIME    (2*BSP_TICKS_PER_SEC)
 
                            /* helper macro to provide the ID of Philo "me_" */
 #define PHILO_ID(me_)    ((uint8_t)((me_) - l_philo))

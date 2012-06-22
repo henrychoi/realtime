@@ -48,13 +48,13 @@ static union SmallEvents {
 } l_smlPoolSto[2*N_PHILO];              /* storage for the small event pool */
 
 /*..........................................................................*/
-int main(int argc, char *argv[]) {
+int main() {
     uint8_t n;
 
     Philo_ctor();             /* instantiate all Philosopher active objects */
     Table_ctor();                    /* instantiate the Table active object */
 
-    BSP_init(argc, argv);           /* initialize the Board Support Package */
+    BSP_init();           /* initialize the Board Support Package */
 
     QF_init();     /* initialize the framework and the underlying RT kernel */
 

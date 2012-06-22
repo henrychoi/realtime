@@ -124,12 +124,6 @@ void BSP_init() {
 	// Q: use interrupt for URT?
 	// Not necessary for now since I don't read from console
 
-	status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
-	microblaze_enable_interrupts();//uBlaze intr
-
 	status = XGpio_Initialize(&button5, XPAR_PUSH_BUTTONS_5BITS_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
@@ -138,39 +132,7 @@ void BSP_init() {
 	// with any channel other than 1. If it is not, this function will assert.
 	// After this call, I can, if I wish, poll the GPIO with
 	// u32 val = XGpio_DiscreteRead(&button5, BUTTON5_CHANNEL)
-	XGpio_SetDataDirection(&button5, GPIO_CHANNEL, 0xFFFFFFFF); //out: 0, in: 1
-
-	XGpio_InterruptEnable(&button5, 0xFF);
-	// Interrupts enabled through XGpio_InterruptEnable() will not be passed
-	// through until the global enable bit is set by this function. This
-	// function is designed to allow all interrupts to be
-	// enabled easily for exiting a critical section.
-	XGpio_InterruptGlobalEnable(&button5);
-
-	status = XIntc_Connect(&intc
-			  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
-			  , GPIOPortA_IRQHandler, &button5);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
-	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
-
-	status = XTmrCtr_Initialize(&timer, XPAR_AXI_TIMER_0_DEVICE_ID);
-	XTmrCtr_SetHandler(&timer, SysTick_Handler, &timer);
-	XTmrCtr_SetOptions(&timer, MY_TIMER_ID,
-			XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
-	XTmrCtr_SetResetValue(&timer, MY_TIMER_ID
-			//count up (default behavior) from this value
-			, (~0 - SystemFrequency/BSP_TICKS_PER_SEC) + 1);
-	status = XIntc_Connect(&intc
-			  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR
-			  , XTmrCtr_InterruptHandler, &timer);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
-	XTmrCtr_Start(&timer, MY_TIMER_ID);//can stop later with XTmrCtr_Stop()
-
-	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+	XGpio_SetDataDirection(&button5, GPIO_CHANNEL, ~0); //out: 0, in: 1
 
     if (QS_INIT((void *)0) == 0) {    /* initialize the QS software tracing */
         Q_ERROR();
@@ -208,10 +170,53 @@ void BSP_busyDelay(void) {
 
 /*..........................................................................*/
 void QF_onStartup(void) {
-    int status = XIntc_Start(&intc, XIN_REAL_MODE);
+	int status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
+	//microblaze_enable_interrupts();//uBlaze intr
+
+	XGpio_InterruptEnable(&button5, 0xFF);
+	// Interrupts enabled through XGpio_InterruptEnable() will not be passed
+	// through until the global enable bit is set by this function. This
+	// function is designed to allow all interrupts to be
+	// enabled easily for exiting a critical section.
+	XGpio_InterruptGlobalEnable(&button5);
+
+	status = XIntc_Connect(&intc
+			  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
+			  , GPIOPortA_IRQHandler, &button5);
+    if(status != XST_SUCCESS) {
+        Q_ERROR();
+    }
+	XIntc_Enable(&intc
+			, XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
+
+	status = XTmrCtr_Initialize(&timer, XPAR_AXI_TIMER_0_DEVICE_ID);
+    if(status != XST_SUCCESS) {
+        Q_ERROR();
+    }
+	XTmrCtr_SetHandler(&timer, SysTick_Handler, &timer);
+	XTmrCtr_SetOptions(&timer, MY_TIMER_ID,
+			XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
+	XTmrCtr_SetResetValue(&timer, MY_TIMER_ID
+			//count up (default behavior) from this value
+			, (~0 - SystemFrequency/BSP_TICKS_PER_SEC) + 1);
+	status = XIntc_Connect(&intc
+			  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR
+			  , XTmrCtr_InterruptHandler, &timer);
+    if(status != XST_SUCCESS) {
+        Q_ERROR();
+    }
+	XTmrCtr_Start(&timer, MY_TIMER_ID);//can stop later with XTmrCtr_Stop()
+
+	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+
+    status = XIntc_Start(&intc, XIN_REAL_MODE);
+    if(status != XST_SUCCESS) {
+        Q_ERROR();
+    }
+    QF_INT_ENABLE();
 }
 /*..........................................................................*/
 void QF_onCleanup(void) {
@@ -252,10 +257,9 @@ void QK_onIdle(void) {
 
 /*..........................................................................*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {
-    (void)file;                                   /* avoid compiler warning */
-    (void)line;                                   /* avoid compiler warning */
     QF_INT_DISABLE();         /* make sure that all interrupts are disabled */
     XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);//indicate death
+	Xil_Assert(file, line);
     for (;;) {       /* NOTE: replace the loop with reset for final version */
     }
 }
