@@ -50,7 +50,7 @@ typedef struct TableEvtTag {
     uint8_t philoNum;                                 /* philosopher number */
 } TableEvt;
 
-enum { N_PHILO = 5 };                             /* number of philosophers */
+enum { N_PHILO = 2 };                             /* number of philosophers */
 
 void Philo_ctor(void);
 void Table_ctor(void);
