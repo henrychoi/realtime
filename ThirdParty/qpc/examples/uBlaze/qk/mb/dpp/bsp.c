@@ -46,7 +46,7 @@ Q_DEFINE_THIS_FILE
 
 /* Local-scope objects -----------------------------------------------------*/
 static uint32_t l_delay = 0UL; /* limit for the loop counter in busyDelay() */
-static XIntc intc;
+XIntc intc;
 #define GPIO_CHANNEL 1
 static XGpio led8, led5, button5;
 #define MY_TIMER_ID 0
@@ -73,34 +73,45 @@ static XTmrCtr timer;
 /*..........................................................................*/
 void SysTick_Handler(void* p, u8 timerId) {
 	(void)p; (void)timerId;
+	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
+		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
     QK_ISR_ENTRY();                       /* inform QK-nano about ISR entry */
 
 #ifdef Q_SPY
     QS_tickTime_ += 1; //QS_tickPeriod_; /* account for the clock rollover */
+    if(QS_tickTime_ & 0x1)XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);
+    else XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<0);
 #endif
 
     QF_TICK(&l_SysTick_Handler);           /* process all armed time events */
 
     QK_ISR_EXIT();                         /* inform QK-nano about ISR exit */
+    XIntc_Enable(&intc//enable the timer interrupt again
+  		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
 }
 /*..........................................................................*/
 void GPIOPortA_IRQHandler(void* p) {
-	XIntc_Acknowledge(&intc
-				  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
+	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
+		  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 	XGpio_InterruptClear((XGpio*)p, GPIO_CHANNEL);
 
 	QK_ISR_ENTRY();                      /* infrom QK about entering an ISR */
-
-	if(l_GPIOPortA_IRQHandler) { /* If already hot, only care about unpress */
-	    if(!XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL))
-	    	l_GPIOPortA_IRQHandler = 0;
-	}
-	else { /* If unpressed, only catch the first button press */
-		l_GPIOPortA_IRQHandler = XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL);
+	l_GPIOPortA_IRQHandler = XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL);
+	switch(l_GPIOPortA_IRQHandler) {
+	case 0x1: /* the center button */
+		QF_PUBLISH(Q_NEW(QEvt, TERMINATE_SIG), (void *)0);
+		break;
+	case 0x2:
+	case 0x4:
+	case 0x8:
+	case 0x10:
         QACTIVE_POST(AO_Table, Q_NEW(QEvt, MAX_PUB_SIG), /* for testing... */
                  &l_GPIOPortA_IRQHandler);
 	}
     QK_ISR_EXIT();                        /* infrom QK about exiting an ISR */
+
+    XIntc_Enable(&intc/*enable the button interrupt again*/
+	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 }
 
 /*..........................................................................*/
@@ -216,7 +227,7 @@ void QF_onStartup(void) {
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
-    QF_INT_ENABLE();
+    microblaze_enable_interrupts();
 }
 /*..........................................................................*/
 void QF_onCleanup(void) {
