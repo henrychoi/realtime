@@ -31,16 +31,24 @@
                  /* The maximum number of active objects in the application */
 #define QF_MAX_ACTIVE               63
 
-                                            /* DOS interrupt disable/enable */
-#define QF_INT_DISABLE()            microblaze_disable_interrupts()
-#define QF_INT_ENABLE()             microblaze_enable_interrupts()
+#undef QF_CRIT_STAT_TYPE /*#define QF_CRIT_STAT_TYPE uint32_t*/
+#ifdef QF_CRIT_STAT_TYPE
+#  include "xintc.h"
+extern XIntc intc;
+#  define QF_CRIT_ENTRY(stat_) do { \
+	(stat_) = XIntc_In32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET); \
+	XIntc_Out32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET, 0); \
+} while(0)
 
-                                         /* DOS critical section entry/exit */
-/* QF_CRIT_STAT_TYPE not defined */
-#define QF_CRIT_ENTRY(dummy)        microblaze_disable_interrupts()
-#define QF_CRIT_EXIT(dummy)         microblaze_enable_interrupts()
-
-#include <mb_interface.h> /* for disable()/enable() interrupts */
+#  define QF_CRIT_EXIT(stat_) \
+	XIntc_Out32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET, (stat_))
+#else /* unconditionally lock and unlock */
+#  include "mb_interface.h"
+#  define QF_INT_DISABLE microblaze_disable_interrupts
+#  define QF_INT_ENABLE  microblaze_enable_interrupts
+#  define QF_CRIT_ENTRY(stat_)  QF_INT_DISABLE()
+#  define QF_CRIT_EXIT(stat_)   QF_INT_ENABLE()
+#endif/* QF_CRIT_STAT_TYPE */
 
 #include "qep_port.h"                                           /* QEP port */
 #include "qk_port.h"                                             /* QK port */

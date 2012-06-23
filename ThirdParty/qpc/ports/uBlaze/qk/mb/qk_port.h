@@ -31,11 +31,11 @@
 #define QK_ISR_ENTRY() do { \
     ++QK_intNest_; \
     QF_QS_ISR_ENTRY(QK_intNest_, QK_currPrio_); \
-    microblaze_enable_interrupts(); \
+    QF_INT_ENABLE(); \
 } while (0)
 
 #define QK_ISR_EXIT() do { \
-    microblaze_disable_interrupts(); \
+    QF_INT_DISABLE(); \
     QF_QS_ISR_EXIT(QK_intNest_, QK_currPrio_); \
     --QK_intNest_; \
     if (QK_intNest_ == (uint8_t)0) { \
@@ -45,52 +45,6 @@
         } \
     } \
 } while (0)
-
-#ifdef ADVANCED_PROCESSOR_FEATURE
-/* demonstration of advanced QK features: TLS and extended context switch   */
-typedef struct Lib1_contextTag {         /* an example of a library context */
-    double  x;
-} Lib1_context;
-typedef struct Lib2_contextTag {         /* an example of a library context */
-    double  y;
-} Lib2_context;
-typedef union FPU_contextTag {
-    uint32_t align;
-    uint8_t  x87[108];               /* the x87 FPU context takes 108-bytes */
-} FPU_context;
-
-typedef struct ThreadContextTag {
-    Lib1_context lib1;                                  /* library1 context */
-    Lib2_context lib2;                                  /* library2 context */
-    FPU_context  fpu;                                    /* the FPU context */
-} ThreadContext;
-
-enum QKTaskFlags {
-    QK_LIB1_THREAD = 0x01,
-    QK_LIB2_THREAD = 0x02,
-    QK_FPU_THREAD  = 0x04
-};
-
-                                                 /* QK thread-local storage */
-#define QK_TLS(act_) \
-    impure_ptr1 = &((ThreadContext *)(act_)->thread)->lib1; \
-    impure_ptr2 = &((ThreadContext *)(act_)->thread)->lib2
-
-extern Lib1_context * volatile impure_ptr1;
-extern Lib2_context * volatile impure_ptr2;
-
-                                  /* QK extended context (FPU) save/restore */
-#define QK_EXT_SAVE(act_)    \
-    if (((act_)->osObject & QK_FPU_THREAD) != 0) \
-        FPU_save(&((ThreadContext *)(act_)->thread)->fpu)
-
-#define QK_EXT_RESTORE(act_) \
-    if (((act_)->osObject & QK_FPU_THREAD) != 0) \
-        FPU_restore(&((ThreadContext *)(act_)->thread)->fpu)
-
-__declspec(__cdecl) void FPU_save(FPU_context *fpu); /* defined in assembly */
-__declspec(__cdecl) void FPU_restore(FPU_context *fpu);      /* in assembly */
-#endif/*ADVANCED_PROCESSOR_FEATURE*/
 
 #include "qk.h"                 /* QK platform-independent public interface */
 #include "qf.h"                 /* QF platform-independent public interface */

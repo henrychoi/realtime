@@ -36,6 +36,8 @@ void PushButtons_ISR(void* p) {
   }
 */
   QF_INT_DISABLE();
+  XIntc_Enable(&intc//enable the button interrupt again
+	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 }
 
 u8 timerctr = 0;
@@ -44,8 +46,8 @@ void Timer_ISR(void* p, u8 timerId) { //print(".");
 		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
   QF_INT_ENABLE();
 
-  if(++timerctr & 0x1)XGpio_DiscreteWrite(&led8, GPIO_CHANNEL, 1<<0);
-  else XGpio_DiscreteClear(&led8, GPIO_CHANNEL, 1<<0);
+  if(++timerctr & 0x1)XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);
+  else XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<0);
 
   QF_INT_DISABLE();
   XIntc_Enable(&intc//enable the timer interrupt again
@@ -161,7 +163,7 @@ int main() {
       QF_INT_DISABLE();
       //Gpio_DiscreteRead(&button5, BUTTON5_CHANNEL);
       if(button) {
-		  printf("%ld", button);
+		  //printf("%ld", button);
 		  button = 0;
 		  XIntc_Enable(&intc//enable the button interrupt again
 			  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);

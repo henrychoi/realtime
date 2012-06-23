@@ -28,6 +28,7 @@
 #ifndef qep_port_h
 #define qep_port_h
 
+/*#define Q_SIGNAL_SIZE 1*/
 #include <stdint.h>                   /* standard exact-width integer types */
 #include "qep.h"               /* QEP platform-independent public interface */
 

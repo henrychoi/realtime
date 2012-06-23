@@ -57,7 +57,7 @@ int main() {
     BSP_init();           /* initialize the Board Support Package */
 
     QF_init();     /* initialize the framework and the underlying RT kernel */
-#if 0
+
                                                   /* object dictionaries... */
     QS_OBJ_DICTIONARY(l_smlPoolSto);
     QS_OBJ_DICTIONARY(l_tableQueueSto);
@@ -68,10 +68,10 @@ int main() {
     QS_OBJ_DICTIONARY(l_philoQueueSto[4]);
 
     QF_psInit(l_subscrSto, Q_DIM(l_subscrSto));   /* init publish-subscribe */
-
                                                /* initialize event pools... */
     QF_poolInit(l_smlPoolSto, sizeof(l_smlPoolSto), sizeof(l_smlPoolSto[0]));
 
+#if 0
     for (n = 0; n < N_PHILO; ++n) {          /* start the active objects... */
         QActive_start(AO_Philo[n], (uint8_t)(n + 1),
                       l_philoQueueSto[n], Q_DIM(l_philoQueueSto[n]),
