@@ -61,7 +61,7 @@ static XTmrCtr timer;
     static uint8_t l_GPIOPortA_IRQHandler = 0;
 
     #define UART_BAUD_RATE      9600
-    #define UART_TXFIFO_DEPTH   0xFFFF
+    #define UART_TXFIFO_DEPTH   16
     static XUartLite uart;
 
     enum AppRecords {                 /* application-specific trace records */
@@ -236,14 +236,14 @@ void QF_onCleanup(void) {
 void QK_init(void) {}
 /*..........................................................................*/
 void QK_onIdle(void) {
-#if 0
     /* toggle the User LED on and then off, see NOTE01 */
-    QF_INT_DISABLE();
-    BSP_driveLED(7, 1);
-    BSP_driveLED(7, 0);
-    QF_INT_ENABLE();
-#endif
+    //QF_INT_DISABLE();
+	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<1);
+	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<1);
+    //QF_INT_ENABLE();
+
 #ifdef Q_SPY
+	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<2);
     if (!XUartLite_IsSending(&uart)) {                      /* TX done? */
         uint16_t fifo = UART_TXFIFO_DEPTH;       /* max bytes we can accept */
         uint8_t const *block;
@@ -258,6 +258,7 @@ void QK_onIdle(void) {
         		fifo -= sent;
         }
     }
+	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
 #elif defined NDEBUG
     /* Put the CPU and peripherals to the low-power mode.
     * you might need to customize the clock management for your application,
