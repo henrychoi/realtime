@@ -79,8 +79,6 @@ void SysTick_Handler(void* p, u8 timerId) {
 
 #ifdef Q_SPY
     QS_tickTime_ += 1; //QS_tickPeriod_; /* account for the clock rollover */
-    if(QS_tickTime_ & 0x1)XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);
-    else XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<0);
 #endif
 
     QF_TICK(&l_SysTick_Handler);           /* process all armed time events */
@@ -237,13 +235,16 @@ void QK_init(void) {}
 /*..........................................................................*/
 void QK_onIdle(void) {
     /* toggle the User LED on and then off, see NOTE01 */
-    //QF_INT_DISABLE();
+    QF_INT_DISABLE();
 	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<1);
 	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<1);
-    //QF_INT_ENABLE();
+    QF_INT_ENABLE();
 
 #ifdef Q_SPY
+    QF_INT_DISABLE();
 	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<2);
+    QF_INT_ENABLE();
+
     if (!XUartLite_IsSending(&uart)) {                      /* TX done? */
         uint16_t fifo = UART_TXFIFO_DEPTH;       /* max bytes we can accept */
         uint8_t const *block;
@@ -258,7 +259,9 @@ void QK_onIdle(void) {
         		fifo -= sent;
         }
     }
+    QF_INT_DISABLE();
 	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
+    QF_INT_ENABLE();
 #elif defined NDEBUG
     /* Put the CPU and peripherals to the low-power mode.
     * you might need to customize the clock management for your application,
@@ -288,7 +291,7 @@ uint8_t QS_onStartup(void const *arg) {
     static uint8_t qsBuf[6*256];                  /* buffer for Quantum Spy */
     QS_initBuf(qsBuf, sizeof(qsBuf));
 
-	int status = XUartLite_Initialize(&uart, XPAR_DEBUG_MODULE_DEVICE_ID);
+	int status = XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }

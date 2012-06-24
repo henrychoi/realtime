@@ -66,7 +66,7 @@ init_uart()
     XUartNs550_SetLineControlReg(STDOUT_BASEADDR, XUN_LCR_8_DATA_BITS);
 #endif
 
-    XUartLite_Initialize(&uart, XPAR_UARTLITE_0_DEVICE_ID);
+    XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
 }
 
 void
