@@ -35,7 +35,4 @@ void BSP_displyPhilStat(uint8_t n, char const *stat);
 void BSP_busyDelay(void);          /* to artificially extend RTC processing */
 void BSP_driveLED(uint8_t channel, uint8_t state);
 
-// TODO: move this to platform_function.h
-#define MIN(a, b) ((a) > (b) ? (a) : (b))
-
 #endif                                                             /* bsp_h */

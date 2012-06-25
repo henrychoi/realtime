@@ -33,6 +33,7 @@
 * e-mail:                  info@quantum-leaps.com
 *****************************************************************************/
 #include "qp_port.h"
+#include "function_port.h"
 #include "dpp.h"
 #include "bsp.h"
 #include "xparameters.h"
@@ -83,8 +84,10 @@ uint32_t l_tick = 0;
 #endif
 
 /*..........................................................................*/
-#define TCP_FAST_TICKS_PER_SEC 4
-#define TCP_SLOW_TICKS_PER_SEC 2
+#ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
+# define TCP_FAST_TICKS_PER_SEC 4
+# define TCP_SLOW_TICKS_PER_SEC 2
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 
 void SysTick_Handler(void* p, u8 timerId) {
 	(void)p; (void)timerId;
@@ -141,13 +144,53 @@ void GPIOPortA_IRQHandler(void* p) {
 	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 }
 #endif//XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
+
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+/*..........................................................................*/
+err_t echo_onrecv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p
+		, err_t err) {
+	if (!p) {/* do not read the packet if we are not in ESTABLISHED state */
+		tcp_close(tpcb);
+		tcp_recv(tpcb, NULL);
+		return ERR_OK;
+	}
+	tcp_recved(tpcb, p->len);/* packet has been received */
+	/* echo back the payload */
+	err = tcp_write(tpcb, p->payload, MIN(p->len, tcp_sndbuf(tpcb)), 1);
+	pbuf_free(p);/* free the received pbuf */
+	return ERR_OK;
+}
+/*..........................................................................*/
+err_t echo_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+	static int connection = 1;
+
+	//xil_printf("Connection (%d) Accepted\n\r", connection);
+
+	/* set the receive callback for this connection */
+	tcp_recv(newpcb, echo_onrecv);
+
+	/* just use an integer number indicating the connection id as the
+	   callback argument */
+	tcp_arg(newpcb, (void*)connection);
+
+	/* increment for subsequent accepted connections */
+	connection++;
+
+	return ERR_OK;
+}
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 /*..........................................................................*/
 void BSP_init() {
 	int status;
 	Xil_ICacheEnable();
 	Xil_DCacheEnable();
 
-	status = XGpio_Initialize(&led8, XPAR_LEDS_8BITS_DEVICE_ID);
+	status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
+	if(status != XST_SUCCESS) {
+		Q_ERROR();
+	}
+
+    status = XGpio_Initialize(&led8, XPAR_LEDS_8BITS_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
@@ -174,12 +217,22 @@ void BSP_init() {
 	XGpio_SetDataDirection(&button5, GPIO_CHANNEL, ~0); //out: 0, in: 1
 #endif//XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 
+#ifdef XPAR_RS232_UART_1_DEVICE_ID
+	status = XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
+    if(status != XST_SUCCESS) {
+        Q_ERROR();
+    }
+#endif
+
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
 	{
 		struct ip_addr ipaddr, netmask, gw;
 		/* the mac address of the board. this should be unique per board */
 		unsigned char mac_ethernet_address[] =
 			{0x00, 0x0a, 0x35, 0x00, 0x01, 0x02};
+		struct tcp_pcb *pcb;
+		err_t err;
+
 		IP4_ADDR(&ipaddr,  192, 168,   0, 254);
 		IP4_ADDR(&netmask, 255, 255, 255,  0);
 		IP4_ADDR(&gw,      192, 168,   0,  1);
@@ -189,7 +242,31 @@ void BSP_init() {
 				, XPAR_ETHERNET_LITE_BASEADDR)) {
 	        Q_ERROR();
 		}
+
 		netif_set_default(&netif);
+		netif_set_up(&netif);/* specify that the network if is up */
+
+		pcb = tcp_new();/* create new TCP PCB structure */
+		if (!pcb) {
+	        Q_ERROR();
+		}
+
+		err = tcp_bind(pcb, IP_ADDR_ANY, 7);//the standard echo port
+		if (err != ERR_OK) {
+	        Q_ERROR();
+		}
+
+		/* we do not need any arguments to callback functions */
+		tcp_arg(pcb, NULL);
+
+		/* listen for connections */
+		pcb = tcp_listen(pcb);
+		if (!pcb) {
+	        Q_ERROR();
+		}
+
+		/* specify callback to use for incoming connections */
+		tcp_accept(pcb, echo_onaccept);
 	}
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
@@ -227,44 +304,8 @@ void BSP_busyDelay(void) {
     }
 }
 /*..........................................................................*/
-#ifdef XPAR_ETHERNET_LITE_BASEADDR
-err_t echo_onrecv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p
-		, err_t err) {
-	if (!p) {/* do not read the packet if we are not in ESTABLISHED state */
-		tcp_close(tpcb);
-		tcp_recv(tpcb, NULL);
-		return ERR_OK;
-	}
-	tcp_recved(tpcb, p->len);/* packet has been received */
-	/* echo back the payload */
-	err = tcp_write(tpcb, p->payload, MIN(p->len, tcp_sndbuf(tpcb)), 1);
-	pbuf_free(p);/* free the received pbuf */
-	return ERR_OK;
-}
-err_t echo_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
-	static int connection = 1;
-
-	//xil_printf("Connection (%d) Accepted\n\r", connection);
-
-	/* set the receive callback for this connection */
-	tcp_recv(newpcb, echo_onrecv);
-
-	/* just use an integer number indicating the connection id as the
-	   callback argument */
-	tcp_arg(newpcb, (void*)connection);
-
-	/* increment for subsequent accepted connections */
-	connection++;
-
-	return ERR_OK;
-}
-#endif//XPAR_ETHERNET_LITE_BASEADDR
-/*..........................................................................*/
 void QF_onStartup(void) {
-	int status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
+	int status;
 #ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 	XGpio_InterruptEnable(&button5, 0xFF);
 	// Interrupts enabled through XGpio_InterruptEnable() will not be passed
@@ -313,36 +354,6 @@ void QF_onStartup(void) {
     }
     microblaze_enable_interrupts();
 
-#ifdef XPAR_ETHERNET_LITE_BASEADDR
-	netif_set_up(&netif);/* specify that the network if is up */
-	{//start_application()
-		struct tcp_pcb *pcb;
-		err_t err;
-
-		/* create new TCP PCB structure */
-		pcb = tcp_new();
-		if (!pcb) {
-	        Q_ERROR();
-		}
-
-		err = tcp_bind(pcb, IP_ADDR_ANY, 7);//the standard echo port
-		if (err != ERR_OK) {
-	        Q_ERROR();
-		}
-
-		/* we do not need any arguments to callback functions */
-		tcp_arg(pcb, NULL);
-
-		/* listen for connections */
-		pcb = tcp_listen(pcb);
-		if (!pcb) {
-	        Q_ERROR();
-		}
-
-		/* specify callback to use for incoming connections */
-		tcp_accept(pcb, echo_onaccept);
-	}
-#endif//XPAR_ETHERNET_LITE_BASEADDR
 }
 /*..........................................................................*/
 void QF_onCleanup(void) {
@@ -412,13 +423,6 @@ uint8_t QS_onStartup(void const *arg) {
     static uint8_t qsBuf[6*256];                  /* buffer for Quantum Spy */
     QS_initBuf(qsBuf, sizeof(qsBuf));
     int status;
-
-#ifdef XPAR_RS232_UART_1_DEVICE_ID
-	status = XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
-#endif
 
 #ifdef XPAR_EMACLITE_0_DEVICE_ID
 #endif
