@@ -79,5 +79,6 @@ int main() {
     QActive_start(AO_Table, (uint8_t)(N_PHILO + 1),
                   l_tableQueueSto, Q_DIM(l_tableQueueSto),
                   (void *)0, 0, (QEvt *)0);
+
     return QF_run();                              /* run the QF application */
 }

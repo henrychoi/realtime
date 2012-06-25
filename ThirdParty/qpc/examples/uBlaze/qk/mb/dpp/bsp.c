@@ -40,7 +40,17 @@
 #include "xintc.h"
 #include "xgpio.h"
 #include "xtmrctr.h"
-#include "xuartlite.h"
+#ifdef XPAR_RS232_UART_1_DEVICE_ID//defined in xparameters.h
+# include "xuartlite.h"
+  static XGpio button5;
+#endif
+#ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
+# include "netif/xadapter.h"
+# include "lwip/init.h"
+# include "lwip/tcp.h"
+# include "lwip/tcp_impl.h"
+  struct netif netif;
+#endif
 
 Q_DEFINE_THIS_FILE
 
@@ -48,37 +58,55 @@ Q_DEFINE_THIS_FILE
 static uint32_t l_delay = 0UL; /* limit for the loop counter in busyDelay() */
 XIntc intc;
 #define GPIO_CHANNEL 1
-static XGpio led8, led5, button5;
+static XGpio led8, led5;
+
 #define MY_TIMER_ID 0
 static XTmrCtr timer;
 #define SystemFrequency XPAR_AXI_TIMER_0_CLOCK_FREQ_HZ
 
-#ifdef Q_SPY
+uint32_t l_tick = 0;
 
+#ifdef Q_SPY
     QSTimeCtr QS_tickTime_;
     QSTimeCtr QS_tickPeriod_;
     static uint8_t l_SysTick_Handler;
     static uint8_t l_GPIOPortA_IRQHandler = 0;
-
+# ifdef XPAR_RS232_UART_1_DEVICE_ID
     #define UART_BAUD_RATE      9600
     #define UART_TXFIFO_DEPTH   16
     static XUartLite uart;
+# endif
 
     enum AppRecords {                 /* application-specific trace records */
         PHILO_STAT = QS_USER
     };
-
 #endif
 
 /*..........................................................................*/
+#define TCP_FAST_TICKS_PER_SEC 4
+#define TCP_SLOW_TICKS_PER_SEC 2
+
 void SysTick_Handler(void* p, u8 timerId) {
 	(void)p; (void)timerId;
+	/* From lwIP lib manual: To maintain TCP timers, lwIP requires that
+	 * certain functions are called at periodic intervals by the application
+	 */
+	++l_tick;
+#ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
+	tcp_fasttmr();//required: call every 250 ms
+	if(l_tick & 0x1) {
+		XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);
+		tcp_slowtmr();//required: call every 500 ms
+	} else {
+		XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<0);
+	}
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
 		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
     QK_ISR_ENTRY();                       /* inform QK-nano about ISR entry */
 
 #ifdef Q_SPY
-    QS_tickTime_ += 1; //QS_tickPeriod_; /* account for the clock rollover */
+    QS_tickTime_ = l_tick;//QS_tickPeriod_;/* account for the clock rollover */
 #endif
 
     QF_TICK(&l_SysTick_Handler);           /* process all armed time events */
@@ -88,10 +116,11 @@ void SysTick_Handler(void* p, u8 timerId) {
   		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
 }
 /*..........................................................................*/
+#ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 void GPIOPortA_IRQHandler(void* p) {
+	XGpio_InterruptClear((XGpio*)p, GPIO_CHANNEL);
 	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
 		  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
-	XGpio_InterruptClear((XGpio*)p, GPIO_CHANNEL);
 
 	QK_ISR_ENTRY();                      /* infrom QK about entering an ISR */
 	l_GPIOPortA_IRQHandler = XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL);
@@ -111,7 +140,7 @@ void GPIOPortA_IRQHandler(void* p) {
     XIntc_Enable(&intc/*enable the button interrupt again*/
 	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 }
-
+#endif//XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 /*..........................................................................*/
 void BSP_init() {
 	int status;
@@ -133,6 +162,7 @@ void BSP_init() {
 	// Q: use interrupt for URT?
 	// Not necessary for now since I don't read from console
 
+#ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 	status = XGpio_Initialize(&button5, XPAR_PUSH_BUTTONS_5BITS_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
@@ -142,6 +172,26 @@ void BSP_init() {
 	// After this call, I can, if I wish, poll the GPIO with
 	// u32 val = XGpio_DiscreteRead(&button5, BUTTON5_CHANNEL)
 	XGpio_SetDataDirection(&button5, GPIO_CHANNEL, ~0); //out: 0, in: 1
+#endif//XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
+
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+	{
+		struct ip_addr ipaddr, netmask, gw;
+		/* the mac address of the board. this should be unique per board */
+		unsigned char mac_ethernet_address[] =
+			{0x00, 0x0a, 0x35, 0x00, 0x01, 0x02};
+		IP4_ADDR(&ipaddr,  192, 168,   0, 254);
+		IP4_ADDR(&netmask, 255, 255, 255,  0);
+		IP4_ADDR(&gw,      192, 168,   0,  1);
+	  	/* Add network interface to the netif_list, and set it as default */
+		lwip_init();
+		if(!xemac_add(&netif, &ipaddr, &netmask, &gw, mac_ethernet_address
+				, XPAR_ETHERNET_LITE_BASEADDR)) {
+	        Q_ERROR();
+		}
+		netif_set_default(&netif);
+	}
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 
     if (QS_INIT((void *)0) == 0) {    /* initialize the QS software tracing */
         Q_ERROR();
@@ -176,15 +226,46 @@ void BSP_busyDelay(void) {
     while (i-- > 0UL) {                                   /* busy-wait loop */
     }
 }
+/*..........................................................................*/
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+err_t echo_onrecv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p
+		, err_t err) {
+	if (!p) {/* do not read the packet if we are not in ESTABLISHED state */
+		tcp_close(tpcb);
+		tcp_recv(tpcb, NULL);
+		return ERR_OK;
+	}
+	tcp_recved(tpcb, p->len);/* packet has been received */
+	/* echo back the payload */
+	err = tcp_write(tpcb, p->payload, MIN(p->len, tcp_sndbuf(tpcb)), 1);
+	pbuf_free(p);/* free the received pbuf */
+	return ERR_OK;
+}
+err_t echo_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+	static int connection = 1;
 
+	//xil_printf("Connection (%d) Accepted\n\r", connection);
+
+	/* set the receive callback for this connection */
+	tcp_recv(newpcb, echo_onrecv);
+
+	/* just use an integer number indicating the connection id as the
+	   callback argument */
+	tcp_arg(newpcb, (void*)connection);
+
+	/* increment for subsequent accepted connections */
+	connection++;
+
+	return ERR_OK;
+}
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 /*..........................................................................*/
 void QF_onStartup(void) {
 	int status = XIntc_Initialize(&intc, XPAR_INTC_0_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
-	//microblaze_enable_interrupts();//uBlaze intr
-
+#ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 	XGpio_InterruptEnable(&button5, 0xFF);
 	// Interrupts enabled through XGpio_InterruptEnable() will not be passed
 	// through until the global enable bit is set by this function. This
@@ -200,6 +281,7 @@ void QF_onStartup(void) {
     }
 	XIntc_Enable(&intc
 			, XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
+#endif//#ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 
 	status = XTmrCtr_Initialize(&timer, XPAR_AXI_TIMER_0_DEVICE_ID);
     if(status != XST_SUCCESS) {
@@ -220,12 +302,47 @@ void QF_onStartup(void) {
 	XTmrCtr_Start(&timer, MY_TIMER_ID);//can stop later with XTmrCtr_Stop()
 
 	XIntc_Enable(&intc, XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+	// Interrupt controller is registered with xintc inside xemac_add above
+	XIntc_Enable(&intc, XPAR_INTC_0_EMACLITE_0_VEC_ID);
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 
     status = XIntc_Start(&intc, XIN_REAL_MODE);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
     microblaze_enable_interrupts();
+
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+	netif_set_up(&netif);/* specify that the network if is up */
+	{//start_application()
+		struct tcp_pcb *pcb;
+		err_t err;
+
+		/* create new TCP PCB structure */
+		pcb = tcp_new();
+		if (!pcb) {
+	        Q_ERROR();
+		}
+
+		err = tcp_bind(pcb, IP_ADDR_ANY, 7);//the standard echo port
+		if (err != ERR_OK) {
+	        Q_ERROR();
+		}
+
+		/* we do not need any arguments to callback functions */
+		tcp_arg(pcb, NULL);
+
+		/* listen for connections */
+		pcb = tcp_listen(pcb);
+		if (!pcb) {
+	        Q_ERROR();
+		}
+
+		/* specify callback to use for incoming connections */
+		tcp_accept(pcb, echo_onaccept);
+	}
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 }
 /*..........................................................................*/
 void QF_onCleanup(void) {
@@ -235,16 +352,20 @@ void QK_init(void) {}
 /*..........................................................................*/
 void QK_onIdle(void) {
     /* toggle the User LED on and then off, see NOTE01 */
+    /* FIXME: This causes the center LED to flicker weirdly
     QF_INT_DISABLE();
 	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<1);
 	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<1);
     QF_INT_ENABLE();
+    */
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+	xemacif_input(&netif);
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 
 #ifdef Q_SPY
-    QF_INT_DISABLE();
-	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<2);
-    QF_INT_ENABLE();
+	//XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<2);
 
+# ifdef XPAR_RS232_UART_1_DEVICE_ID
     if (!XUartLite_IsSending(&uart)) {                      /* TX done? */
         uint16_t fifo = UART_TXFIFO_DEPTH;       /* max bytes we can accept */
         uint8_t const *block;
@@ -259,9 +380,9 @@ void QK_onIdle(void) {
         		fifo -= sent;
         }
     }
-    QF_INT_DISABLE();
-	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
-    QF_INT_ENABLE();
+# endif
+
+	//XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
 #elif defined NDEBUG
     /* Put the CPU and peripherals to the low-power mode.
     * you might need to customize the clock management for your application,
@@ -290,11 +411,17 @@ void assert_failed(char const *file, int line) {
 uint8_t QS_onStartup(void const *arg) {
     static uint8_t qsBuf[6*256];                  /* buffer for Quantum Spy */
     QS_initBuf(qsBuf, sizeof(qsBuf));
+    int status;
 
-	int status = XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
+#ifdef XPAR_RS232_UART_1_DEVICE_ID
+	status = XUartLite_Initialize(&uart, XPAR_RS232_UART_1_DEVICE_ID);
     if(status != XST_SUCCESS) {
         Q_ERROR();
     }
+#endif
+
+#ifdef XPAR_EMACLITE_0_DEVICE_ID
+#endif
 
     QS_tickPeriod_ = SystemFrequency / BSP_TICKS_PER_SEC + 1;
     QS_tickTime_ = 0;
@@ -355,9 +482,11 @@ QSTimeCtr QS_onGetTime(void) {            /* invoked with interrupts locked */
 }
 /*..........................................................................*/
 void QS_onFlush(void) {
-    uint16_t fifo = UART_TXFIFO_DEPTH;                     /* Tx FIFO depth */
     uint8_t const *block;
     QF_INT_DISABLE();
+
+#ifdef XPAR_RS232_UART_1_DEVICE_ID
+    uint16_t fifo = UART_TXFIFO_DEPTH;                     /* Tx FIFO depth */
     while ((block = QS_getBlock(&fifo)) != (uint8_t *)0) {
         QF_INT_ENABLE();
                                            /* busy-wait until TX FIFO empty */
@@ -372,6 +501,11 @@ void QS_onFlush(void) {
         fifo = UART_TXFIFO_DEPTH;              /* re-load the Tx FIFO depth */
         QF_INT_DISABLE();
     }
+#elif defined(XPAR_INTC_0_EMACLITE_0_VEC_ID)
+#else
+#  error "No way to flush QS buffer"
+#endif
+
     QF_INT_ENABLE();
 }
 #endif                                                             /* Q_SPY */

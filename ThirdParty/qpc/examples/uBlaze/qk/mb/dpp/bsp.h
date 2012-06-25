@@ -28,11 +28,14 @@
 #ifndef bsp_h
 #define bsp_h
 
-#define BSP_TICKS_PER_SEC    1
+#define BSP_TICKS_PER_SEC 4//Had to increase to accomodate TCP timers
 
 void BSP_init();
 void BSP_displyPhilStat(uint8_t n, char const *stat);
 void BSP_busyDelay(void);          /* to artificially extend RTC processing */
 void BSP_driveLED(uint8_t channel, uint8_t state);
+
+// TODO: move this to platform_function.h
+#define MIN(a, b) ((a) > (b) ? (a) : (b))
 
 #endif                                                             /* bsp_h */
