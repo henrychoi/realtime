@@ -41,11 +41,8 @@
 #include "xintc.h"
 #include "xgpio.h"
 #include "xtmrctr.h"
-#ifdef XPAR_RS232_UART_1_DEVICE_ID//defined in xparameters.h
-# include "xuartlite.h"
-  static XGpio button5;
-#endif
 #ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
+//Always pulled in for the echo server
 # include "netif/xadapter.h"
 # include "lwip/init.h"
 # include "lwip/tcp.h"
@@ -59,7 +56,7 @@ Q_DEFINE_THIS_FILE
 static uint32_t l_delay = 0UL; /* limit for the loop counter in busyDelay() */
 XIntc intc;
 #define GPIO_CHANNEL 1
-static XGpio led8, led5;
+static XGpio led8;
 
 #define MY_TIMER_ID 0
 static XTmrCtr timer;
@@ -73,10 +70,15 @@ uint32_t l_tick = 0;
     static uint8_t l_SysTick_Handler;
     static uint8_t l_GPIOPortA_IRQHandler = 0;
 # ifdef XPAR_RS232_UART_1_DEVICE_ID
-    #define UART_BAUD_RATE      9600
-    #define UART_TXFIFO_DEPTH   16
+#  include "xuartlite.h"
+#  define UART_BAUD_RATE      9600
+#  define UART_TXFIFO_DEPTH   16
     static XUartLite uart;
 # endif
+
+#ifdef XPAR_ETHERNET_LITE_BASEADDR
+    static struct tcp_pcb *qs_pcb = NULL, *qs_con = NULL;
+#endif//XPAR_ETHERNET_LITE_BASEADDR
 
     enum AppRecords {                 /* application-specific trace records */
         PHILO_STAT = QS_USER
@@ -97,11 +99,9 @@ void SysTick_Handler(void* p, u8 timerId) {
 	++l_tick;
 #ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
 	tcp_fasttmr();//required: call every 250 ms
+	BSP_driveLED(7, l_tick & 0x1);
 	if(l_tick & 0x1) {
-		XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);
 		tcp_slowtmr();//required: call every 500 ms
-	} else {
-		XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<0);
 	}
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
@@ -156,7 +156,8 @@ err_t echo_onrecv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p
 	}
 	tcp_recved(tpcb, p->len);/* packet has been received */
 	/* echo back the payload */
-	err = tcp_write(tpcb, p->payload, MIN(p->len, tcp_sndbuf(tpcb)), 1);
+	err = tcp_write(tpcb, p->payload, MIN(p->len, tcp_sndbuf(tpcb))
+			, TCP_WRITE_FLAG_COPY);
 	pbuf_free(p);/* free the received pbuf */
 	return ERR_OK;
 }
@@ -178,6 +179,20 @@ err_t echo_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 
 	return ERR_OK;
 }
+# ifdef Q_SPY
+/*..........................................................................*/
+err_t qs_onTcpWatchdog(void * arg, struct tcp_pcb * tpcb) {
+	qs_con = NULL;
+	return tcp_close(tpcb);
+}
+/*..........................................................................*/
+err_t qs_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
+	tcp_accepted(newpcb);
+	tcp_poll(newpcb, qs_onTcpWatchdog, 20);//10 sec timeout
+	qs_con = newpcb;
+	return ERR_OK;
+}
+# endif//Q_SPY
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 /*..........................................................................*/
 void BSP_init() {
@@ -195,12 +210,6 @@ void BSP_init() {
         Q_ERROR();
     }
 	XGpio_SetDataDirection(&led8, GPIO_CHANNEL, 0x0);//output
-
-	status = XGpio_Initialize(&led5, XPAR_LEDS_POSITIONS_DEVICE_ID);
-    if(status != XST_SUCCESS) {
-        Q_ERROR();
-    }
-	XGpio_SetDataDirection(&led5, GPIO_CHANNEL, 0x0);//output
 
 	// Q: use interrupt for URT?
 	// Not necessary for now since I don't read from console
@@ -228,9 +237,9 @@ void BSP_init() {
 	{
 		struct ip_addr ipaddr, netmask, gw;
 		/* the mac address of the board. this should be unique per board */
-		unsigned char mac_ethernet_address[] =
+		unsigned char mac_ethernet_address[] = // what is the MAC of D260?
 			{0x00, 0x0a, 0x35, 0x00, 0x01, 0x02};
-		struct tcp_pcb *pcb;
+		struct tcp_pcb *echo_pcb;
 		err_t err;
 
 		IP4_ADDR(&ipaddr,  192, 168,   0, 254);
@@ -246,27 +255,41 @@ void BSP_init() {
 		netif_set_default(&netif);
 		netif_set_up(&netif);/* specify that the network if is up */
 
-		pcb = tcp_new();/* create new TCP PCB structure */
-		if (!pcb) {
+		echo_pcb = tcp_new();/* create new TCP PCB structure */
+		if (!echo_pcb) {
 	        Q_ERROR();
 		}
 
-		err = tcp_bind(pcb, IP_ADDR_ANY, 7);//the standard echo port
+		err = tcp_bind(echo_pcb, IP_ADDR_ANY, 7);//the standard echo port
 		if (err != ERR_OK) {
 	        Q_ERROR();
 		}
 
-		/* we do not need any arguments to callback functions */
-		tcp_arg(pcb, NULL);
+		/* Just an example; do not need any arguments to callback functions */
+		//tcp_arg(echo_pcb, NULL);
 
-		/* listen for connections */
-		pcb = tcp_listen(pcb);
-		if (!pcb) {
+		echo_pcb = tcp_listen(echo_pcb);/* listen for connections */
+		if (!echo_pcb) {
 	        Q_ERROR();
 		}
 
 		/* specify callback to use for incoming connections */
-		tcp_accept(pcb, echo_onaccept);
+		tcp_accept(echo_pcb, echo_onaccept);
+
+		/* TCP server for the QSpy connection */
+		qs_pcb = tcp_new();
+		if (!qs_pcb) {
+	        Q_ERROR();
+		}
+		err = tcp_bind(qs_pcb, IP_ADDR_ANY, 6601);//QS port
+		if (err != ERR_OK) {
+	        Q_ERROR();
+		}
+		qs_pcb = tcp_listen(qs_pcb);
+		if (!qs_pcb) {
+	        Q_ERROR();
+		}
+		tcp_accept(qs_pcb, qs_onaccept);
 	}
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
@@ -370,7 +393,7 @@ void QK_onIdle(void) {
     QF_INT_ENABLE();
     */
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
-	xemacif_input(&netif);
+	xemacif_input(&netif);//keep the Ethernet going
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
 #ifdef Q_SPY
@@ -393,6 +416,19 @@ void QK_onIdle(void) {
     }
 # endif
 
+# ifdef XPAR_ETHERNET_LITE_BASEADDR
+    if(qs_con) {
+    	uint16_t fifo = tcp_sndbuf(qs_con);     /* max bytes we can accept */
+        uint8_t const *block;
+
+        QF_INT_DISABLE();
+        block = QS_getBlock(&fifo);    /* try to get next block to transmit */
+        QF_INT_ENABLE();
+        // This may return an error, but there is nothing I can do even if so
+    	tcp_write(qs_con, block, fifo, TCP_WRITE_FLAG_COPY);
+    }
+# endif//XPAR_ETHERNET_LITE_BASEADDR
+
 	//XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
 #elif defined NDEBUG
     /* Put the CPU and peripherals to the low-power mode.
@@ -405,7 +441,7 @@ void QK_onIdle(void) {
 /*..........................................................................*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {
     QF_INT_DISABLE();         /* make sure that all interrupts are disabled */
-    XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<0);//indicate death
+    BSP_driveLED(7, 1);//indicate death
 	Xil_Assert(file, line);
     for (;;) {       /* NOTE: replace the loop with reset for final version */
     }
@@ -422,7 +458,6 @@ void assert_failed(char const *file, int line) {
 uint8_t QS_onStartup(void const *arg) {
     static uint8_t qsBuf[6*256];                  /* buffer for Quantum Spy */
     QS_initBuf(qsBuf, sizeof(qsBuf));
-    int status;
 
 #ifdef XPAR_EMACLITE_0_DEVICE_ID
 #endif
@@ -489,7 +524,7 @@ void QS_onFlush(void) {
     uint8_t const *block;
     QF_INT_DISABLE();
 
-#ifdef XPAR_RS232_UART_1_DEVICE_ID
+# ifdef XPAR_RS232_UART_1_DEVICE_ID
     uint16_t fifo = UART_TXFIFO_DEPTH;                     /* Tx FIFO depth */
     while ((block = QS_getBlock(&fifo)) != (uint8_t *)0) {
         QF_INT_ENABLE();
@@ -505,10 +540,19 @@ void QS_onFlush(void) {
         fifo = UART_TXFIFO_DEPTH;              /* re-load the Tx FIFO depth */
         QF_INT_DISABLE();
     }
-#elif defined(XPAR_INTC_0_EMACLITE_0_VEC_ID)
-#else
+# elif defined(XPAR_ETHERNET_LITE_BASEADDR)
+    if(qs_con) {
+    	uint16_t fifo = tcp_sndbuf(qs_con);     /* max bytes we can accept */
+
+        QF_INT_DISABLE();
+        block = QS_getBlock(&fifo);    /* try to get next block to transmit */
+        QF_INT_ENABLE();
+        // This may return an error, but there is nothing I can do even if so
+    	tcp_write(qs_con, block, fifo, TCP_WRITE_FLAG_COPY);
+    }
+# else
 #  error "No way to flush QS buffer"
-#endif
+# endif
 
     QF_INT_ENABLE();
 }
