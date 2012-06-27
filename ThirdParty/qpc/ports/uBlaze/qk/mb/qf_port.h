@@ -31,21 +31,25 @@
                  /* The maximum number of active objects in the application */
 #define QF_MAX_ACTIVE               63
 
-#undef QF_CRIT_STAT_TYPE /*#define QF_CRIT_STAT_TYPE uint32_t*/
+#include "mb_interface.h"
+#define QF_INT_DISABLE microblaze_disable_interrupts
+#define QF_INT_ENABLE  microblaze_enable_interrupts
+
+//#undef QF_CRIT_STAT_TYPE
+#define QF_CRIT_STAT_TYPE u32
 #ifdef QF_CRIT_STAT_TYPE
 #  include "xintc.h"
-extern XIntc intc;
+   extern XIntc intc;
 #  define QF_CRIT_ENTRY(stat_) do { \
-	(stat_) = XIntc_In32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET); \
-	XIntc_Out32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET, 0); \
+	(stat_) = XIntc_In32((intc.BaseAddress) + XIN_ISR_OFFSET); \
+	XIntc_Out32((intc.BaseAddress) + XIN_ISR_OFFSET, 0); \
 } while(0)
 
 #  define QF_CRIT_EXIT(stat_) \
-	XIntc_Out32((intc.CfgPtr->BaseAddress) + XIN_ISR_OFFSET, (stat_))
+	XIntc_Out32((intc.BaseAddress) + XIN_ISR_OFFSET, (stat_))
+//#  define QF_CRIT_STAT_    QF_CRIT_STAT_TYPE critStat_;
+
 #else /* unconditionally lock and unlock */
-#  include "mb_interface.h"
-#  define QF_INT_DISABLE microblaze_disable_interrupts
-#  define QF_INT_ENABLE  microblaze_enable_interrupts
 #  define QF_CRIT_ENTRY(stat_)  QF_INT_DISABLE()
 #  define QF_CRIT_EXIT(stat_)   QF_INT_ENABLE()
 #endif/* QF_CRIT_STAT_TYPE */

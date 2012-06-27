@@ -54,7 +54,7 @@ Q_DEFINE_THIS_FILE
 
 /* Local-scope objects -----------------------------------------------------*/
 static uint32_t l_delay = 0UL; /* limit for the loop counter in busyDelay() */
-XIntc intc;
+XIntc intc;//, *intcp = &intc;
 #define GPIO_CHANNEL 1
 static XGpio led8;
 
@@ -77,7 +77,14 @@ uint32_t l_tick = 0;
 # endif
 
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
-    static struct tcp_pcb *qs_pcb = NULL, *qs_con = NULL;
+# define QS_TCP
+# ifdef QS_TCP
+    static struct tcp_pcb *qs_pcb = NULL;
+# else
+#  include "lwip/opt.h"
+#  include "lwip/udp.h"
+   static struct udp_pcb* qs_pcb;
+# endif
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
     enum AppRecords {                 /* application-specific trace records */
@@ -93,19 +100,23 @@ uint32_t l_tick = 0;
 
 void SysTick_Handler(void* p, u8 timerId) {
 	(void)p; (void)timerId;
+	QF_CRIT_STAT_TYPE isrstat_;
+
+#ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
 	/* From lwIP lib manual: To maintain TCP timers, lwIP requires that
 	 * certain functions are called at periodic intervals by the application
 	 */
-	++l_tick;
-#ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
 	tcp_fasttmr();//required: call every 250 ms
 	BSP_driveLED(7, l_tick & 0x1);
 	if(l_tick & 0x1) {
 		tcp_slowtmr();//required: call every 500 ms
 	}
 #endif//XPAR_ETHERNET_LITE_BASEADDR
-	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
-		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+
+	++l_tick;
+
+	//XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
+	//	  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
     QK_ISR_ENTRY();                       /* inform QK-nano about ISR entry */
 
 #ifdef Q_SPY
@@ -114,16 +125,17 @@ void SysTick_Handler(void* p, u8 timerId) {
 
     QF_TICK(&l_SysTick_Handler);           /* process all armed time events */
 
-    QK_ISR_EXIT();                         /* inform QK-nano about ISR exit */
-    XIntc_Enable(&intc//enable the timer interrupt again
-  		  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
+    QK_ISR_EXIT();                        /* inform QK about exiting an ISR */
+    //XIntc_Enable(&intc//enable the timer interrupt again
+  	//	  , XPAR_MICROBLAZE_0_INTC_AXI_TIMER_0_INTERRUPT_INTR);
 }
 /*..........................................................................*/
 #ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 void GPIOPortA_IRQHandler(void* p) {
+	QF_CRIT_STAT_TYPE isrstat_;
 	XGpio_InterruptClear((XGpio*)p, GPIO_CHANNEL);
-	XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
-		  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
+	//XIntc_Disable(&intc//prevent infinite loop when I enable the interrupt
+	//	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 
 	QK_ISR_ENTRY();                      /* infrom QK about entering an ISR */
 	l_GPIOPortA_IRQHandler = XGpio_DiscreteRead((XGpio*)p, GPIO_CHANNEL);
@@ -138,10 +150,10 @@ void GPIOPortA_IRQHandler(void* p) {
         QACTIVE_POST(AO_Table, Q_NEW(QEvt, MAX_PUB_SIG), /* for testing... */
                  &l_GPIOPortA_IRQHandler);
 	}
-    QK_ISR_EXIT();                        /* infrom QK about exiting an ISR */
+    QK_ISR_EXIT();                        /* inform QK about exiting an ISR */
 
-    XIntc_Enable(&intc/*enable the button interrupt again*/
-	  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
+    //XIntc_Enable(&intc/*enable the button interrupt again*/
+	//  , XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR);
 }
 #endif//XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
 
@@ -180,6 +192,8 @@ err_t echo_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 	return ERR_OK;
 }
 # ifdef Q_SPY
+#  ifdef QS_TCP
+#   if 0
 /*..........................................................................*/
 err_t qs_onTcpWatchdog(void * arg, struct tcp_pcb * tpcb) {
 	qs_con = NULL;
@@ -192,6 +206,13 @@ err_t qs_onaccept(void *arg, struct tcp_pcb *newpcb, err_t err) {
 	qs_con = newpcb;
 	return ERR_OK;
 }
+#   else
+err_t qs_onconnected(void *arg, struct tcp_pcb *newpcb, err_t err) {
+	if(!err) qs_pcb = newpcb;
+	return err;
+}
+#   endif//0
+#  endif//QS_TCP
 # endif//Q_SPY
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 /*..........................................................................*/
@@ -277,20 +298,26 @@ void BSP_init() {
 		tcp_accept(echo_pcb, echo_onaccept);
 
 		/* TCP server for the QSpy connection */
-		qs_pcb = tcp_new();
+# ifdef QS_TCP
+		{
+			struct ip_addr qspyHost;
+			IP4_ADDR(&qspyHost,  192, 168,   0, 1);
+			struct tcp_pcb *pcb = tcp_new();
+			if (!pcb) {
+				Q_ERROR();
+			}
+			err = tcp_connect(pcb, &qspyHost, 6601, qs_onconnected);
+			if (err != ERR_OK) {
+				Q_ERROR();
+			}
+		}
+# else
+		qs_pcb = udp_new();
 		if (!qs_pcb) {
 	        Q_ERROR();
 		}
-		err = tcp_bind(qs_pcb, IP_ADDR_ANY, 6601);//QS port
-		if (err != ERR_OK) {
-	        Q_ERROR();
-		}
-		qs_pcb = tcp_listen(qs_pcb);
-		if (!qs_pcb) {
-	        Q_ERROR();
-		}
-		tcp_accept(qs_pcb, qs_onaccept);
-	}
+# endif
+    }
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
     if (QS_INIT((void *)0) == 0) {    /* initialize the QS software tracing */
@@ -385,7 +412,7 @@ void QF_onCleanup(void) {
 void QK_init(void) {}
 /*..........................................................................*/
 void QK_onIdle(void) {
-    /* toggle the User LED on and then off, see NOTE01 */
+	/* toggle the User LED on and then off, see NOTE01 */
     /* FIXME: This causes the center LED to flicker weirdly
     QF_INT_DISABLE();
 	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<1);
@@ -417,16 +444,36 @@ void QK_onIdle(void) {
 # endif
 
 # ifdef XPAR_ETHERNET_LITE_BASEADDR
-    if(qs_con) {
-    	uint16_t fifo = tcp_sndbuf(qs_con);     /* max bytes we can accept */
+#  ifdef QS_TCP
+    if(qs_pcb) {
+    	uint16_t fifo = tcp_sndbuf(qs_pcb);     /* max bytes we can accept */
         uint8_t const *block;
 
         QF_INT_DISABLE();
         block = QS_getBlock(&fifo);    /* try to get next block to transmit */
         QF_INT_ENABLE();
         // This may return an error, but there is nothing I can do even if so
-    	tcp_write(qs_con, block, fifo, TCP_WRITE_FLAG_COPY);
+    	tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
     }
+#  else
+    {
+    	uint8_t const *block;
+    	struct ip_addr maddr;
+    	struct pbuf *p;
+    	uint16_t fifo = 1;//qs_pcb->sndbuf;
+    	IP4_ADDR(&maddr, 225, 0, 0,  1);
+
+        QF_INT_DISABLE();
+        block = QS_getBlock(&fifo);    /* try to get next block to transmit */
+        QF_INT_ENABLE();
+    	p = pbuf_alloc(PBUF_TRANSPORT, fifo, PBUF_POOL);
+    	if(p) {
+			memcpy(p->payload, block, fifo);
+			udp_sendto(qs_pcb, p, &maddr, 6601);
+			pbuf_free(p);
+    	}
+    }
+#  endif//QS_TCP
 # endif//XPAR_ETHERNET_LITE_BASEADDR
 
 	//XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
@@ -541,15 +588,29 @@ void QS_onFlush(void) {
         QF_INT_DISABLE();
     }
 # elif defined(XPAR_ETHERNET_LITE_BASEADDR)
-    if(qs_con) {
-    	uint16_t fifo = tcp_sndbuf(qs_con);     /* max bytes we can accept */
-
-        QF_INT_DISABLE();
+#  ifdef QS_TCP
+    if(qs_pcb) {
+    	uint16_t fifo = tcp_sndbuf(qs_pcb);     /* max bytes we can accept */
         block = QS_getBlock(&fifo);    /* try to get next block to transmit */
-        QF_INT_ENABLE();
         // This may return an error, but there is nothing I can do even if so
-    	tcp_write(qs_con, block, fifo, TCP_WRITE_FLAG_COPY);
+    	tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
     }
+#  else
+    {
+    	struct ip_addr maddr;
+    	struct pbuf *p;
+    	uint16_t fifo = udp_sndbuf(qs_pcb);
+    	IP4_ADDR(&maddr, 225, 0, 0,  1);
+
+        block = QS_getBlock(&fifo);    /* try to get next block to transmit */
+    	p = pbuf_alloc(PBUF_TRANSPORT, fifo, PBUF_POOL);
+    	if(p) {
+			memcpy(p->payload, block, fifo);
+			udp_sendto(qs_pcb, p, &maddr, 6601);
+			pbuf_free(p);
+    	}
+    }
+#  endif//QS_TCP
 # else
 #  error "No way to flush QS buffer"
 # endif

@@ -27,14 +27,35 @@
 *****************************************************************************/
 #ifndef qk_port_h
 #define qk_port_h
-                                          /* QK-specific ISR entry and exit */
-#define QK_ISR_ENTRY() do { \
+
+#ifdef QF_CRIT_STAT_TYPE                  /* QK-specific ISR entry and exit */
+# define QK_ISR_ENTRY() do { \
+    ++QK_intNest_; \
+    QF_QS_ISR_ENTRY(QK_intNest_, QK_currPrio_); \
+    QF_CRIT_ENTRY(isrstat_); \
+    QF_INT_ENABLE(); \
+} while (0)
+
+# define QK_ISR_EXIT() do { \
+    QF_INT_DISABLE(); \
+    QF_CRIT_EXIT(isrstat_); \
+    QF_QS_ISR_EXIT(QK_intNest_, QK_currPrio_); \
+    --QK_intNest_; \
+    if (QK_intNest_ == (uint8_t)0) { \
+        uint8_t p = QK_schedPrio_(); \
+        if (p != (uint8_t)0) { \
+            QK_schedExt_(p); \
+        } \
+    } \
+} while (0)
+#else
+# define QK_ISR_ENTRY() do { \
     ++QK_intNest_; \
     QF_QS_ISR_ENTRY(QK_intNest_, QK_currPrio_); \
     QF_INT_ENABLE(); \
 } while (0)
 
-#define QK_ISR_EXIT() do { \
+# define QK_ISR_EXIT() do { \
     QF_INT_DISABLE(); \
     QF_QS_ISR_EXIT(QK_intNest_, QK_currPrio_); \
     --QK_intNest_; \
@@ -45,6 +66,7 @@
         } \
     } \
 } while (0)
+#endif//QF_CRIT_STAT_TYPE
 
 #include "qk.h"                 /* QK platform-independent public interface */
 #include "qf.h"                 /* QF platform-independent public interface */
