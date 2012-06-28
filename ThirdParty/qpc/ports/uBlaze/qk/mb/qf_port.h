@@ -43,7 +43,7 @@
 
 #  define QF_CRIT_ENTRY(stat_) do { \
 	(stat_) = XIntc_In32(intc.BaseAddress + XIN_IER_OFFSET); \
-	XIntc_Out32(intc.BaseAddress + XIN_ISR_OFFSET, 0); \
+	XIntc_Out32(intc.BaseAddress + XIN_IER_OFFSET, 0); \
 } while(0)
 
 #  define QF_CRIT_EXIT(stat_) \

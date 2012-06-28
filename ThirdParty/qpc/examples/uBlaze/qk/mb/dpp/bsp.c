@@ -102,28 +102,25 @@ uint8_t QF_started = 0;
 
 void SysTick_Handler(void* p, u8 timerId) {
 	(void)p; (void)timerId;
-	QF_CRIT_STAT_TYPE isrstat_;
+	QF_CRIT_STAT_TYPE isrstat;
+	BSP_driveLED(7, 1);
 
 #ifdef XPAR_ETHERNET_LITE_BASEADDR//defined in xparameters.h
-	/* From lwIP lib manual: To maintain TCP timers, lwIP requires that
-	 * certain functions are called at periodic intervals by the application
-	 */
-	tcp_fasttmr();//required: call every 250 ms
-	BSP_driveLED(7, l_tick & 0x1);
-	if(l_tick & 0x1) {
-		tcp_slowtmr();//required: call every 500 ms
-	}
+	tcp_tmr();
 #endif//XPAR_ETHERNET_LITE_BASEADDR
+	BSP_driveLED(7, 0);
 
-	++l_tick;
 	if(!QF_started) return;// Should not do any QF activity until QF starts
+	BSP_driveLED(7, ++l_tick & 0x1);
 
+    QF_CRIT_ENTRY(isrstat);
     QK_ISR_ENTRY();                       /* inform QK-nano about ISR entry */
 #ifdef Q_SPY
     QS_tickTime_ = l_tick;//QS_tickPeriod_;/* account for the clock rollover */
 #endif
     QF_TICK(&l_SysTick_Handler);           /* process all armed time events */
     QK_ISR_EXIT();                        /* inform QK about exiting an ISR */
+    QF_CRIT_EXIT(isrstat);
 }
 /*..........................................................................*/
 #ifdef XPAR_MICROBLAZE_0_INTC_PUSH_BUTTONS_5BITS_IP2INTC_IRPT_INTR
@@ -373,20 +370,12 @@ void QF_onCleanup(void) {
 void QK_init(void) {}
 /*..........................................................................*/
 void QK_onIdle(void) {
-	/* toggle the User LED on and then off, see NOTE01 */
-    /* FIXME: This causes the center LED to flicker weirdly
-    QF_INT_DISABLE();
-	XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<1);
-	XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<1);
-    QF_INT_ENABLE();
-    */
+	//BSP_driveLED(5, 1);  /* toggle the User LED on and then off, see NOTE01 */
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
 	xemacif_input(&netif);//keep Ethernet comm going
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
 #ifdef Q_SPY
-	//XGpio_DiscreteWrite(&led5, GPIO_CHANNEL, 1<<2);
-
 # ifdef XPAR_RS232_UART_1_DEVICE_ID
     if (!XUartLite_IsSending(&uart)) {                      /* TX done? */
         uint16_t fifo = UART_TXFIFO_DEPTH;       /* max bytes we can accept */
@@ -437,15 +426,14 @@ void QK_onIdle(void) {
 #  endif//QS_TCP
 # endif//XPAR_ETHERNET_LITE_BASEADDR
 
-	//XGpio_DiscreteClear(&led5, GPIO_CHANNEL, 1<<2);
 #elif defined NDEBUG
     /* Put the CPU and peripherals to the low-power mode.
     * you might need to customize the clock management for your application,
     * see the datasheet for your particular MCU.
     */
 #endif
+	//BSP_driveLED(5, 0);
 }
-
 /*..........................................................................*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {
     QF_INT_DISABLE();         /* make sure that all interrupts are disabled */
@@ -464,7 +452,7 @@ void assert_failed(char const *file, int line) {
 #ifdef Q_SPY
 /*..........................................................................*/
 uint8_t QS_onStartup(void const *arg) {
-    static uint8_t qsBuf[9*1024]; /* buffer for Quantum Spy; same size as TCP
+    static uint8_t qsBuf[8*1024]; /* buffer for Quantum Spy; same size as TCP
                                    * send buffer */
     QS_initBuf(qsBuf, sizeof(qsBuf));
 
@@ -478,6 +466,7 @@ uint8_t QS_onStartup(void const *arg) {
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
 	/* TCP server for the QSpy connection */
 # ifdef QS_TCP
+#  if 1
 	{
 		err_t err;
 		struct ip_addr qspyHost;
@@ -490,7 +479,6 @@ uint8_t QS_onStartup(void const *arg) {
 		if (err != ERR_OK) {
 			return 0;
 		}
-
 		// TODO: reconsider the use of QS for post mortem debugging tool
 	    BSP_driveLED(6, 1);//indicate that I am waiting
 		while(!qs_pcb) {//Wait for the QS connection
@@ -498,6 +486,7 @@ uint8_t QS_onStartup(void const *arg) {
 		}
 	    BSP_driveLED(6, 0);//moving on!
 	}
+#  endif
 # else
 	qs_pcb = udp_new();
 	if (!qs_pcb) {

@@ -32,13 +32,11 @@
 # define QK_ISR_ENTRY() do { \
     ++QK_intNest_; \
     QF_QS_ISR_ENTRY(QK_intNest_, QK_currPrio_); \
-    QF_CRIT_ENTRY(isrstat_); \
     QF_INT_ENABLE(); \
 } while (0)
 
 # define QK_ISR_EXIT() do { \
     QF_INT_DISABLE(); \
-    QF_CRIT_EXIT(isrstat_); \
     QF_QS_ISR_EXIT(QK_intNest_, QK_currPrio_); \
     --QK_intNest_; \
     if (QK_intNest_ == (uint8_t)0) { \
@@ -49,6 +47,7 @@
     } \
 } while (0)
 #else
+# if 0
 # define QK_ISR_ENTRY() do { \
     ++QK_intNest_; \
     QF_QS_ISR_ENTRY(QK_intNest_, QK_currPrio_); \
@@ -66,6 +65,7 @@
         } \
     } \
 } while (0)
+# endif
 #endif//QF_CRIT_STAT_TYPE
 
 #include "qk.h"                 /* QK platform-independent public interface */

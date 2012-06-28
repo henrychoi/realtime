@@ -28,7 +28,7 @@
 #ifndef bsp_h
 #define bsp_h
 
-#define BSP_TICKS_PER_SEC 4//Had to increase to accomodate TCP timers
+#define BSP_TICKS_PER_SEC 4//Had to increase rate to accommodate TCP timers
 
 void BSP_init();
 void BSP_displyPhilStat(uint8_t n, char const *stat);
