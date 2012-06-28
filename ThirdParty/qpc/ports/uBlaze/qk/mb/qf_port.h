@@ -40,13 +40,14 @@
 #ifdef QF_CRIT_STAT_TYPE
 #  include "xintc.h"
    extern XIntc intc;
+
 #  define QF_CRIT_ENTRY(stat_) do { \
-	(stat_) = XIntc_In32((intc.BaseAddress) + XIN_ISR_OFFSET); \
-	XIntc_Out32((intc.BaseAddress) + XIN_ISR_OFFSET, 0); \
+	(stat_) = XIntc_In32(intc.BaseAddress + XIN_IER_OFFSET); \
+	XIntc_Out32(intc.BaseAddress + XIN_ISR_OFFSET, 0); \
 } while(0)
 
 #  define QF_CRIT_EXIT(stat_) \
-	XIntc_Out32((intc.BaseAddress) + XIN_ISR_OFFSET, (stat_))
+	XIntc_Out32(intc.BaseAddress + XIN_IER_OFFSET, (stat_))
 //#  define QF_CRIT_STAT_    QF_CRIT_STAT_TYPE critStat_;
 
 #else /* unconditionally lock and unlock */
