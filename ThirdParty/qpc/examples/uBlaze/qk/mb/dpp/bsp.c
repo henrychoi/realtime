@@ -381,7 +381,7 @@ void QK_onIdle(void) {
     QF_INT_ENABLE();
     */
 #ifdef XPAR_ETHERNET_LITE_BASEADDR
-	xemacif_input(&netif);//keep the Ethernet going
+	xemacif_input(&netif);//keep Ethernet comm going
 #endif//XPAR_ETHERNET_LITE_BASEADDR
 
 #ifdef Q_SPY
@@ -412,9 +412,9 @@ void QK_onIdle(void) {
 
         QF_INT_DISABLE();
         block = QS_getBlock(&fifo);    /* try to get next block to transmit */
-        QF_INT_ENABLE();
         // This may return an error, but there is nothing I can do even if so
-    	tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
+    	if(fifo) tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
+        QF_INT_ENABLE();
     }
 #  else
     {
@@ -492,9 +492,11 @@ uint8_t QS_onStartup(void const *arg) {
 		}
 
 		// TODO: reconsider the use of QS for post mortem debugging tool
-	    BSP_driveLED(7, 1);//indicate that I am waiting
-		while(!qs_pcb);//Wait for the QS connection
-	    BSP_driveLED(7, 0);//moving on!
+	    BSP_driveLED(6, 1);//indicate that I am waiting
+		while(!qs_pcb) {//Wait for the QS connection
+			xemacif_input(&netif);//keep Ethernet comm going
+		}
+	    BSP_driveLED(6, 0);//moving on!
 	}
 # else
 	qs_pcb = udp_new();
@@ -588,7 +590,7 @@ void QS_onFlush(void) {
     	uint16_t fifo = tcp_sndbuf(qs_pcb);     /* max bytes we can accept */
         block = QS_getBlock(&fifo);    /* try to get next block to transmit */
         // This may return an error, but there is nothing I can do even if so
-    	tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
+    	if(fifo) tcp_write(qs_pcb, block, fifo, TCP_WRITE_FLAG_COPY);
     }
 #  else
     {
