@@ -16,6 +16,45 @@ static uint8_t l_running;
 static SOCKET  l_sock = INVALID_SOCKET;
 #endif
 
+static const char* COMMAND_SEPARATORS = ", \t\n";
+/*..........................................................................*/
+void handleInvalidCommand(char* line) {
+    printf("Invalid signal: %s\n", line);
+    printf("Supported signals:\n"
+        "START_SIG <# BSP ticks per sample loop tick (max: 256)>\n"
+        "STOP_SIG\n"
+        );
+}
+/*..........................................................................*/
+void interpret_line(char* line) {
+    char *next_token
+        , *token= strtok_s(line, COMMAND_SEPARATORS, &next_token);
+    if(!token) {
+        handleInvalidCommand(line);
+    } else {
+#ifdef SANITY_TEST
+        for(; token; token = strtok_s(NULL, COMMAND_SEPARATORS, &next_token))
+            printf("%s\n", token);
+#endif//SANITY_TEST
+        int i; for(i = 0; token[i]; i++) token[i] = toupper(token[i]);
+        /* The following section has to keep up with number of signals */
+        if(strcmp(token, "START_SIG") == 0) {
+            token = strtok_s(NULL, COMMAND_SEPARATORS, &next_token);
+            if(!token) {
+                handleInvalidCommand(line);
+            } else {
+                uint8_t period_in_tick = atoi(token);
+                StartEvent* e = Q_NEW(StartEvent, START_SIG);
+                e->period_in_tick = period_in_tick; 
+                QF_PUBLISH((QEvt*)e, NULL /* TODO: declare sender as BSP */);
+            }
+        } else if(strcmp(token, "STOP_SIG") == 0) {
+            QF_PUBLISH(Q_NEW(QEvt, STOP_SIG), NULL);
+        } else {
+            handleInvalidCommand(line);
+        }
+    }
+}
 /*..........................................................................*/
 static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
     (void)par;
@@ -23,10 +62,15 @@ static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
     while (l_running) {
         Sleep(10);                                      /* wait for a while */
         if (_kbhit()) {                                 /* any key pressed? */
-            if (_getch() == '\33') {          /* see if the ESC key pressed */
-                QF_PUBLISH(Q_NEW(QEvt, TERMINATE_SIG), (void *)0);
+            char line[200];
+            if(!gets_s(line, sizeof(line))) { // EOF reached
+                printf("\nError condition received; exiting\n");
+                QF_stop();
+            } else {
+                interpret_line(line);
             }
         }
+
 #ifdef Q_SPY
         {
             uint16_t nBytes = 1024;
@@ -63,11 +107,11 @@ void BSP_init(int argc, char *argv[]) {
 
     QF_setTickRate(BSP_TICKS_PER_SEC);         /* set the desired tick rate */
 
-    printf("Real-time control loop"
-           "\nQEP %s\nQF  %s\n"
-           "Press ESC to quit...\n",
-           QEP_getVersion(),
-           QF_getVersion());
+    printf("Starting HSM Control Loop.\n"
+"Type signal name followed by with values separated by space, comma, or tab\n"
+        "Signal names are case insensitive.\n"
+        "Example: START_SIG, 10\n"
+        , COMMAND_SEPARATORS);
 }
 /*..........................................................................*/
 void QF_onStartup(void) {

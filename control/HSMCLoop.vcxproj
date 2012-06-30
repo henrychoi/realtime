@@ -82,6 +82,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="HSMCLoop.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="win32bsp.c" />
   </ItemGroup>
