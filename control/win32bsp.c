@@ -26,7 +26,7 @@ void handleInvalidCommand(char* line) {
         );
 }
 /*..........................................................................*/
-void interpret_line(char* line) {
+void onCommandline(char* line) {
     char *next_token
         , *token= strtok_s(line, COMMAND_SEPARATORS, &next_token);
     if(!token) {
@@ -67,7 +67,7 @@ static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
                 printf("\nError condition received; exiting\n");
                 QF_stop();
             } else {
-                interpret_line(line);
+                onCommandline(line);
             }
         }
 
