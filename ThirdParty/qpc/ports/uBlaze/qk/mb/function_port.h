@@ -12,4 +12,5 @@
 	for(i_ = 0; i_ < (l); i_++) ((char*)(dst))[i_] = ((char*)(src))[i_]; \
   } while(0)
 #endif
+
 #endif//function_port_h

@@ -2,6 +2,8 @@
 #include "HSMCLoop.h"
 #ifdef WIN32
 # include "win32bsp.h"
+#elif defined(__MICROBLAZE__)
+# include "bsp.h"
 #endif
 
 Q_DEFINE_THIS_FILE
@@ -46,7 +48,7 @@ QState CLoop_initial(CLoop* me, QEvt const *e) {
 
     /* Miro declares the QS dictionary in the initial transition.-------------
     But I factored that out to a separate publish method, in case I implement
-    re-publishing of the dicitionary on (re)connection with QSpy. */
+    re-publishing of the dictionary on (re)connection with QSpy. */
     QActive_subscribe((QActive*)me, START_SIG);
     QActive_subscribe((QActive*)me, STOP_SIG);
 

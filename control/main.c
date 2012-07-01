@@ -2,6 +2,8 @@
 #include "HSMCLoop.h"
 #ifdef WIN32
 # include "win32bsp.h"
+#elif defined(__MICROBLAZE__)
+# include "bsp.h"
 #endif
 
 /* Local-scope objects -----------------------------------------------------*/
@@ -25,7 +27,7 @@ static QEvt const* l_cloopQueueSto[N_CLOOP][8];
 void declareQSDictionary() {
     uint8_t i;
 
-    /* dictionary avaiable in in this file: --------------------------------*/
+    /* dictionary available in in this file: -------------------------------*/
     QS_OBJ_DICTIONARY(l_smlPoolSto);
 
     QS_OBJ_DICTIONARY(&l_cloop[0]);/* All active objects in this app:       */
@@ -36,7 +38,7 @@ void declareQSDictionary() {
     QS_SIG_DICTIONARY(START_SIG, 0);
     QS_SIG_DICTIONARY(STOP_SIG, 0);
 
-    /* dictionary avaiable in other files: ---------------------------------*/
+    /* dictionary available in other files: --------------------------------*/
     CLoop_declareStaticQSDictionary(); /* The static dictionary */
     for(i = 0; i < N_CLOOP; ++i) { /* Per instance dictionary */
         CLoop_declareInstanceQSDictionary(&l_cloop[i]);
@@ -70,7 +72,7 @@ int main(
     for(i = 0; i < N_CLOOP; ++i) {           /* start the active objects... */
         QActive_start((QActive*)&l_cloop[i], i+1   /* lowest AO priority: 1 */
                       , l_cloopQueueSto[i], Q_DIM(l_cloopQueueSto[i])
-                      , NULL/* I don't supply stack */, 1024 /* 1K of stack */
+                      , NULL/* I don't supply stack */, 0 /* 1K of stack */
                       , NULL/* no data to supply to initial transition */);
     }
 

@@ -36,6 +36,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HSMCLoop", "control\HSMCLoo
 		{911FC3F3-FE52-45B3-8249-E5F7C6F952CE} = {911FC3F3-FE52-45B3-8249-E5F7C6F952CE}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_clib", "test_clib\test_clib.vcxproj", "{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -109,6 +111,12 @@ Global
 		{63EF2CD4-C82B-4A9D-A209-403A1F44711A}.Release|Win32.Build.0 = Release|Win32
 		{63EF2CD4-C82B-4A9D-A209-403A1F44711A}.Spy|Win32.ActiveCfg = Release|Win32
 		{63EF2CD4-C82B-4A9D-A209-403A1F44711A}.Spy|Win32.Build.0 = Release|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Debug|Win32.Build.0 = Debug|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Release|Win32.ActiveCfg = Release|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Release|Win32.Build.0 = Release|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Spy|Win32.ActiveCfg = Release|Win32
+		{2C675F3D-C01D-4A13-8C7A-DA1ACAFED0CF}.Spy|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

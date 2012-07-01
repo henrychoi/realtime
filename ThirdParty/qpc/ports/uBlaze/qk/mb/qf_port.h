@@ -29,7 +29,8 @@
 #define qf_port_h
 
                  /* The maximum number of active objects in the application */
-#define QF_MAX_ACTIVE               63
+#define QF_MAX_ACTIVE 63
+#define QF_TIMEEVT_CTR_SIZE 4
 
 #include "mb_interface.h"
 #define QF_INT_DISABLE microblaze_disable_interrupts
