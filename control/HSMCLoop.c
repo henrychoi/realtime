@@ -25,7 +25,7 @@ QState CLoop_measuring(CLoop* me, QEvt const* e) {
     case Q_EXIT_SIG:
         QTimeEvt_disarm(&me->timeEvt);
         return Q_HANDLED();
-    case STOP_SIG:
+    case STOP:
         return Q_TRAN(&CLoop_off); /* off state has to be forward declared */
     case SAMPLE_SIG:
         // TODO: read sensors
@@ -36,7 +36,7 @@ QState CLoop_measuring(CLoop* me, QEvt const* e) {
 /*..........................................................................*/
 QState CLoop_off(CLoop* me, QEvt const* e) {
     switch (e->sig) {
-    case START_SIG:
+    case START:
         me->period_in_tick = ((StartEvent*)e)->period_in_tick;
         return Q_TRAN(&CLoop_measuring);
     }
@@ -49,8 +49,8 @@ QState CLoop_initial(CLoop* me, QEvt const *e) {
     /* Miro declares the QS dictionary in the initial transition.-------------
     But I factored that out to a separate publish method, in case I implement
     re-publishing of the dictionary on (re)connection with QSpy. */
-    QActive_subscribe((QActive*)me, START_SIG);
-    QActive_subscribe((QActive*)me, STOP_SIG);
+    QActive_subscribe((QActive*)me, START);
+    QActive_subscribe((QActive*)me, STOP);
 
     return Q_TRAN(&CLoop_off);
 }

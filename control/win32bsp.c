@@ -16,45 +16,14 @@ static uint8_t l_running;
 static SOCKET  l_sock = INVALID_SOCKET;
 #endif
 
-static const char* COMMAND_SEPARATORS = ", \t\n";
 /*..........................................................................*/
-void handleInvalidCommand(char* line) {
-    printf("Invalid signal: %s\n", line);
-    printf("Supported signals:\n"
-        "START_SIG <# BSP ticks per sample loop tick (max: 256)>\n"
-        "STOP_SIG\n"
-        );
+void BSPConsole_print(const char* msg, uint16_t msgBufferLen
+    , void* replyParam) {
+    printf(msg);
 }
-/*..........................................................................*/
-void onCommandline(char* line) {
-    char *next_token
-        , *token= strtok_s(line, COMMAND_SEPARATORS, &next_token);
-    if(!token) {
-        handleInvalidCommand(line);
-    } else {
-#ifdef SANITY_TEST
-        for(; token; token = strtok_s(NULL, COMMAND_SEPARATORS, &next_token))
-            printf("%s\n", token);
-#endif//SANITY_TEST
-        int i; for(i = 0; token[i]; i++) token[i] = toupper(token[i]);
-        /* The following section has to keep up with number of signals */
-        if(strcmp(token, "START_SIG") == 0) {
-            token = strtok_s(NULL, COMMAND_SEPARATORS, &next_token);
-            if(!token) {
-                handleInvalidCommand(line);
-            } else {
-                uint8_t period_in_tick = atoi(token);
-                StartEvent* e = Q_NEW(StartEvent, START_SIG);
-                e->period_in_tick = period_in_tick; 
-                QF_PUBLISH((QEvt*)e, NULL /* TODO: declare sender as BSP */);
-            }
-        } else if(strcmp(token, "STOP_SIG") == 0) {
-            QF_PUBLISH(Q_NEW(QEvt, STOP_SIG), NULL);
-        } else {
-            handleInvalidCommand(line);
-        }
-    }
-}
+/* This is platform independent, so is in main.c */
+extern void onPacket(char* payload, uint16_t len
+    , BSPConsoleReplyFn replyFn, void* replyParam);
 /*..........................................................................*/
 static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
     (void)par;
@@ -62,12 +31,13 @@ static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
     while (l_running) {
         Sleep(10);                                      /* wait for a while */
         if (_kbhit()) {                                 /* any key pressed? */
-            char line[200];
-            if(!gets_s(line, sizeof(line))) { // EOF reached
-                printf("\nError condition received; exiting\n");
+	        char payload[1024];
+            if(!gets_s(payload, sizeof(payload))) { // EOF reached
+                printf("EOF received; exiting\n");
                 QF_stop();
             } else {
-                onCommandline(line);
+                uint16_t len = strlen(payload);
+                onPacket(payload, len, BSPConsole_print, NULL);
             }
         }
 
@@ -85,8 +55,10 @@ static DWORD WINAPI idleThread(LPVOID par) {/* signature for CreateThread() */
 #endif
     }
     return 0;                                             /* return success */
-} 
+}
+
 /*..........................................................................*/
+extern const char *USAGE, *PROMPT;
 void BSP_init(int argc, char *argv[]) {
     DWORD threadId;
     HANDLE hIdle;
@@ -107,11 +79,8 @@ void BSP_init(int argc, char *argv[]) {
 
     QF_setTickRate(BSP_TICKS_PER_SEC);         /* set the desired tick rate */
 
-    printf("Starting HSM Control Loop.\n"
-"Type signal name followed by with values separated by space, comma, or tab\n"
-        "Signal names are case insensitive.\n"
-        "Example: START_SIG, 10\n"
-        , COMMAND_SEPARATORS);
+    printf(USAGE);
+    printf(PROMPT);
 }
 /*..........................................................................*/
 void QF_onStartup(void) {

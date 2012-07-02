@@ -69,21 +69,21 @@ struct SimulatedTcpPacket {
 # define ERR_OK 0
 # define pbuf_free(p) (p)
 # define sprintf sprintf_s
-# define strcpy strcpy_s
-# define strncpy strncpy_s
+//# define strcpy strcpy_s
+//# define strncpy strncpy_s
 # define tcp_sndbuf(tpcb) (9*1024)
 #endif
 
 int onPacket(struct SimulatedTcpPacket* p, char* lineptr) {
     int err;
-#define COMMAND_BUFFER_SIZE 1024
-	static char commndBuffer[COMMAND_BUFFER_SIZE];
-	static char* bufferPtr = commndBuffer;
+#define COMMAND_BUFFER_SIZE 256
+	static char commandBuffer[COMMAND_BUFFER_SIZE];
+	static char* bufferPtr = commandBuffer;
 #define REPLY_BUFFER_SIZE 1024
 	char reply[1024];
 	uint16_t replyLen;
 
-	if((bufferPtr + p->len) >= (commndBuffer + COMMAND_BUFFER_SIZE)) {
+	if((bufferPtr + p->len) >= (commandBuffer + COMMAND_BUFFER_SIZE)) {
 		                                       /* Too big; can't handle it */
 		sprintf(reply, "Command length > maximum allowed %d\n"
 				, COMMAND_BUFFER_SIZE);
@@ -91,26 +91,31 @@ int onPacket(struct SimulatedTcpPacket* p, char* lineptr) {
 		replyLen = MIN(replyLen, tcp_sndbuf(tpcb));
 		err = tcp_write(tpcb, reply, replyLen, TCP_WRITE_FLAG_COPY);
 	} else { /* Buffer away the command */
-    	uint16_t end = strlenn(p->payload, p->len); /* Terminating NULL? */
-		if(!end || end == p->len) { /* Command continues in later packet */
-			memcpy(bufferPtr, p->payload, p->len);
+    	char* found = strchrn(p->payload, ';', p->len);
+		if(!found) { /* Command continues in later packet */
+			strncpy(bufferPtr, p->payload, p->len);
 			bufferPtr += p->len;
-		} else {/* End of line received; form a whole command and handle it */
-			++end; /* copy the terminating NULL too */
-			memcpy(bufferPtr, p->payload, end);  /* Copy end of the command */
-            //bufferPtr[end] = 0; /* Force the terminating NULL */
+		} else { /* Command end received; form a whole command WITHOUT
+                    command end; Continue from last partial string */
+			strncpy(bufferPtr, p->payload, found - p->payload);
+
+            /* Terminating NULL at the end of the complete command */
+            commandBuffer[(bufferPtr - commandBuffer) + (found - p->payload)]
+            = 0;
 
 #ifdef EXPECT_STREQ /* Have gtest */
-            strcpy(lineptr, (bufferPtr + end - commndBuffer), commndBuffer);
+            strcpy(lineptr, commandBuffer);
 #else
             /* This is where a callback to interpret the command line should
                be called. onCommandline(commandBuffer) */
 #endif
-			bufferPtr = commndBuffer;   /* Restore the temp pointer to head */
+			bufferPtr = commandBuffer;   /* Restore the temp pointer to head */
 			
-			if(end < p->len) { /* Copy remainder */
-                memcpy(bufferPtr, p->payload + end, (p->len - end));
-                bufferPtr += p->len - end;
+			if(p->len > (++found - p->payload)) { /* Copy remainder */
+                uint16_t remain;
+                remain = p->len - (found - p->payload);
+                strncpy(bufferPtr, found, remain);
+                bufferPtr += remain;
             }
 		}
 	}
@@ -186,21 +191,20 @@ TEST(CLib, strtok_r) {
 TEST(CommandProcessor, streamed) {
     struct SimulatedTcpPacket p;
     char line[120]
-        , *s1 = "START_SIG, 100"
+        , *s1 = "START, 100;"
         , s[40]
-        , *s33 = ".43 0xF1";
+        , *s33 = ".43 0xF1;";
 
     /* Case: no packet fragmentation */
-    p.payload = s1; p.len = strlen(s1) + 1;
+    p.payload = s1; p.len = strlen(s1); // netcat will not have \0 at end
     strcpy_s(line, "Nothing to see here");
     onPacket(&p, line);
-    EXPECT_STREQ(line, s1);
+    EXPECT_STREQ(line, "START, 100");
 
-    strcpy_s(s, "STOP_SIG\nLONGASS_S");
+    strcpy_s(s, "STOP;LONGASS_S");
     p.payload = s; p.len = strlen(s);
-    s[strlen("STOP_SIG")] = 0;
     onPacket(&p, line);
-    EXPECT_STREQ(line, "STOP_SIG");
+    EXPECT_STREQ(line, "STOP");
 
     strcpy_s(s, "IG with arg 12");
     p.payload = s; p.len = strlen(s);
@@ -209,16 +213,16 @@ TEST(CommandProcessor, streamed) {
     // Should not yet be the end of the command
     EXPECT_STREQ(line, "Nothing to see here");
 
-    p.payload = s33; p.len = strlen(s33) + 1;
+    p.payload = s33; p.len = strlen(s33);
     strcpy_s(line, "Nothing to see here");
     onPacket(&p, line);
     EXPECT_STREQ(line, "LONGASS_SIG with arg 12.43 0xF1");
 
     // And what happens again?
-    p.payload = s1; p.len = strlen(s1) + 1;
+    p.payload = s1; p.len = strlen(s1);
     strcpy_s(line, "Nothing to see here");
     onPacket(&p, line);
-    EXPECT_STREQ(line, s1);
+    EXPECT_STREQ(line, "START, 100");
 }
 
 int main(int argc, char* argv[]) {

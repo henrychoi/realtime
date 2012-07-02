@@ -1,8 +1,8 @@
 #ifndef HSMCLoop_h
 #define HSMCLoop_h
 enum HSMCLoopSignals {
-    START_SIG = Q_USER_SIG /* Public signals the control loop handles. */
-    , STOP_SIG /* May be published by BSP to terminate the application */
+    START = Q_USER_SIG /* Public signals the control loop handles. */
+    , STOP /* May be published by BSP to terminate the application */
     , MAX_PUB_SIG /* the last published signal; anything after this are sent
                    * directly from one HSM to another-----------------------*/
 
