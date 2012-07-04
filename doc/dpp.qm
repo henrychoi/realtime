@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.1.02" framework="qpn">
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="Philo" superclass="qpn::QActive">
+   <documentation>The philosopher</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="5,3,4,0,5">
+      <action box="1,-1,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="thinking">
+     <entry brief="turn on LED"/>
+     <exit brief="turn off LED"/>
+     <tran trig="TIMEOUT" target="../../2">
+      <tran_glyph conn="10,8,0,3,-3,9">
+       <action box="0,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,8,13,6">
+      <entry box="1,2,12,2"/>
+      <exit box="1,4,12,2"/>
+     </state_glyph>
+    </state>
+    <state name="hungry">
+     <entry brief="^HUNGRY(n)"/>
+     <tran trig="EAT(n)" target="../../3">
+      <tran_glyph conn="25,9,2,0,3">
+       <action box="1,0,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="19,1,12,8">
+      <entry box="1,2,10,4"/>
+     </state_glyph>
+    </state>
+    <state name="eating">
+     <exit brief="^DONE(n)"/>
+     <tran trig="TIMEOUT" target="../../1">
+      <tran_glyph conn="19,16,3,2,-9,-2">
+       <action box="-8,0,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="19,12,12,6">
+      <exit box="1,2,11,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="36,19"/>
+   </statechart>
+  </class>
+  <class name="Table" superclass="qpn::QActive">
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="9,1,5,0,-3,2">
+      <action box="-7,1,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="serving">
+     <tran trig="TERMINATE">
+      <tran_glyph conn="7,14,2,-1,2">
+       <action box="0,0,9,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="HUNGRY(n)">
+      <action brief="if forks available, ^EAT(n)"/>
+      <tran_glyph conn="1,7,3,-1,3">
+       <action box="4,-2,14,4"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="DONE(n)">
+      <action brief="if philo to right has fork, ^EAT(right)"/>
+      <tran_glyph conn="1,11,3,-1,3">
+       <action box="4,-2,15,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="1,3,19,11"/>
+    </state>
+    <state_diagram size="21,17"/>
+   </statechart>
+  </class>
+ </package>
+ <filesystem path=".">
+  <file name="project.h"/>
+  <file name="myao.c"/>
+ </filesystem>
+</model>
