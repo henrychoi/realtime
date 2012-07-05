@@ -370,6 +370,7 @@
     <!-- project is analyzed based on files automatically identified as       -->
     <!-- include files.                                                       -->
     <file xil_pn:name="dpp.v" xil_pn:type="FILE_VERILOG"/>
+    <file xil_pn:name="function.v" xil_pn:type="FILE_VERILOG"/>
   </autoManagedFiles>
 
 </project>

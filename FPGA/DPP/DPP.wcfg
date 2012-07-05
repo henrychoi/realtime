@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/DPP/test_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="test" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="6" />
+   <wvobject fp_name="/test/led5" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">led5[1:0]</obj_property>
+      <obj_property name="ObjectShortName">led5[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/t" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">t[3:0]</obj_property>
+      <obj_property name="ObjectShortName">t[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/philo0/state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/philo0/timer" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">timer[2:0]</obj_property>
+      <obj_property name="ObjectShortName">timer[2:0]</obj_property>
+   </wvobject>
+</wave_config>

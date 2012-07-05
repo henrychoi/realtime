@@ -1,58 +1,31 @@
-`timescale 1ns / 1ps
-
-////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer:
-//
-// Create Date:   17:50:28 07/03/2012
-// Design Name:   dining_table
-// Module Name:   C:/private/realtime/FPGA/DPP/test.v
-// Project Name:  DPP
-// Target Device:  
-// Tool versions:  
-// Description: 
-//
-// Verilog Test Fixture created by ISE for module: dining_table
-//
-// Dependencies:
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-////////////////////////////////////////////////////////////////////////////////
+`timescale 1ns / 200ps // Should be 5 ns for ML605?  1ns/500ps doesn't work
 `include "dpp.v"
-
 module test;
+  reg clk, reset;
+`define TIMER_SIZE 3
+  reg signed [`TIMER_SIZE:0] t;
 
-	// Inputs
-	reg clk;
-	reg reset;
-
-	// Outputs
-	wire[2:0] led5;
-
-	// Instantiate the Unit Under Test (UUT)
-	dining_table #(.N_PHILO(2))uut (
-		.clk(clk), 
-		.reset(reset), 
-		.LEDs_Positions_TRI_O(led5)
-	);
+  wire[1:0] led5;
+	dining_table#(.N_PHILO(2))
+  uut(.clk(clk), .reset(reset), .LEDs_Positions_TRI_O(led5));
 
 	initial begin
-		// Initialize Inputs
-		clk = 0;
-		reset = 0;
-
-		// Wait 100 ns for global reset to finish
-		#100;
-        
-		// Add stimulus here
-    #5 reset = 1;
+		clk = 1'b0;
+		reset = 1'b0;
+    t <= 3; //0;        
+    //$monitor($time, " clk=%b", clk);
+    #5 reset = 1'b1;//The rising of reset line should trigger the reset logic
+		#5 reset = 1'b0;
 	end
   
-  always begin
-    #5 clk = ~clk; //Toggle clock every 5 ticks
-  end
+   always begin
+     #5 clk = ~clk;
+     t <= t - 1;
+   end
+
+  always @(posedge t[`TIMER_SIZE]) begin // detect rollover
+    t <= 3;
+  end//always @(posedge clk or posedge reset) 
+
 endmodule
 
