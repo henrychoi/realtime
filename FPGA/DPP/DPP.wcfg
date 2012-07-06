@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="7" />
+   <WVObjectSize size="8" />
    <wvobject fp_name="/test/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -19,24 +19,28 @@
       <obj_property name="ElementShortName">reset</obj_property>
       <obj_property name="ObjectShortName">reset</obj_property>
    </wvobject>
-   <wvobject fp_name="/test/t" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">t[3:0]</obj_property>
-      <obj_property name="ObjectShortName">t[3:0]</obj_property>
-   </wvobject>
    <wvobject fp_name="/test/uut/philo0/state" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">state[1:0]</obj_property>
       <obj_property name="ObjectShortName">state[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/test/uut/philo0/timer" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">timer[3:0]</obj_property>
-      <obj_property name="ObjectShortName">timer[3:0]</obj_property>
+      <obj_property name="ElementShortName">timer[2:0]</obj_property>
+      <obj_property name="ObjectShortName">timer[2:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/test/uut/event_p" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">event_p[1:0,0:0]</obj_property>
-      <obj_property name="ObjectShortName">event_p[1:0,0:0]</obj_property>
+   <wvobject fp_name="/test/uut/philo3/state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/test/uut/event_s" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">event_s[1:0,1:0]</obj_property>
-      <obj_property name="ObjectShortName">event_s[1:0,1:0]</obj_property>
+   <wvobject fp_name="/test/uut/philo3/timer" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">timer[2:0]</obj_property>
+      <obj_property name="ObjectShortName">timer[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/fork_avail" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fork_avail[3:0]</obj_property>
+      <obj_property name="ObjectShortName">fork_avail[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/eat_sig" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">eat_sig[3:0]</obj_property>
+      <obj_property name="ObjectShortName">eat_sig[3:0]</obj_property>
    </wvobject>
 </wave_config>

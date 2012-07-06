@@ -2,20 +2,45 @@
 
 module philo
 #(parameter ID=0, parameter EAT_TIME=2, parameter THINK_TIME=5)
-(input clk, input reset
-, input [`TABLE_EVENT_SIZE:0] event_s
-, output reg[`PHILO_EVENT_SIZE:0] event_p
+(input clk, input reset, input eat_sig, output reg[`PHILO_STATE_SIZE-1:0] state
 );
 `include "function.v"
-  //localparam MAX_TIME = max(EAT_TIME, THINK_TIME);//ZERO_TIME = 'b000;
   localparam TIMER_SIZE = log2(max(EAT_TIME, THINK_TIME));
-  localparam //These are like the enums in SW HSM..............................
+  reg [TIMER_SIZE-1:0] timer;//sized for sign bit to detect underflow
+
+  always @(posedge clk, posedge reset, posedge eat_sig) begin
+    if(reset) begin
+      timer <= THINK_TIME;
+      state <= `thinking;//trans(`thinking)
+    end else if(eat_sig) begin
+      if(state == `hungry) begin
+        timer <= EAT_TIME;
+        state <= `eating;//Transition
+      end else timer <= timer - 1'b1;
+    end else begin // just clk
+      case(state)
+        `thinking:
+          if(!timer) begin
+            state <= `hungry;//Transition
+          end else timer <= timer - 1'b1;
+        `eating:
+          if(!timer) begin
+            timer <= THINK_TIME;
+            state <= `thinking; //Transition
+          end else timer <= timer - 1'b1;
+        default: timer <= timer - 1'b1;
+      endcase
+    end
+  end//always
+endmodule
+
+  /*localparam //These are like the enums in SW HSM..............................
     thinking = 1//'b01 //Connect bit[0] to LED pin
     , hungry = 0//'b00
     , eating = 2//'b10,
     , NUM_STATES = 3;
-  reg signed [TIMER_SIZE:0] timer;//sized for sign bit to detect underflow
-  reg [log2(NUM_STATES)-1:0] state;//,next_state;
+
+  //reg [log2(NUM_STATES)-1:0] state;//,next_state;
 
   //function integer timer_size();
   //  begin
@@ -75,6 +100,7 @@ module philo
       end
     endcase
   end//always
+  */
 /*
   always @(event_s[`TABLE_EVENT_SIZE]) begin //An event for me!
     //In this case, there can only be 1 event: EAT
@@ -119,5 +145,5 @@ module philo
     endcase
   end//always
   //assign thinking_out = (state == thinking);
-  */
 endmodule
+*/

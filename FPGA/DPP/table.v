@@ -1,39 +1,73 @@
 `include "dpp.v"
-`define EAT_TIME 2
-`define THINK_TIME 5
 
 module dining_table // table is a reserved word
 (input clk, input reset
 //, output [N_PHILO-1:0] LEDs_Positions_TRI_O
 );
-  localparam N_PHILO = 2;
-  integer i;
+  localparam N_PHILO = 4;
   //localparam FORK_FREE = 0, FORK_USED = 1;
   reg fork_avail[N_PHILO-1:0];//i.e., bool fork_avail[N_PHILO]
-  reg phil_hungry[N_PHILO-1:0];
+  reg eat_sig[N_PHILO-1:0];
+  wire [`PHILO_STATE_SIZE-1:0] state[N_PHILO-1:0];
 
-  reg[`TABLE_EVENT_SIZE:0] event_p[N_PHILO-1:0];
-  wire [`PHILO_EVENT_SIZE:0] event_s[N_PHILO-1:0];
+`define EAT_TIME 2
+`define THINK_TIME 5
   //Declaring an array of philosophers with the signals correctly assigned
-  // would have been convenient, but it doesn't compile
-  /*philo#(.EAT_TIME(2), .THINK_TIME(5))
-    philo[N_PHILO-1:0](.clk(clk), .reset(reset)
-    , .event_in(event), .state(philo_state)); */
-
+  // would have been convenient, but it doesn't work for one reason or another
+  // in practice; so we have to declare the philosophers one by one
   philo#(.ID(0), .EAT_TIME(`EAT_TIME), .THINK_TIME(`THINK_TIME))
-    philo0(.clk(clk), .reset(reset)
-      , .event_p(event_s[0]), .event_s(event_p[0]));
-      
+    philo0(.clk(clk), .reset(reset), .eat_sig(eat_sig[0]), .state(state[0]));
   philo#(.ID(1), .EAT_TIME(`EAT_TIME), .THINK_TIME(`THINK_TIME))
-    philo1(.clk(clk), .reset(reset)
-      , .event_p(event_s[1]), .event_s(event_p[1]));
+    philo1(.clk(clk), .reset(reset), .eat_sig(eat_sig[1]), .state(state[1]));
+  philo#(.ID(2), .EAT_TIME(`EAT_TIME), .THINK_TIME(`THINK_TIME))
+    philo2(.clk(clk), .reset(reset), .eat_sig(eat_sig[2]), .state(state[2]));
+  philo#(.ID(3), .EAT_TIME(`EAT_TIME), .THINK_TIME(`THINK_TIME))
+    philo3(.clk(clk), .reset(reset), .eat_sig(eat_sig[3]), .state(state[3]));
 
-  initial begin
-    for(i = 0; i < N_PHILO; i = i + 1) begin
-      event_p[i] = 0;
-    end
-  end
-  
+  // The seating makes sense if you think in little endian.  That is,
+  // Visualized in big endian -> Visualized in little endian
+  //   1      2     3     4 ...  ...     4     3      2     1
+  // ..., RIGHT,    n, LEFT,...  ..., LEFT,    n, RIGHT,...
+`define RIGHT(n_) ((n_ + (N_PHILO - 1)) % N_PHILO)
+`define LEFT(n_)  ((n_ + 1) % N_PHILO)
+  // Function CANNOT contain non-blocking assignment
+  always @(posedge reset
+  , posedge state[3][`PHIL_HUNGRY_BIT] //^HUNGRY
+  , negedge state[3][`PHIL_EATING_BIT] //^DONE
+  ) begin
+    if(reset) begin: initialize
+      integer i;
+      for(i = 0; i < N_PHILO; i = i + 1) begin
+        fork_avail[i] <= 1;
+        eat_sig[i] <= 0;
+      end
+    end else begin: event_process //respond to sig from each phil
+      integer n, m;
+      if(state[3][`PHIL_HUNGRY_BIT]) begin
+        n = 3;
+        m = `LEFT(n);
+        if(fork_avail[n] && fork_avail[m]) begin
+          fork_avail[n] <= 0;
+          fork_avail[m] <= 0;
+          eat_sig[n] <= 1; //^EAT; how to clear this?
+        end else begin//This philosopher goes on hungry
+          eat_sig[n] <= 0;
+        end
+      end else if(!state[0][`PHIL_EATING_BIT]) begin //^DONE
+        n = 0;
+        m = `LEFT(n);
+        fork_avail[n] <= 1;
+        fork_avail[m] <= 1;
+
+        m = `RIGHT(0);//Check the right neighbor
+        //if(state[i])
+      end else begin
+      end
+    end//: event_process
+  end//always
+endmodule
+
+/*
   always @(posedge reset
   , posedge event_s[0][`PHILO_EVENT_SIZE]
   , posedge clk) begin
@@ -60,3 +94,4 @@ module dining_table // table is a reserved word
   
   //assign LEDs_Positions_TRI_O = {philo_state[1][0], philo_state[1][1]};
 endmodule
+*/
