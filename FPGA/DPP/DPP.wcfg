@@ -10,11 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="6" />
-   <wvobject fp_name="/test/led5" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">led5[1:0]</obj_property>
-      <obj_property name="ObjectShortName">led5[1:0]</obj_property>
-   </wvobject>
+   <WVObjectSize size="7" />
    <wvobject fp_name="/test/clk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">clk</obj_property>
       <obj_property name="ObjectShortName">clk</obj_property>
@@ -32,7 +28,15 @@
       <obj_property name="ObjectShortName">state[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/test/uut/philo0/timer" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">timer[2:0]</obj_property>
-      <obj_property name="ObjectShortName">timer[2:0]</obj_property>
+      <obj_property name="ElementShortName">timer[3:0]</obj_property>
+      <obj_property name="ObjectShortName">timer[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/event_p" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">event_p[1:0,0:0]</obj_property>
+      <obj_property name="ObjectShortName">event_p[1:0,0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/test/uut/event_s" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">event_s[1:0,1:0]</obj_property>
+      <obj_property name="ObjectShortName">event_s[1:0,1:0]</obj_property>
    </wvobject>
 </wave_config>

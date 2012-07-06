@@ -1,13 +1,13 @@
-`timescale 1ns / 200ps // Should be 5 ns for ML605?  1ns/500ps doesn't work
+`timescale 500ps / 100ps
 `include "dpp.v"
 module test;
   reg clk, reset;
 `define TIMER_SIZE 3
   reg signed [`TIMER_SIZE:0] t;
 
-  wire[1:0] led5;
-	dining_table#(.N_PHILO(2))
-  uut(.clk(clk), .reset(reset), .LEDs_Positions_TRI_O(led5));
+  //wire[1:0] led5;
+	dining_table uut(.clk(clk), .reset(reset) //, .LEDs_Positions_TRI_O(led5)
+    );
 
 	initial begin
 		clk = 1'b0;

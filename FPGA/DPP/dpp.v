@@ -1,12 +1,13 @@
 `ifndef dpp_h
 `define dpp_h
 
-//`define MAX(a, b) (a > b) ? a : b 
+// Enumerate signals that are published/subscribed by modules
+`define PHILO_EVENT_SIZE 1
+`define PHILO_HUNGRY `PHILO_EVENT_SIZE'b0
+`define PHILO_DONE   `PHILO_EVENT_SIZE'b1
 
-// Enumerate signals
-`define EVENT_SIZE 1
-`define EAT_SIG 'b0
-`define MAX_SIG 'b1
+`define TABLE_EVENT_SIZE 0
+`define TABLE_EAT `TABLE_EVENT_SIZE'b0
 
 /* UNNECESSARY
 // Define philosopher states

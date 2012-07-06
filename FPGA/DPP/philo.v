@@ -1,15 +1,17 @@
 `include "dpp.v" //"Header"
 
 module philo
-#(parameter EAT_TIME = 2, parameter THINK_TIME = 5)
-(input clk, input reset, input[`EVENT_SIZE-1:0] event_in
+#(parameter ID=0, parameter EAT_TIME=2, parameter THINK_TIME=5)
+(input clk, input reset
+, input [`TABLE_EVENT_SIZE:0] event_s
+, output reg[`PHILO_EVENT_SIZE:0] event_p
 );
 `include "function.v"
   //localparam MAX_TIME = max(EAT_TIME, THINK_TIME);//ZERO_TIME = 'b000;
   localparam TIMER_SIZE = log2(max(EAT_TIME, THINK_TIME));
   localparam //These are like the enums in SW HSM..............................
-    thinking = 0//'b01 //Connect bit[0] to LED pin
-    , hungry = 1//'b00
+    thinking = 1//'b01 //Connect bit[0] to LED pin
+    , hungry = 0//'b00
     , eating = 2//'b10,
     , NUM_STATES = 3;
   reg signed [TIMER_SIZE:0] timer;//sized for sign bit to detect underflow
@@ -29,33 +31,63 @@ module philo
   //  endcase
   //  trans = target;
   //endfunction
+
+  initial begin
+    event_p = 0;
+  end
   
-  always @(posedge clk or posedge reset) begin
+  always @(posedge clk, posedge reset) begin
     if(reset) begin
+      event_p <= 0;//{1'b0, `PHILO_EVENT_SIZE'b0};
       timer <= THINK_TIME;
       state <= thinking;//trans(`thinking)
-    end else begin
-      //state <= next_state;
-      timer <= timer - 1;
+    end else begin // just clk
+      if(event_p[`PHILO_EVENT_SIZE]) begin
+        event_p[`PHILO_EVENT_SIZE] <= 1'b1;
+        //event_p <= {1'b0, event_p[`PHILO_EVENT_SIZE-1:0]};
+      end
     end
   end//always
 
-  always @(posedge timer[TIMER_SIZE])//when timer underflows (i.e. expires)
-  begin
+  always @(posedge timer[TIMER_SIZE]//when timer underflows (i.e. expires)
+    , posedge event_s[`TABLE_EVENT_SIZE]) begin //An event for me!
     case(state)
-      thinking: begin
-        // Turn off LED
-        state <= hungry ;//Transition
-      end
-      
-      eating: begin
-        // ^DONE
-        timer <= THINK_TIME;
-        state <= thinking; //Transition
+      thinking:
+        if(event_s[`TABLE_EVENT_SIZE]) begin
+        end else begin
+          event_p <= {1'b1,`PHILO_HUNGRY};//^HUNGRY
+          state <= hungry;//Transition
+        end
+      eating:
+        if(event_s[`TABLE_EVENT_SIZE]) begin
+        end else begin
+          event_p <= {1'b1,`PHILO_DONE};//^DONE
+          timer <= THINK_TIME;
+          state <= thinking; //Transition
+        end
+      hungry:
+        if(event_s[`TABLE_EVENT_SIZE]) begin
+          timer <= EAT_TIME;
+          state <= eating;//Transition
+        end else begin
+        end
+      default: begin
       end
     endcase
   end//always
-  
+/*
+  always @(event_s[`TABLE_EVENT_SIZE]) begin //An event for me!
+    //In this case, there can only be 1 event: EAT
+    case(state)
+      hungry: begin
+        timer <= EAT_TIME;
+        state <= eating;//Transition
+      end
+      default: begin
+      end
+    endcase
+  end//always @(posedge reset)
+*/  
   //assign state = reset ? `thinking : next_state;
 
   /*
