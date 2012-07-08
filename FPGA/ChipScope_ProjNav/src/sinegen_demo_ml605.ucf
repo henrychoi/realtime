@@ -1,11 +1,11 @@
 NET "clk" TNM_NET = sys_clk_pin;
 TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 200000 kHz;
-NET "CLK_P"           LOC = "J9"    |  DIFF_TERM = "TRUE"  |  IOSTANDARD = "LVDS_25";
 NET "CLK_N"           LOC = "H9"    |  DIFF_TERM = "TRUE"  |  IOSTANDARD = "LVDS_25";
+NET "CLK_P"           LOC = "J9"    |  DIFF_TERM = "TRUE"  |  IOSTANDARD = "LVDS_25";
 NET "GPIO_BUTTONS[0]" LOC = "G26"   |  IOSTANDARD = "LVCMOS15";
 NET "GPIO_BUTTONS[1]" LOC = "A19"   |  IOSTANDARD = "LVCMOS15";
 NET "GPIO_SWITCH"     LOC = "AC22"  |  IOSTANDARD = "LVCMOS25";
 NET "LEDS_n[0]"       LOC = "AP24"  |  IOSTANDARD = "LVCMOS25";
 NET "LEDS_n[1]"       LOC = "AE21"  |  IOSTANDARD = "LVCMOS25";
-NET "LEDS_n[2]"       LOC = "AH27"  |  IOSTANDARD = "LVCMOS25";
-NET "LEDS_n[3]"       LOC = "AH28"  |  IOSTANDARD = "LVCMOS25";
+#NET "LEDS_n[2]"       LOC = "AH27"  |  IOSTANDARD = "LVCMOS25";
+#NET "LEDS_n[3]"       LOC = "AH28"  |  IOSTANDARD = "LVCMOS25";

@@ -1,11 +1,8 @@
 `include "dpp.v"
 
 module dining_table // table is a reserved word
-(input clk, input reset
-//, output [N_PHILO-1:0] LEDs_Positions_TRI_O
-);
+(input clk, input reset);
   localparam N_PHILO = 4;
-  //localparam FORK_FREE = 0, FORK_USED = 1;
   reg fork_avail[N_PHILO-1:0];//i.e., bool fork_avail[N_PHILO]
   reg eat_sig[N_PHILO-1:0];
   wire [`PHILO_STATE_SIZE-1:0] state[N_PHILO-1:0];
@@ -30,7 +27,6 @@ module dining_table // table is a reserved word
   // ..., RIGHT,    n, LEFT,...  ..., LEFT,    n, RIGHT,...
 `define RIGHT(n_) ((n_ + (N_PHILO - 1)) % N_PHILO)
 `define LEFT(n_)  ((n_ + 1) % N_PHILO)
-  // Function CANNOT contain non-blocking assignment
   always @(posedge reset
   , posedge state[3][`PHIL_HUNGRY_BIT] //^HUNGRY
   , negedge state[3][`PHIL_EATING_BIT] //^DONE

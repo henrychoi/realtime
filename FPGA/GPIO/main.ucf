@@ -1,3 +1,13 @@
+NET reset LOC = H10  |  IOSTANDARD = SSTL15  |  TIG; #CPU_RESET push button
+NET clk TNM_NET = sys_clk_pin;
+TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 200000 kHz;
+
+# Legend:
+# DIFF_TERM: Turn on the built-in 100 ohm differential termination
+# LVDS_25: Default for differential IO
+#NET CLK_N LOC=H9|DIFF_TERM =TRUE|IOSTANDARD=LVDS_25;
+#NET CLK_P LOC=J9|DIFF_TERM =TRUE|IOSTANDARD=LVDS_25;
+
 NET led8[0] LOC=AC22;
 NET led8[1] LOC=AC24;
 NET led8[2] LOC=AE22;
@@ -6,14 +16,14 @@ NET led8[4] LOC=AB23;
 NET led8[5] LOC=AG23;
 NET led8[6] LOC=AE24;
 NET led8[7] LOC=AD24;
-NET led8[*] IOSTANDARD = LVCMOS25;
+NET led8[*] IOSTANDARD = LVCMOS25; #Default for single-ended IO
 
 NET button5[0] LOC=G26; #Center
 NET button5[1] LOC=H17; #West
 NET button5[2] LOC=A18; #South
 NET button5[3] LOC=G17; #East
 NET button5[4] LOC=A19; #North
-NET led8[*] IOSTANDARD = LVCMOS15;
+NET led8[*] IOSTANDARD = LVCMOS15; #Only <= 16 mA drive current
 
 NET led5[0] LOC=AP24;
 NET led5[1] LOC=AD21;

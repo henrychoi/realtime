@@ -1,5 +1,5 @@
 `timescale 500ps / 100ps
-`include "dpp.v"
+//`include "dpp.v"
 module test;
   reg clk, reset;
 `define TIMER_SIZE 3

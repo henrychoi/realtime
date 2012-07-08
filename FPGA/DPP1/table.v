@@ -1,9 +1,13 @@
 `include "dpp.v"
 
 module dining_table // table is a reserved word
-(input clk, input reset);
+#(parameter N_PHILO = 4, TIMER_SIZE = 25)
+(input clk, input reset, input[7:0] switch8
+, output[N_PHILO-1:0]hungry, output[4:0] led5, output[7:0] led8);
+`include "function.v"
+
+  reg[TIMER_SIZE-1:0] timer;
   integer i;
-  localparam N_PHILO = 4;
   // The seating makes sense if you think in little endian.  That is,
   // Visualized in big endian -> Visualized in little endian
   //   1      2     3     4 ...  ...     4     3      2     1
@@ -17,19 +21,26 @@ module dining_table // table is a reserved word
 
   localparam FORK_AVAIL = 1'b0, FORK_TAKEN = ~FORK_AVAIL;
   reg[N_PHILO-1:0] fork_, may_eat, eventAck;
-  wire[N_PHILO-1:0] hungry, evtData, evtEmpty;
+  wire[N_PHILO-1:0] evtData, evtEmpty;
   //wire evtReady;
 
-//`define EAT_TIME 2
-//`define THINK_TIME 5
   philo#(.EAT_TIME(2), .THINK_TIME(5))
     philo[N_PHILO-1:0](.clk(clk), .reset(reset), .may_eat(may_eat)
       , .foutAck(eventAck), .hungry(hungry)
       , .foutData(evtData), .foutEmpty(evtEmpty));
 
   //assign evtReady = ~(& evtEmpty); //Are any FIFO ready?
-
+  //assign led5[0]= reset;//timer[TIMER_SIZE-1];
+  //assign led8[0] = reset;
+  //assign led8[1] = timer[TIMER_SIZE-1];
+  
+  
   always @(posedge reset, posedge clk) begin
+    if(reset) timer <= 0;
+    else timer <= timer + 1'b1;
+  end//always
+
+  always @(posedge reset, posedge timer[TIMER_SIZE-1]) begin
     // Cannot put code here, because XST is not smart enough to replicate
     // the same code to different stimulus
     

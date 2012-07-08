@@ -2,18 +2,22 @@
 `include "dpp.v"
 
 module test;
+  localparam N_PHILO = 4;
   reg clk, reset;
   reg may_eat, l_event, l_eventHot, table_rden;
   wire l_finEmpty, table_eventData, table_fifoEmpty, table_notEmpty;
   reg [3:0] n;
-
+  wire[N_PHILO-1:0] hungry;
+  
   philo_fifo fin(.clk(clk), .srst(reset)
     , .din(may_eat), .wr_en(may_eat), .rd_en(1'b1) //Always read
     , .dout(), .full(), .empty(l_finEmpty));
   philo_fifo fout(.clk(clk), .srst(reset)
     , .din(l_event), .wr_en(l_eventHot), .rd_en(table_rden)
     , .dout(table_eventData), .full(), .empty(table_fifoEmpty));
-	dining_table uut(.clk(clk), .reset(reset));
+
+	dining_table#(.N_PHILO(N_PHILO), .SLOWDOWN_LOG2(0))
+  uut(.clk(clk), .reset(reset), .hungry(hungry));
 
   always #1 clk = ~clk; //Drive the clock
   assign table_notEmpty = ~table_fifoEmpty;

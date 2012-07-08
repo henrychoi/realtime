@@ -9,17 +9,17 @@ module philo
   reg[log2(MAX_STATE)-1:0] state;
   localparam TIMER_SIZE = log2(max(EAT_TIME, THINK_TIME));
   reg [TIMER_SIZE-1:0] timer;//sized for sign bit to detect underflow
-  wire l_finEmpty, l_dout_dontcare
-    , l_fin_full_dontcare, l_fout_full_dontcare; //,evtIntr;
+  wire l_finEmpty;//, l_dout_dontcare;
+    //, l_fin_full_dontcare, l_fout_full_dontcare; //,evtIntr;
   reg l_event, l_foutWren, l_finAck;
 
   philo_fifo fin(.clk(clk), .srst(reset)
     ,.din(may_eat), .wr_en(may_eat), .rd_en(l_finAck)
-    , .dout(l_dout_dontcare), .full(l_fin_full_dontcare), .empty(l_finEmpty));
+    , .dout(), .full(), .empty(l_finEmpty));
 
   philo_fifo fout(.clk(clk), .srst(reset)
     , .din(l_event), .wr_en(l_foutWren), .rd_en(foutAck)
-    , .dout(foutData), .full(l_fout_full_dontcare), .empty(foutEmpty));
+    , .dout(foutData), .full(), .empty(foutEmpty));
   
   assign hungry = state[1]; //The hungry bit
   //assign evtIntr = ~l_finEmpty;
