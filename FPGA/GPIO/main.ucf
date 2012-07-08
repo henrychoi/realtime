@@ -1,0 +1,33 @@
+NET led8[0] LOC=AC22;
+NET led8[1] LOC=AC24;
+NET led8[2] LOC=AE22;
+NET led8[3] LOC=AE23;
+NET led8[4] LOC=AB23;
+NET led8[5] LOC=AG23;
+NET led8[6] LOC=AE24;
+NET led8[7] LOC=AD24;
+NET led8[*] IOSTANDARD = LVCMOS25;
+
+NET button5[0] LOC=G26; #Center
+NET button5[1] LOC=H17; #West
+NET button5[2] LOC=A18; #South
+NET button5[3] LOC=G17; #East
+NET button5[4] LOC=A19; #North
+NET led8[*] IOSTANDARD = LVCMOS15;
+
+NET led5[0] LOC=AP24;
+NET led5[1] LOC=AD21;
+NET led5[2] LOC=AH28;
+NET led5[3] LOC=AE21;
+NET led5[4] LOC=AH27;
+Net led5<*> IOSTANDARD=LVCMOS15;
+
+NET switch8<0> LOC=D22;
+NET switch8<1> LOC=C22;
+NET switch8<2> LOC=L21;
+NET switch8<3> LOC=L20;
+NET switch8<4> LOC=C18;
+NET switch8<5> LOC=B18;
+NET switch8<6> LOC=K22;
+NET switch8<7> LOC=K21;
+NET switch8<*> IOSTANDARD = SSTL15;
