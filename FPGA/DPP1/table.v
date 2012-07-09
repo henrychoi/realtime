@@ -1,9 +1,9 @@
 `include "dpp.v"
 
 module dining_table // table is a reserved word
-#(parameter N_PHILO = 4, TIMER_SIZE = 25)
-(input clk, input reset, input[7:0] switch8
-, output[N_PHILO-1:0]hungry, output[4:0] led5, output[7:0] led8);
+#(parameter N_PHILO = 4, TIMER_SIZE = 27)
+(input CLK_P, input CLK_N, input reset, input[7:0] switch8
+, output[4:0] led5, output[7:0] led8);
 `include "function.v"
 
   reg[TIMER_SIZE-1:0] timer;
@@ -20,27 +20,24 @@ module dining_table // table is a reserved word
   endfunction
 
   localparam FORK_AVAIL = 1'b0, FORK_TAKEN = ~FORK_AVAIL;
-  reg[N_PHILO-1:0] fork_, may_eat, eventAck;
+  reg[N_PHILO-1:0] fork_, may_eat, eventAck, hungry;
   wire[N_PHILO-1:0] evtData, evtEmpty;
-  //wire evtReady;
+  wire clk, slowclk;
 
-  philo#(.EAT_TIME(2), .THINK_TIME(5))
-    philo[N_PHILO-1:0](.clk(clk), .reset(reset), .may_eat(may_eat)
-      , .foutAck(eventAck), .hungry(hungry)
-      , .foutData(evtData), .foutEmpty(evtEmpty));
-
-  //assign evtReady = ~(& evtEmpty); //Are any FIFO ready?
-  //assign led5[0]= reset;//timer[TIMER_SIZE-1];
-  //assign led8[0] = reset;
-  //assign led8[1] = timer[TIMER_SIZE-1];
-  
-  
+  IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
   always @(posedge reset, posedge clk) begin
     if(reset) timer <= 0;
     else timer <= timer + 1'b1;
   end//always
+  assign slowclk = timer[TIMER_SIZE-1];
+  assign led5 = {hungry, slowclk};
+  
+  philo#(.EAT_TIME(2), .THINK_TIME(5))
+    philo[N_PHILO-1:0](.clk(slowclk), .reset(reset), .may_eat(may_eat)
+      , .foutAck(eventAck), .thinking(thinking)
+      , .foutData(evtData), .foutEmpty(evtEmpty));
 
-  always @(posedge reset, posedge timer[TIMER_SIZE-1]) begin
+  always @(posedge reset, posedge slowclk) begin
     // Cannot put code here, because XST is not smart enough to replicate
     // the same code to different stimulus
     

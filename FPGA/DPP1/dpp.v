@@ -1,5 +1,5 @@
-`ifndef dpp_h
-`define dpp_h
+`ifndef dpp_v
+`define dpp_v
 
 `define TRUE 1'b1
 `define FALSE 1'b0
@@ -20,4 +20,4 @@
 `define hungry   'b10
 `define PHILO_STATE_SIZE 2
 */
-`endif//dpp_h
+`endif//dpp_v

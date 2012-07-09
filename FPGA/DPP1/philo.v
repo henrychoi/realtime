@@ -1,16 +1,14 @@
 `include "dpp.v" //"Header"
 
-module philo
-#(parameter EAT_TIME=2, parameter THINK_TIME=5)
+module philo#(parameter EAT_TIME=2, parameter THINK_TIME=5)
 (input clk, input reset, input may_eat, input foutAck
-, output hungry, output foutData, output foutEmpty);
+, output thinking, output foutData, output foutEmpty);
 `include "function.v"
   localparam THINKING = 0, EATING = 1, HUNGRY = 2, MAX_STATE = 3;
   reg[log2(MAX_STATE)-1:0] state;
   localparam TIMER_SIZE = log2(max(EAT_TIME, THINK_TIME));
-  reg [TIMER_SIZE-1:0] timer;//sized for sign bit to detect underflow
+  reg [TIMER_SIZE-1:0] timer;
   wire l_finEmpty;//, l_dout_dontcare;
-    //, l_fin_full_dontcare, l_fout_full_dontcare; //,evtIntr;
   reg l_event, l_foutWren, l_finAck;
 
   philo_fifo fin(.clk(clk), .srst(reset)
@@ -34,24 +32,18 @@ module philo
     
       timer <= THINK_TIME; //Initial transition
       state <= THINKING;
-    end else begin      
+    end else begin //!reset, i.e. sequential logic
       l_foutWren <= `FALSE; //default value
       l_event <= `PHILO_DONE;//default value
       l_finAck <= `FALSE;    //default value
 
       if(!l_finEmpty && !l_finAck) begin // There is a message for me!
-        //l_foutWren <= `FALSE;  //default value
-        //l_event <= `PHILO_DONE;//default value
-
         // But I already know what the message is: EAT
         l_finAck <= `TRUE;//Read it; pop this event from FIFO
         timer <= EAT_TIME;
         state <= EATING;
       end else begin //no signal; just check ther timer
         if(timer) begin
-          //l_foutWren <= `FALSE;  //default value
-          //l_event <= `PHILO_DONE;//default value
-          //l_finAck <= `FALSE;    //default value
           timer <= timer - 1'b1; //decrement the timer by default
         end else begin
           case(state)
@@ -69,9 +61,6 @@ module philo
               state <= THINKING; //Transition
             end
             default: begin
-              //l_foutWren <= `FALSE; //default value
-              //l_event <= `PHILO_DONE;//default value
-              //l_finAck <= `FALSE;    //default value
               timer <= timer - 1'b1; //decrement the timer by default
             end
           endcase//state

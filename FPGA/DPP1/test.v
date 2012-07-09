@@ -3,11 +3,10 @@
 
 module test;
   localparam N_PHILO = 4;
-  reg clk, reset;
+  reg CLK_P, CLK_N, reset;
   reg may_eat, l_event, l_eventHot, table_rden;
   wire l_finEmpty, table_eventData, table_fifoEmpty, table_notEmpty;
   reg [3:0] n;
-  wire[N_PHILO-1:0] hungry;
   
   philo_fifo fin(.clk(clk), .srst(reset)
     , .din(may_eat), .wr_en(may_eat), .rd_en(1'b1) //Always read
@@ -16,10 +15,14 @@ module test;
     , .din(l_event), .wr_en(l_eventHot), .rd_en(table_rden)
     , .dout(table_eventData), .full(), .empty(table_fifoEmpty));
 
-	dining_table#(.N_PHILO(N_PHILO), .SLOWDOWN_LOG2(0))
-  uut(.clk(clk), .reset(reset), .hungry(hungry));
+	dining_table#(.N_PHILO(N_PHILO), .TIMER_SIZE(1))
+    uut(.CLK_P(CLK_P), .CLK_N(CLK_N), .reset(reset)
+      , .switch8(), .led5(), .led8());
 
-  always #1 clk = ~clk; //Drive the clock
+  always begin
+    #1 CLK_P = ~CLK_P;
+    #0 CLK_N = ~CLK_N;
+  end
   assign table_notEmpty = ~table_fifoEmpty;
 
   always @(posedge clk
@@ -35,7 +38,7 @@ module test;
   end
 
 	initial begin
-		clk = 1'b1;
+		CLK_P = 0; CLK_N = 1;
 		reset = 1'b0;
     n = 0;
     may_eat = `FALSE;
