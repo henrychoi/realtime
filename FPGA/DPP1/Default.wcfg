@@ -10,10 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="3" />
-   <wave_markers>
-      <marker time="470000000" label="" />
-   </wave_markers>
+   <WVObjectSize size="6" />
    <wvobject fp_name="group15" type="group">
       <obj_property name="label">test</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -97,6 +94,11 @@
          <obj_property name="ElementShortName">may_eat[3:0]</obj_property>
          <obj_property name="ObjectShortName">may_eat[3:0]</obj_property>
       </wvobject>
+      <wvobject fp_name="/test/uut/hungry_time" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">hungry_time[3:0,34:0]</obj_property>
+         <obj_property name="ObjectShortName">hungry_time[3:0,34:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="group23" type="group">
       <obj_property name="label">philo3</obj_property>
@@ -106,6 +108,42 @@
          <obj_property name="ObjectShortName">state[1:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/test/uut/\philo[3] /l_foutWren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_foutWren</obj_property>
+         <obj_property name="ObjectShortName">l_foutWren</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group39" type="group">
+      <obj_property name="label">philo2</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/uut/\philo[2] /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/\philo[2] /l_foutWren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_foutWren</obj_property>
+         <obj_property name="ObjectShortName">l_foutWren</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group42" type="group">
+      <obj_property name="label">philo1</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/uut/\philo[1] /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/\philo[1] /l_foutWren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_foutWren</obj_property>
+         <obj_property name="ObjectShortName">l_foutWren</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group45" type="group">
+      <obj_property name="label">philo0</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/uut/\philo[0] /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/\philo[0] /l_foutWren" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">l_foutWren</obj_property>
          <obj_property name="ObjectShortName">l_foutWren</obj_property>
       </wvobject>

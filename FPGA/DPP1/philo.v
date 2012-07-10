@@ -29,7 +29,7 @@ module philo#(parameter EAT_TIME=2, parameter THINK_TIME=5)
       l_foutWren <= `FALSE;  //default value
       l_event <= `PHILO_DONE;//default value
       l_finAck <= `FALSE;    //default value
-    
+      
       timer <= THINK_TIME; //Initial transition
       state <= THINKING;
     end else begin //!reset, i.e. sequential logic

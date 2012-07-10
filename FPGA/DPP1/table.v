@@ -24,6 +24,7 @@ module dining_table // table is a reserved word
   reg[N_PHILO-1:0] fork_, may_eat, eventAck;
   wire[N_PHILO-1:0] evtData, evtEmpty, hungry;
   wire clk, slowclk;
+  reg[36-TIMER_SIZE:0] hungry_time[N_PHILO-1:0]; //For debugging
 
   IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
   always @(posedge reset, posedge clk) begin
@@ -36,7 +37,48 @@ module dining_table // table is a reserved word
   philo#(.EAT_TIME(2), .THINK_TIME(5)) philo[N_PHILO-1:0]
     (.clk(slowclk), .reset(reset), .may_eat(may_eat), .hungry(hungry)
       , .foutAck(eventAck), .foutData(evtData), .foutEmpty(evtEmpty));
+      
+  task philo_isr(input integer n);
+    integer m;
+    begin
+      eventAck[n] <= `TRUE;
+      m = LEFT(n);
+      if(evtData[n] == `PHILO_HUNGRY) begin
+        if((fork_[n] == FORK_AVAIL) && (fork_[m] == FORK_AVAIL)) begin
+          fork_[n] <= FORK_TAKEN;
+          fork_[m] <= FORK_TAKEN;
+          may_eat[n] <= `TRUE; //^EAT; how to clear this?
+        end
+      end else begin //`PHILO_DONE
+        fork_[n] <= FORK_AVAIL;
+        fork_[m] <= FORK_AVAIL;
+        
+        m = RIGHT(n); // check the right neighbor
+        if(hungry[m] && (fork_[m] == FORK_AVAIL)) begin
+          fork_[n] <= FORK_TAKEN;
+          fork_[m] <= FORK_TAKEN;
+          may_eat[m] <= `TRUE;
+        end
+        
+        m = LEFT(n); // check the left neighbor
+        n = LEFT(m); // left fork of the left neighbor
+        if(hungry[m] && (fork_[n] == FORK_AVAIL)) begin
+          fork_[n] <= FORK_TAKEN;
+          fork_[m] <= FORK_TAKEN;
+          may_eat[m] <= `TRUE;
+        end
+      end
+    end
+  endtask//philo_isr
 
+  always @(posedge reset, posedge slowclk) begin
+    if(reset) begin
+      for(i = 0; i < N_PHILO; i = i + 1) hungry_time[i] <= 0;
+    end else
+      for(i = 0; i < N_PHILO; i = i + 1)
+        if(hungry[i]) hungry_time[i] <= hungry_time[i] + 1'b1;
+  end
+    
   always @(posedge reset, posedge slowclk) begin
     // Cannot put code here, because XST is not smart enough to replicate
     // the same code to different stimulus
@@ -49,46 +91,16 @@ module dining_table // table is a reserved word
       end
 
     end else begin: event_process //respond to sig from each phil
-      integer n, m;
+      //integer n, m;
       for(i = 0; i < N_PHILO; i = i + 1) begin
         may_eat[i] <= `FALSE;
         eventAck[i] <= `FALSE;//Do not read off the FIFO unless !EMPTY
       end
       
-      if(!evtEmpty[3] && !eventAck[3]) begin
-        n = 3;
-        eventAck[n] <= `TRUE;
-        
-        m = LEFT(n);
-        if(evtData[3] == `PHILO_HUNGRY) begin
-          if((fork_[n] == FORK_AVAIL) && (fork_[m] == FORK_AVAIL)) begin
-            fork_[n] <= FORK_TAKEN;
-            fork_[m] <= FORK_TAKEN;
-            may_eat[n] <= `TRUE; //^EAT; how to clear this?
-          end
-        end else begin //`PHILO_DONE
-          fork_[n] <= FORK_AVAIL;
-          fork_[m] <= FORK_AVAIL;
-          
-          m = RIGHT(n); // check the right neighbor
-          if(hungry[m] && (fork_[m] == FORK_AVAIL)) begin
-            fork_[n] <= FORK_TAKEN;
-            fork_[m] <= FORK_TAKEN;
-            may_eat[m] <= `TRUE;
-          end
-          
-          m = LEFT(n); // check the left neighbor
-          n = LEFT(m); // left fork of the left neighbor
-          if(hungry[m] && (fork_[n] == FORK_AVAIL)) begin
-            fork_[n] <= FORK_TAKEN;
-            fork_[m] <= FORK_TAKEN;
-            may_eat[m] <= `TRUE;
-          end
-        end
-      end else if(!evtEmpty[2] && !eventAck[2]) begin
-      end else if(!evtEmpty[1] && !eventAck[1]) begin
-      end else if(!evtEmpty[0] && !eventAck[0]) begin
-      end
+      if(!evtEmpty[3] && !eventAck[3]) philo_isr(3);
+      else if(!evtEmpty[2] && !eventAck[2]) philo_isr(2);
+      else if(!evtEmpty[1] && !eventAck[1]) philo_isr(1);
+      else if(!evtEmpty[0] && !eventAck[0]) philo_isr(0);
     end//: event_process
   end//always
 endmodule
