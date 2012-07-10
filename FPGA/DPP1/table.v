@@ -2,8 +2,9 @@
 
 module dining_table // table is a reserved word
 #(parameter N_PHILO = 4, TIMER_SIZE = 27)
-(input CLK_P, input CLK_N, input reset, input[7:0] switch8
-, output[4:0] led5, output[7:0] led8);
+(input CLK_P, input CLK_N, input reset, output[4:0] led5
+//, input[7:0] switch8, output[7:0] led8 // for additional debugging
+);
 `include "function.v"
 
   reg[TIMER_SIZE-1:0] timer;
@@ -20,8 +21,8 @@ module dining_table // table is a reserved word
   endfunction
 
   localparam FORK_AVAIL = 1'b0, FORK_TAKEN = ~FORK_AVAIL;
-  reg[N_PHILO-1:0] fork_, may_eat, eventAck, hungry;
-  wire[N_PHILO-1:0] evtData, evtEmpty;
+  reg[N_PHILO-1:0] fork_, may_eat, eventAck;
+  wire[N_PHILO-1:0] evtData, evtEmpty, hungry;
   wire clk, slowclk;
 
   IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
@@ -30,12 +31,11 @@ module dining_table // table is a reserved word
     else timer <= timer + 1'b1;
   end//always
   assign slowclk = timer[TIMER_SIZE-1];
-  assign led5 = {hungry, slowclk};
+  assign led5 = {hungry, slowclk}; //Center LED (led5[0]) should blink
   
-  philo#(.EAT_TIME(2), .THINK_TIME(5))
-    philo[N_PHILO-1:0](.clk(slowclk), .reset(reset), .may_eat(may_eat)
-      , .foutAck(eventAck), .thinking(thinking)
-      , .foutData(evtData), .foutEmpty(evtEmpty));
+  philo#(.EAT_TIME(2), .THINK_TIME(5)) philo[N_PHILO-1:0]
+    (.clk(slowclk), .reset(reset), .may_eat(may_eat), .hungry(hungry)
+      , .foutAck(eventAck), .foutData(evtData), .foutEmpty(evtEmpty));
 
   always @(posedge reset, posedge slowclk) begin
     // Cannot put code here, because XST is not smart enough to replicate
@@ -85,7 +85,9 @@ module dining_table // table is a reserved word
             may_eat[m] <= `TRUE;
           end
         end
-      end else if(!evtEmpty[2]) begin
+      end else if(!evtEmpty[2] && !eventAck[2]) begin
+      end else if(!evtEmpty[1] && !eventAck[1]) begin
+      end else if(!evtEmpty[0] && !eventAck[0]) begin
       end
     end//: event_process
   end//always

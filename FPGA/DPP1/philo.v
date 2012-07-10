@@ -2,7 +2,7 @@
 
 module philo#(parameter EAT_TIME=2, parameter THINK_TIME=5)
 (input clk, input reset, input may_eat, input foutAck
-, output thinking, output foutData, output foutEmpty);
+, output hungry, output foutData, output foutEmpty);
 `include "function.v"
   localparam THINKING = 0, EATING = 1, HUNGRY = 2, MAX_STATE = 3;
   reg[log2(MAX_STATE)-1:0] state;

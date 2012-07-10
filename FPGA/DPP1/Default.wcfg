@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/DPP1/test_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="test" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="3" />
+   <wave_markers>
+      <marker time="470000000" label="" />
+   </wave_markers>
+   <wvobject fp_name="group15" type="group">
+      <obj_property name="label">test</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/l_finEmpty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_finEmpty</obj_property>
+         <obj_property name="ObjectShortName">l_finEmpty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/table_eventData" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">table_eventData</obj_property>
+         <obj_property name="ObjectShortName">table_eventData</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/table_fifoEmpty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">table_fifoEmpty</obj_property>
+         <obj_property name="ObjectShortName">table_fifoEmpty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/table_notEmpty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">table_notEmpty</obj_property>
+         <obj_property name="ObjectShortName">table_notEmpty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/clk" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/CLK_P" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">CLK_P</obj_property>
+         <obj_property name="ObjectShortName">CLK_P</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/CLK_N" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">CLK_N</obj_property>
+         <obj_property name="ObjectShortName">CLK_N</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset</obj_property>
+         <obj_property name="ObjectShortName">reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/may_eat" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">may_eat</obj_property>
+         <obj_property name="ObjectShortName">may_eat</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/l_event" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_event</obj_property>
+         <obj_property name="ObjectShortName">l_event</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/l_eventHot" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_eventHot</obj_property>
+         <obj_property name="ObjectShortName">l_eventHot</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/table_rden" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">table_rden</obj_property>
+         <obj_property name="ObjectShortName">table_rden</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/n" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">n[3:0]</obj_property>
+         <obj_property name="ObjectShortName">n[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/N_PHILO" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">N_PHILO[31:0]</obj_property>
+         <obj_property name="ObjectShortName">N_PHILO[31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group16" type="group">
+      <obj_property name="label">table</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/uut/slowclk" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">slowclk</obj_property>
+         <obj_property name="ObjectShortName">slowclk</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/evtEmpty" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">evtEmpty[3:0]</obj_property>
+         <obj_property name="ObjectShortName">evtEmpty[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/hungry" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">hungry[3:0]</obj_property>
+         <obj_property name="ObjectShortName">hungry[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/fork_" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fork_[3:0]</obj_property>
+         <obj_property name="ObjectShortName">fork_[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/may_eat" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">may_eat[3:0]</obj_property>
+         <obj_property name="ObjectShortName">may_eat[3:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group23" type="group">
+      <obj_property name="label">philo3</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/test/uut/\philo[3] /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/test/uut/\philo[3] /l_foutWren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">l_foutWren</obj_property>
+         <obj_property name="ObjectShortName">l_foutWren</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>
