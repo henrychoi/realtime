@@ -1,27 +1,24 @@
 `define TRUE 1'b1
 `define FALSE 1'b0
 
-module cl(input CLK_P, CLK_N, reset
+module xillydemo(input CLK_P, CLK_N, reset
   // These come from Camera Link
   , input cl_fval, cl_x_pclk, cl_x_lval, cl_y_pclk, cl_y_lval, cl_z_pclk, cl_z_lval
   , input[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
              , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j
-  // Copied from Xillydemo
-  , input PCIE_PERST_B_LS //The host's master bus reset
+  , input  PCIE_PERST_B_LS, //The host's master bus reset
   //For Virtex-6 a 250 MHz clock, which is derived from the PCIe bus clock,
   //is expected on these wires. If a different clock is applied, the Xilinx
   //PCIe Coregen core (defined by pcie v6 4x.xco in the bundle) must be
   //reconfigured to expect the real clock frequency. Such a change may also
   //involve changes in the constraints.
-  , input PCIE_REFCLK_N, PCIE_REFCLK_P
-  , input[3:0] PCIE_RX_N, PCIE_RX_P
-  , output[3:0] PCIE_TX_N, PCIE_TX_P
-  , output[7:0] GPIO_LED // For debugging
-  //, output[4:0] led5
-);
+   input  PCIE_REFCLK_N, PCIE_REFCLK_P,
+   input [3:0] PCIE_RX_N, PCIE_RX_P,
+   output [7:0] GPIO_LED,
+   output [3:0] PCIE_TX_N, PCIE_TX_P
+   );
   wire bus_clk, quiesce;
-  //IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
-  
+
 `define FRAME_NUM_SIZE 20
   reg[`FRAME_NUM_SIZE-1:0] frame_num;
 `define LINE_NUM_SIZE 12 // Enough for 1080 lines from Andor camera
@@ -56,8 +53,10 @@ module cl(input CLK_P, CLK_N, reset
   wire[31:0] user_r_read_32_data;
   reg pc_msg32_ack; //send ACK into FIFO to clear incoming data
   wire pc_msg32_empty;
-    
-  xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
+
+  //IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
+
+  xillybus xb(.GPIO_LED(GPIO_LED[3:0])
     , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
     , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
     , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
@@ -80,7 +79,7 @@ module cl(input CLK_P, CLK_N, reset
     , .user_r_read_8_rden(user_r_read_8_rden)  // /dev/xillybus_read_8
     , .user_r_read_8_empty(user_r_read_8_empty) // FPGA to CPU signals
     , .user_r_read_8_data(user_r_read_8_data)
-    , .user_r_read_8_eof(user_r_read_8_eof) //Use this to indicate error
+    , .user_r_read_8_eof(user_r_read_8_eof)
     , .user_r_read_8_open(user_r_read_8_open)
     , .user_w_write_8_wren(user_w_write_8_wren) // /dev/xillybus_write_8
     , .user_w_write_8_full(user_w_write_8_full) // CPU to FPGA signals
@@ -90,50 +89,44 @@ module cl(input CLK_P, CLK_N, reset
     , .user_r_read_32_rden(user_r_read_32_rden)  // /dev/xillybus_read_32
     , .user_r_read_32_empty(user_r_read_32_empty)// FPGA to CPU signals
     , .user_r_read_32_data(user_r_read_32_data)
-    , .user_r_read_32_eof(user_r_read_32_eof) //Use this to indicate error
+    , .user_r_read_32_eof(user_r_read_32_eof)
     , .user_r_read_32_open(user_r_read_32_open)
     , .user_w_write_32_wren(user_w_write_32_wren) // /dev/xillybus_write_32
     , .user_w_write_32_full(user_w_write_32_full) // CPU to FPGA signals
     , .user_w_write_32_data(user_w_write_32_data)
     , .user_w_write_32_open(user_w_write_32_open)
   );
-  fifo_32b xb_wr_fifo(.rst(reset), .clk(bus_clk)//, .rd_clk(clk)
+  fifo_32b_2clk xb_wr_fifo(.rst(reset), .clk(bus_clk)//, .rd_clk(clk)
     , .din(user_w_write_32_data), .wr_en(user_w_write_32_wren)
     , .rd_en(pc_msg32_ack), .dout(pc_msg32)
     , .full(user_w_write_32_full), .empty(pc_msg32_empty));
-  fifo_big232 xb_rd_fifo(.rst(reset), .wr_clk(bus_clk), .rd_clk(bus_clk)
+  fifo_big232b xb_rd_fifo(.rst(reset), .wr_clk(bus_clk), .rd_clk(bus_clk)
     , .din({cl_val                       //                80 bits
             , 12'b000000000000, cl_meta  // 12 + 4 bits  = 96 bits
             , line_num, frame_num})      // 12 + 20 bits = 32 bits
     , .wr_en(reassemble), .rd_en(user_r_read_32_rden)
     , .dout(user_r_read_32_data), .full(), .empty(user_r_read_32_empty));
-  cl_fifo x_fifo(.wr_clk(cl_x_pclk), .rd_clk(bus_clk), .rst(reset)
+  cl_fifo x_fifo(.rst(reset), .wr_clk(cl_x_pclk), .rd_clk(bus_clk)
     , .wr_en(cl_x_pclk), .rd_en(reassemble)
     , .din({cl_port_d[1:0], cl_port_c, cl_port_b, cl_port_a, cl_x_lval, cl_fval})
     , .dout({cl_val[25:0], cl_meta[1:0]})
     , .full(/* TODO: reset HW */), .empty(x_fifo_empty));
-  cl_fifo y_fifo(.wr_clk(cl_y_pclk), .rd_clk(bus_clk), .rst(reset)
+  cl_fifo y_fifo(.rst(reset), .wr_clk(cl_y_pclk), .rd_clk(bus_clk)
     , .wr_en(cl_y_pclk), .rd_en(reassemble)
     , .din({cl_port_g[4:0], cl_port_f, cl_port_e, cl_port_d[7:2], cl_y_lval})
     , .dout({cl_val[52:26], cl_meta[2]})
     , .full(), .empty(y_fifo_empty));
-  cl_fifo z_fifo(.wr_clk(cl_z_pclk), .rd_clk(bus_clk), .rst(reset)
+  cl_fifo z_fifo(.rst(reset), .wr_clk(cl_z_pclk), .rd_clk(bus_clk)
     , .wr_en(cl_z_pclk), .rd_en(reassemble)
     , .din({cl_port_j, cl_port_i, cl_port_h, cl_port_g[7:5], cl_z_lval})
     , .dout({cl_val[79:53], cl_meta[3]})
     , .full(), .empty(z_fifo_empty));
-   
-  //If you have a clock signal coming in, if it is routed over a global clock
-  //buffer then everything that uses that clock must be after the clock buffer
+
   // GPIO_LED[0:3] are used by Xillybus
   assign GPIO_LED[7:4] = pc_msg32[3:0]; // Just show the last 4 bits
-  //I cannot place this for some reason
-  //assign led5 = {1'b1, fval_lval, frame_num[`FRAME_NUM_SIZE-1]};
-  // {cl_x_pclk == cl_y_pclk, cl_y_pclk == cl_z_pclk
-  //                      , cl_x_lval == cl_y_lval, cl_y_lval == cl_z_lval};
   assign reassemble = bSend
     & (~z_fifo_empty) & (~y_fifo_empty) & (~z_fifo_empty);
-    
+
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
       pc_msg32_ack <= `FALSE;
@@ -159,7 +152,7 @@ module cl(input CLK_P, CLK_N, reset
       //fval_lval <= {cl_x_lval, cl_y_lval, cl_z_lval};
     end//posedge cl_fclk
   end//always
-
+  
   always @(posedge cl_fval, posedge cl_x_lval) begin
     if(cl_fval) line_num <= 0;
     else line_num <= line_num + 1'b1;
