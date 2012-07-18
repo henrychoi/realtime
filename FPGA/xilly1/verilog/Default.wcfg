@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/xilly1/verilog/sim_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="18" />
+   <wvobject fp_name="/sim/GPIO_LED" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_r_read_32_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">user_r_read_32_empty</obj_property>
+      <obj_property name="ObjectShortName">user_r_read_32_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_r_read_32_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">user_r_read_32_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">user_r_read_32_data[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_r_read_32_open" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">user_r_read_32_open</obj_property>
+      <obj_property name="ObjectShortName">user_r_read_32_open</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_w_write_32_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">user_w_write_32_full</obj_property>
+      <obj_property name="ObjectShortName">user_w_write_32_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/pc_msg32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/pc_msg32_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32_empty</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/xb_rd_fifo_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">xb_rd_fifo_full</obj_property>
+      <obj_property name="ObjectShortName">xb_rd_fifo_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/bus_clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_clk</obj_property>
+      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_r_read_32_rden" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">user_r_read_32_rden</obj_property>
+      <obj_property name="ObjectShortName">user_r_read_32_rden</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_w_write_32_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">user_w_write_32_wren</obj_property>
+      <obj_property name="ObjectShortName">user_w_write_32_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/user_w_write_32_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">user_w_write_32_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">user_w_write_32_data[31:0]</obj_property>
+      <obj_property name="Radix">ASCIIRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/pc_msg32_ack" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32_ack</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32_ack</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/send_data" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">send_data</obj_property>
+      <obj_property name="ObjectShortName">send_data</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/top_pixel" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">top_pixel[11:0]</obj_property>
+      <obj_property name="ObjectShortName">top_pixel[11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/bottom_pixel" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bottom_pixel[11:0]</obj_property>
+      <obj_property name="ObjectShortName">bottom_pixel[11:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_msg[3:0]</obj_property>
+      <obj_property name="ObjectShortName">n_msg[3:0]</obj_property>
+   </wvobject>
+</wave_config>
