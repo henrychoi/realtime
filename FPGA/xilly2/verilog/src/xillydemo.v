@@ -52,9 +52,7 @@ module xillydemo(input CLK_P, CLK_N, reset
   reg pc_msg32_ack; // Command from the PC to FPGA
   wire[31:0] pc_msg32;
   wire pc_msg32_empty;
-  reg[11:0] top_pixel, bottom_pixel;
   wire xb_rd_fifo_full;
-  localparam N_PACKET = 2;//2400000;
   reg[31:0] n_frame;
   
   //IBUFGDS dsClkBuf(.O(clk), .I(CLK_P), .IB(CLK_N));
@@ -123,11 +121,11 @@ module xillydemo(input CLK_P, CLK_N, reset
     
   xb_rd_fifo xb_rd_fifo(.rst(reset), .clk(bus_clk)
     , .din(n_frame)
-    , .wr_en(pc_msg32_ack)//n_frame != 0 && !xb_rd_fifo_full)
+    , .wr_en(n_frame != 0 && !xb_rd_fifo_full)
     , .rd_en(user_r_read_32_rden), .dout(user_r_read_32_data)
     , .full(xb_rd_fifo_full), .empty(user_r_read_32_empty));
 
-  assign  user_r_read_32_eof = 0;//(pc_msg32 == 32'hFFFFFFFF);
+  assign  user_r_read_32_eof = !pc_msg32_empty && (pc_msg32 == 0);
   assign  user_r_read_8_eof = 0;
 
   assign GPIO_LED[7:4] = {user_w_write_32_full, user_w_write_32_open
@@ -136,15 +134,11 @@ module xillydemo(input CLK_P, CLK_N, reset
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
       pc_msg32_ack <= 0;
-      top_pixel <= 12'b000000010101;
-      bottom_pixel <= 12'b010101000000;
       n_frame <= 0;
     end else begin
       pc_msg32_ack <= `FALSE; //Default value
       
       if(!pc_msg32_empty && !pc_msg32_ack) begin // a message from PC!
-        top_pixel[7:0] <= pc_msg32[15:8];
-        bottom_pixel[7:0] <= pc_msg32[7:0];
         pc_msg32_ack <= `TRUE;
         n_frame <= pc_msg32;
       end else if(n_frame != 0 && !xb_rd_fifo_full) begin
