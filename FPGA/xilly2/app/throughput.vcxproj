@@ -11,9 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{A0289DC0-F29B-4DBC-B9DB-3E453A9C57DE}</ProjectGuid>
+    <ProjectGuid>{586278B5-BC42-446D-870D-A1323DF7F7DD}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>app</RootNamespace>
+    <RootNamespace>throughput</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -74,8 +74,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="countdown.c" />
     <ClCompile Include="fifo.c" />
+    <ClCompile Include="throughput.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="fifo.h" />

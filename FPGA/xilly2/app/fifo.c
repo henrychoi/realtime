@@ -1,62 +1,13 @@
-#include <Windows.h>
 #include <io.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include "fifo.h"
 /*********************************************************************
  *                                                                   *
  *                 D E C L A R A T I O N S                           *
  *                                                                   *
  *********************************************************************/
-
-// Windows equivalents for gcc builtin atomic operations
-#define __sync_add_and_fetch(x,y) (InterlockedExchangeAdd(x, (y)) + (y))
-#define __sync_sub_and_fetch(x,y) (InterlockedExchangeAdd(x, -(y)) - (y))
-
-struct xillyfifo {
-  LONG read_total;
-  LONG write_total;
-  LONG bytes_in_fifo;
-  unsigned int read_position;
-  unsigned int write_position;
-  unsigned int size;
-  unsigned int done;
-  unsigned char *baseaddr;
-  HANDLE write_event;
-  HANDLE read_event;   
-};
-
-struct xillyinfo {
-  int slept;
-  int bytes;
-  int position;
-  void *addr;
-};
-
-#define FIFO_BACKOFF 0
-static int read_fd = 0;
-
-/*********************************************************************
- *                                                                   *
- *                 A P I   F U N C T I O N S                         *
- *                                                                   *
- *********************************************************************/
-
-// IMPORTANT:
-// =========
-//
-// NEITHER of the fifo_* functions is reentrant. Only one thread should have
-// access to any set of them. This is pretty straightforward when one thread
-// writes and one thread reads from the FIFO.
-//
-// Also make sure that fifo_drained() and fifo_wrote() are NEVER called with
-// req_bytes larger than what their request-counterparts RETURNED, or
-// things will go crazy pretty soon.
-
 
 void errorprint(char *what, DWORD dw) {
   LPVOID lpMsgBuf;
@@ -71,15 +22,12 @@ void errorprint(char *what, DWORD dw) {
 		(LPTSTR) &lpMsgBuf,
 		0, NULL );
   
-  
-  fprintf(stderr, "%s: Error=%08x:\n%s\n",
-	  what, dw, lpMsgBuf); 
+  fprintf(stderr, "%s: Error=%08x:\n%s\n", what, dw, lpMsgBuf); 
   
   LocalFree(lpMsgBuf);
 }
 
-int fifo_init(struct xillyfifo *fifo,
-	      unsigned int size) {
+int fifo_init(struct xillyfifo *fifo, unsigned int size) {
 
   fifo->baseaddr = NULL;
   fifo->size = 0;
@@ -140,8 +88,7 @@ void fifo_destroy(struct xillyfifo *fifo) {
   fifo->baseaddr = NULL;
 }
 
-int fifo_request_drain(struct xillyfifo *fifo,
-		       struct xillyinfo *info) {
+int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info) {
   int taken = 0;
   unsigned int now_bytes, max_bytes;
 
@@ -180,8 +127,7 @@ int fifo_request_drain(struct xillyfifo *fifo,
   return taken;
 }
 
-void fifo_drained(struct xillyfifo *fifo,
-		  int req_bytes) {
+void fifo_drained(struct xillyfifo *fifo, int req_bytes) {
 
   unsigned int now_bytes;
 
@@ -200,8 +146,7 @@ void fifo_drained(struct xillyfifo *fifo,
     errorprint("fifo_drained: Failed to set write event", GetLastError());
 }
 
-int fifo_request_write(struct xillyfifo *fifo,
-		       struct xillyinfo *info) {
+int fifo_request_write(struct xillyfifo *fifo, struct xillyinfo *info) {
   int taken = 0;
   unsigned int now_bytes, max_bytes;
 
@@ -249,7 +194,6 @@ int fifo_request_write(struct xillyfifo *fifo,
 }
 
 void fifo_wrote(struct xillyfifo *fifo, int req_bytes) {
-
   unsigned int now_bytes;
 
   if (req_bytes == 0)
@@ -267,226 +211,3 @@ void fifo_wrote(struct xillyfifo *fifo, int req_bytes) {
     errorprint("fifo_wrote: Failed to set read event", GetLastError());
 }
 
-/*********************************************************************
- *                                                                   *
- *                 A P P L I C A T I O N   C O D E                   *
- *                                                                   *
- *********************************************************************/
-
-// Read from FIFO, write to standard output
-
-DWORD WINAPI write_thread(LPVOID arg)
-{
-  struct xillyfifo *fifo = arg;
-  int do_bytes, written_bytes;
-  struct xillyinfo info;
-  unsigned char *buf;
-
-  while (1) {
-    do_bytes = fifo_request_drain(fifo, &info);
-
-    if (do_bytes == 0)
-      return 0;
-
-#ifdef OLD
-    for (buf = info.addr; do_bytes > 0
-      ; buf += written_bytes, do_bytes -= written_bytes) {
-      written_bytes = _write(1, buf, do_bytes);
-      if ((written_bytes < 0) && (errno != EINTR)) {
-	      perror("write() failed");
-	      return 0;
-      }
-
-      if (written_bytes == 0) {
-	      fprintf(stderr, "Reached write EOF (?!)\n");
-	      fifo_done(fifo);
-	      return 0;
-      }
-
-      if (written_bytes < 0) { // errno is EINTR
-	      written_bytes = 0;
-	      continue;
-      }
-      
-      fifo_drained(fifo, written_bytes);
-    }
-#else
-    printf("%8X\n", *((unsigned int*)info.addr));
-    fifo_drained(fifo, 4);
-#endif
-  }
-}
-
-// Write to FIFO, read from standard output
-
-DWORD WINAPI read_thread(LPVOID arg)
-{
-  struct xillyfifo *fifo = arg;
-  int do_bytes, read_bytes;
-  struct xillyinfo info;
-  unsigned char *buf;
-
-  while (1) {
-    do_bytes = fifo_request_write(fifo, &info);
-
-    if (do_bytes == 0)
-      return 0;
-
-    for (buf = info.addr; do_bytes > 0;
-      buf += read_bytes, do_bytes -= read_bytes) {
-
-      read_bytes = _read(read_fd, buf, do_bytes);
-
-      if ((read_bytes < 0) && (errno != EINTR)) {
-	      perror("read() failed");
-	      return 0;
-      }
-
-      if (read_bytes == 0) {
-	      // Reached EOF. Quit without complaining.
-	      fifo_done(fifo);
-	      return 0;
-      }
-
-      if (read_bytes < 0) { // errno is EINTR
-	      read_bytes = 0;
-	      continue;
-      }
-      
-      fifo_wrote(fifo, read_bytes);
-    }
-  }
-}
-
-
-DWORD WINAPI status_thread(LPVOID arg) {
-  struct xillyfifo *fifo = arg;
-  
-  while (fifo->done < 2)
-    fprintf(stderr, "%9d bytes in FIFO, %12ld read, %12ld written\r",
-	    __sync_add_and_fetch(&fifo->bytes_in_fifo, 0),
-	    __sync_add_and_fetch(&fifo->read_total, 0),
-	    __sync_add_and_fetch(&fifo->write_total, 0)	   
-	    ); 
-  return 0;
-}
-
-void allwrite(int fd, unsigned char *buf, int len) {
-  int sent = 0;
-  int rc;
-
-  while (sent < len) {
-    rc = _write(fd, buf + sent, len - sent);
-
-    if ((rc < 0) && (errno == EINTR))
-      continue;
-
-    if (rc < 0) {
-      perror("allwrite() failed to write");
-      exit(1);
-    }
-
-    if (rc == 0) {
-      fprintf(stderr, "Reached write EOF (?!)\n");
-      exit(1);
-    }
-
-    sent += rc;
-  }
-}
-
-int __cdecl main(int argc, char *argv[]) {
-  const char* readfn = "\\\\.\\xillybus_read_32"
-	  , * writefn = "\\\\.\\xillybus_write_32";
-  HANDLE tid[3];
-  struct xillyfifo fifo;
-  unsigned int fifo_size = 4096;
-  unsigned int n_frame;
-  int write_fd = _open(writefn, O_WRONLY);
-
-  if (write_fd < 0) {
-    if (errno == ENODEV)
-      fprintf(stderr, "(Maybe %s a write-only file?)\n", writefn);
-
-    fprintf(stderr, "Failed to open %s", writefn);
-    exit(1);
-  }
-
-  // If more than one FIFO is created, use the total memory needed instead
-  // of fifo_size with SetProcessWorkingSetSize()
-  if ((fifo_size > 20000) &&
-      !SetProcessWorkingSetSize(GetCurrentProcess(),
-				1024*1024 + fifo_size,
-				2048*1024 + fifo_size))
-    errorprint("Failed to enlarge unswappable RAM limit", GetLastError());
-
-  if (fifo_init(&fifo, fifo_size)) {
-    perror("Failed to init");
-    exit(1);
-  }
-
-  read_fd = _open(readfn, O_RDONLY | _O_BINARY);
-    
-  if (read_fd < 0) {
-    perror("Failed to open read file");
-    exit(1);
-  }
-
-  if (_setmode(1, _O_BINARY) < 0)
-    fprintf(stderr, "Failed to set binary mode for standard output\n");
-
-  // default security, default stack size, default startup flags
-  tid[0] = CreateThread(NULL, 0, read_thread, &fifo, 0, NULL);
-
-  if (tid[0] == NULL) {
-    errorprint("Failed to create thread", GetLastError());
-    exit(1);
-  }
-
-  tid[1] = CreateThread(NULL, 0, write_thread, &fifo, 0, NULL);
-  
-  if (tid[1] == NULL) {
-    errorprint("Failed to create thread", GetLastError());
-    exit(1);
-  }
-#if 0
-  tid[2] = CreateThread(NULL, 0, status_thread, &fifo, 0, NULL);
-  if (tid[2] == NULL) {
-    errorprint("Failed to create thread", GetLastError());
-    exit(1);
-  }
-#endif
-  while(1) {
-    char line[40];
-    printf("How many messages to get from FPGA? ");
-	  if(!gets_s(line, sizeof(line))) { // EOF reached
-		  fprintf(stderr, "\nError condition received; exiting\n");
-		  break;
-	  }
-    n_frame = atoi(line);
-    allwrite(write_fd, &n_frame, sizeof(n_frame));
-    if(!n_frame) {
-      printf("Exiting loop\n");
-      break;
-    }
-  }
-
-  _close(write_fd);
-  _close(read_fd);
-
-  // Wait for threads to exit
-  if (WaitForSingleObject(tid[0], INFINITE) != WAIT_OBJECT_0) 
-    errorprint("Failed waiting for read_thread to terminate", GetLastError());
-
-  if (WaitForSingleObject(tid[1], INFINITE) != WAIT_OBJECT_0) 
-    errorprint("Failed waiting for write_thread to terminate", GetLastError());
-
-  fifo.done = 2; // This is a hack for the status thread
-#if 0
-  if (WaitForSingleObject(tid[2], INFINITE) != WAIT_OBJECT_0) 
-    errorprint("Failed waiting for status_thread to terminate", GetLastError());
-#endif
-  fifo_destroy(&fifo);
-
-  return 0;
-}
