@@ -288,10 +288,10 @@ DWORD WINAPI write_thread(LPVOID arg)
     if (do_bytes == 0)
       return 0;
 
+#ifdef OLD
     for (buf = info.addr; do_bytes > 0
       ; buf += written_bytes, do_bytes -= written_bytes) {
       written_bytes = _write(1, buf, do_bytes);
-
       if ((written_bytes < 0) && (errno != EINTR)) {
 	      perror("write() failed");
 	      return 0;
@@ -310,6 +310,10 @@ DWORD WINAPI write_thread(LPVOID arg)
       
       fifo_drained(fifo, written_bytes);
     }
+#else
+    printf("%8X\n", *((unsigned int*)info.addr));
+    fifo_drained(fifo, 4);
+#endif
   }
 }
 
@@ -397,6 +401,7 @@ int __cdecl main(int argc, char *argv[]) {
   HANDLE tid[3];
   struct xillyfifo fifo;
   unsigned int fifo_size = 4096;
+  unsigned int n_frame;
   int write_fd = _open(writefn, O_WRONLY);
 
   if (write_fd < 0) {
@@ -420,16 +425,11 @@ int __cdecl main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (argc > 2) {
-    read_fd = _open(readfn, O_RDONLY | _O_BINARY);
+  read_fd = _open(readfn, O_RDONLY | _O_BINARY);
     
-    if (read_fd < 0) {
-      perror("Failed to open read file");
-      exit(1);
-    }
-  } else {
-    if (_setmode(0, _O_BINARY) < 0)
-      fprintf(stderr, "Failed to set binary mode for standard input\n");  
+  if (read_fd < 0) {
+    perror("Failed to open read file");
+    exit(1);
   }
 
   if (_setmode(1, _O_BINARY) < 0)
@@ -449,28 +449,26 @@ int __cdecl main(int argc, char *argv[]) {
     errorprint("Failed to create thread", GetLastError());
     exit(1);
   }
-
+#if 0
   tid[2] = CreateThread(NULL, 0, status_thread, &fifo, 0, NULL);
-  
   if (tid[2] == NULL) {
     errorprint("Failed to create thread", GetLastError());
     exit(1);
   }
-
+#endif
   while(1) {
     char line[40];
-    unsigned int n_frame;
     printf("How many messages to get from FPGA? ");
 	  if(!gets_s(line, sizeof(line))) { // EOF reached
 		  fprintf(stderr, "\nError condition received; exiting\n");
 		  break;
 	  }
     n_frame = atoi(line);
+    allwrite(write_fd, &n_frame, sizeof(n_frame));
     if(!n_frame) {
       printf("Exiting loop\n");
       break;
     }
-    allwrite(write_fd, &n_frame, sizeof(n_frame));
   }
 
   _close(write_fd);
@@ -484,10 +482,10 @@ int __cdecl main(int argc, char *argv[]) {
     errorprint("Failed waiting for write_thread to terminate", GetLastError());
 
   fifo.done = 2; // This is a hack for the status thread
-
+#if 0
   if (WaitForSingleObject(tid[2], INFINITE) != WAIT_OBJECT_0) 
     errorprint("Failed waiting for status_thread to terminate", GetLastError());
-
+#endif
   fifo_destroy(&fifo);
 
   return 0;
