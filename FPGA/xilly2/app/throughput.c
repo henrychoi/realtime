@@ -118,11 +118,8 @@ int __cdecl main(int argc, char *argv[]) {
   cur_frame = n_frame;
   startTick = GetTickCount();
   while(n_bytes < (n_frame * 4)) {
-    int do_bytes;
-    //printf(".");
-    if (!(do_bytes = fifo_request_drain(&fifo, &info))) {
-      return 0;
-    }
+    int do_bytes = fifo_request_drain(&fifo, &info);
+    if (!do_bytes) return 0;
     if((n_bytes & 0x3) == 0) {
       printf(" %X", *((unsigned int*)info.addr));
     }
