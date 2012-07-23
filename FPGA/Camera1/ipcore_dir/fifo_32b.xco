@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Mon Jul 16 03:43:56 2012
+# Date: Mon Jul 23 03:24:01 2012
 #
 ##############################################################
 #
@@ -24,7 +24,7 @@ SET createndf = false
 SET designentry = Verilog
 SET device = xc6vlx240t
 SET devicefamily = virtex6
-SET flowvendor = Other
+SET flowvendor = Foundation_ISE
 SET formalverification = false
 SET foundationsym = false
 SET implementationfiletype = Ngc
@@ -57,14 +57,14 @@ CSET data_count_width=10
 CSET disable_timing_violations=false
 CSET disable_timing_violations_axi=false
 CSET dout_reset_value=0
-CSET empty_threshold_assert_value=4
+CSET empty_threshold_assert_value=6
 CSET empty_threshold_assert_value_axis=1022
 CSET empty_threshold_assert_value_rach=1022
 CSET empty_threshold_assert_value_rdch=1022
 CSET empty_threshold_assert_value_wach=1022
 CSET empty_threshold_assert_value_wdch=1022
 CSET empty_threshold_assert_value_wrch=1022
-CSET empty_threshold_negate_value=5
+CSET empty_threshold_negate_value=7
 CSET enable_aruser=false
 CSET enable_awuser=false
 CSET enable_buser=false
@@ -109,7 +109,7 @@ CSET fifo_application_type_rdch=Data_FIFO
 CSET fifo_application_type_wach=Data_FIFO
 CSET fifo_application_type_wdch=Data_FIFO
 CSET fifo_application_type_wrch=Data_FIFO
-CSET fifo_implementation=Common_Clock_Builtin_FIFO
+CSET fifo_implementation=Independent_Clocks_Builtin_FIFO
 CSET fifo_implementation_axis=Common_Clock_Block_RAM
 CSET fifo_implementation_rach=Common_Clock_Block_RAM
 CSET fifo_implementation_rdch=Common_Clock_Block_RAM
@@ -117,14 +117,14 @@ CSET fifo_implementation_wach=Common_Clock_Block_RAM
 CSET fifo_implementation_wdch=Common_Clock_Block_RAM
 CSET fifo_implementation_wrch=Common_Clock_Block_RAM
 CSET full_flags_reset_value=0
-CSET full_threshold_assert_value=1023
+CSET full_threshold_assert_value=1019
 CSET full_threshold_assert_value_axis=1023
 CSET full_threshold_assert_value_rach=1023
 CSET full_threshold_assert_value_rdch=1023
 CSET full_threshold_assert_value_wach=1023
 CSET full_threshold_assert_value_wdch=1023
 CSET full_threshold_assert_value_wrch=1023
-CSET full_threshold_negate_value=1022
+CSET full_threshold_negate_value=1018
 CSET id_width=4
 CSET inject_dbit_error=false
 CSET inject_dbit_error_axis=false
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: 867dd269
+# CRC: cdc7560f

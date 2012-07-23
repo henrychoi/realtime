@@ -24,19 +24,19 @@ NET GPIO_LED[*] IOSTANDARD = LVCMOS25;
 
 #temporary workaround
 NET cl_fval CLOCK_DEDICATED_ROUTE = FALSE;
-NET cl_x_lval CLOCK_DEDICATED_ROUTE = FALSE;
-NET cl_x_pclk CLOCK_DEDICATED_ROUTE = FALSE;
-NET cl_y_lval CLOCK_DEDICATED_ROUTE = FALSE;
+#NET cl_x_lval CLOCK_DEDICATED_ROUTE = FALSE;
+#NET cl_y_lval CLOCK_DEDICATED_ROUTE = FALSE;
+#NET cl_z_pclk CLOCK_DEDICATED_ROUTE = FALSE;
 NET cl_z_lval CLOCK_DEDICATED_ROUTE = FALSE;
 
 #                                               #FMC pin|IO  |CL    |CL
 #                                               #       |bank|signal|domain
 #-----------------------------------------------#-------+----+------+-------
 NET cl_fval      LOC=AJ30 | IOSTANDARD=LVCMOS25;#J64 J31 12 FVAL    X
-NET cl_x_pclk    LOC=AL31 | IOSTANDARD=LVCMOS25;#J64 E33 12 PCLK0   X
-NET cl_x_lval    LOC=AJ29 | IOSTANDARD=LVCMOS25;#J64 J30 12 LVAL    X
-NET cl_y_pclk    LOC=AF19 | IOSTANDARD=LVCMOS25;#J64 H10 22 PCLK1   Y
-NET cl_y_lval    LOC=AJ22 | IOSTANDARD=LVCMOS25;#J64 G13 22 LVAL    Y
+#NET cl_x_pclk    LOC=AL31 | IOSTANDARD=LVCMOS25;#J64 E33 12 PCLK0   X
+#NET cl_x_lval    LOC=AJ29 | IOSTANDARD=LVCMOS25;#J64 J30 12 LVAL    X
+#NET cl_y_pclk    LOC=AF19 | IOSTANDARD=LVCMOS25;#J64 H10 22 PCLK1   Y
+#NET cl_y_lval    LOC=AJ22 | IOSTANDARD=LVCMOS25;#J64 G13 22 LVAL    Y
 NET cl_z_pclk    LOC=K24  | IOSTANDARD=LVCMOS25;#J64 H4 24 PCLK2     Z
 NET cl_z_lval    LOC=AJ27 | IOSTANDARD=LVCMOS25;#J64 H32 23 LVAL    Z
 NET cl_port_a[0] LOC=AL30 | IOSTANDARD=LVCMOS25;#J64 E21 12 Port A0 X

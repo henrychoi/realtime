@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/Camera1/cl_tf_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="cl_tf" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="29" />
+   <wvobject fp_name="/cl_tf/GPIO_LED" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/quiesce" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">quiesce</obj_property>
+      <obj_property name="ObjectShortName">quiesce</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_pclk</obj_property>
+      <obj_property name="ObjectShortName">cl_pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/pc_msg32_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32_empty</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/xb_rd_fifo_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">xb_rd_fifo_full</obj_property>
+      <obj_property name="ObjectShortName">xb_rd_fifo_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_fval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_fval</obj_property>
+      <obj_property name="ObjectShortName">cl_fval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_z_pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_z_pclk</obj_property>
+      <obj_property name="ObjectShortName">cl_z_pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_z_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_z_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_z_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_a" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_a[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_a[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_b" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_b[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_b[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_c" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_c[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_c[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_d" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_d[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_d[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_e" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_e[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_e[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_f" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_f[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_f[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_g" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_g[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_g[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_h" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_h[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_h[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_i" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_i[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_i[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/cl_port_j" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_j[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_j[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/bus_clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_clk</obj_property>
+      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/frame_num" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">frame_num[19:0]</obj_property>
+      <obj_property name="ObjectShortName">frame_num[19:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/line_num" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">line_num[11:0]</obj_property>
+      <obj_property name="ObjectShortName">line_num[11:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/bSend" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bSend</obj_property>
+      <obj_property name="ObjectShortName">bSend</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/pc_msg32" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/pc_msg32_ack" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32_ack</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32_ack</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/pc_msg32_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg32_empty</obj_property>
+      <obj_property name="ObjectShortName">pc_msg32_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/wr_32_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_32_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_32_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/cl_tf/wr_32_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_32_wren</obj_property>
+      <obj_property name="ObjectShortName">wr_32_wren</obj_property>
+   </wvobject>
+</wave_config>

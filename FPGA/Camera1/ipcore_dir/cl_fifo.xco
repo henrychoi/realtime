@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Mon Jul 16 02:03:41 2012
+# Date: Mon Jul 23 03:21:27 2012
 #
 ##############################################################
 #
@@ -24,7 +24,7 @@ SET createndf = false
 SET designentry = Verilog
 SET device = xc6vlx240t
 SET devicefamily = virtex6
-SET flowvendor = Other
+SET flowvendor = Foundation_ISE
 SET formalverification = false
 SET foundationsym = false
 SET implementationfiletype = Ngc
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: 91c38ef0
+# CRC: 25059eeb
