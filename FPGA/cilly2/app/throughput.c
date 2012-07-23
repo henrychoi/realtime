@@ -64,12 +64,13 @@ void allwrite(int fd, unsigned char *buf, int len) {
 
     sent += rc;
   }
-
+#ifdef ASYNC_WRITE_STREAM
   rc = _write(fd, NULL, 0);//flush
   if(rc) {
     fprintf(stderr, "Flush failed\n");
     exit(1);
   }
+#endif
 }
 
 int __cdecl main(int argc, char *argv[]) {
@@ -127,7 +128,7 @@ int __cdecl main(int argc, char *argv[]) {
     exit(1);
   }
 
-  n_frame = atoi(argv[1]);
+  n_frame = argc < 2 ? 1000 : atoi(argv[1]);
   allwrite(write_fd, &n_frame, sizeof(n_frame));
 
   //read_bytes = _read(loop_fd, buf, sizeof(buf));
