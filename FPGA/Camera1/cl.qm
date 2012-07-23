@@ -2,10 +2,29 @@
 <model version="2.1.02" framework="qpn">
  <package name="Events" stereotype="0x01"/>
  <package name="AOs" stereotype="0x02">
-  <class name="MyAO" superclass="qpn::QActive">
+  <class name="CameraLink" superclass="qpn::QActive">
    <documentation>Test active object</documentation>
    <statechart>
-    <state_diagram size="80,50"/>
+    <initial target="../1">
+     <initial_glyph conn="4,11,5,3,7">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="standby">
+     <tran trig="TRIG1" target="../../2">
+      <tran_glyph conn="24,11,1,3,12">
+       <action box="0,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="11,6,13,10"/>
+    </state>
+    <state name="armed">
+     <state name="capturing">
+      <state_glyph node="49,8,15,10"/>
+     </state>
+     <state_glyph node="36,2,33,19"/>
+    </state>
+    <state_diagram size="77,50"/>
    </statechart>
   </class>
  </package>
