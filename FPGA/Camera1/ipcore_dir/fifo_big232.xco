@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Mon Jul 23 03:25:54 2012
+# Date: Tue Jul 24 02:41:45 2012
 #
 ##############################################################
 #
@@ -91,7 +91,7 @@ CSET enable_handshake_flag_options_wdch=false
 CSET enable_handshake_flag_options_wrch=false
 CSET enable_read_channel=false
 CSET enable_read_pointer_increment_by2=false
-CSET enable_reset_synchronization=true
+CSET enable_reset_synchronization=false
 CSET enable_ruser=false
 CSET enable_tdata=false
 CSET enable_tdest=false
@@ -197,7 +197,7 @@ CSET underflow_flag_axi=false
 CSET underflow_sense=Active_High
 CSET underflow_sense_axi=Active_High
 CSET use_clock_enable=false
-CSET use_dout_reset=true
+CSET use_dout_reset=false
 CSET use_embedded_registers=false
 CSET use_extra_logic=false
 CSET valid_flag=false
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: ba0b420f
+# CRC: 8dc3ac0e

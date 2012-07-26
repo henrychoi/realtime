@@ -16,7 +16,7 @@ module xillydemo(input CLK_P, CLK_N, reset
   wire [31:0] wr_32_data;
 
   wire[31:0] rd_loop_data;
-  wire loop_rden, loop_empty, rd_loop_open, loop_full, wr_loop_open;
+  wire loop_rden, loop_empty, rd_loop_open, loop_full;
 
   reg pc_msg32_ack; // Command from the PC to FPGA
   wire[31:0] pc_msg32;
@@ -32,7 +32,7 @@ module xillydemo(input CLK_P, CLK_N, reset
     .user_r_rd_rden(rd_32_rden),
     .user_r_rd_empty(rd_32_empty),
     .user_r_rd_data(rd_32_data),
-    .user_r_rd_eof(!pc_msg32_empty && (pc_msg32 == 0)),
+    .user_r_rd_eof((pc_msg32 == 0) && rd_32_empty),
     .user_r_rd_open(rd_32_open),
 
     // Ports related to /dev/xillybus_wr
@@ -45,12 +45,8 @@ module xillydemo(input CLK_P, CLK_N, reset
     .user_r_rd_loop_rden(loop_rden),
     .user_r_rd_loop_empty(loop_empty),
     .user_r_rd_loop_data(rd_loop_data),
-    .user_r_rd_loop_eof(!wr_32_open),
+    .user_r_rd_loop_eof(!wr_32_open && loop_empty),
     .user_r_rd_loop_open(rd_loop_open),
-    .user_w_wr_loop_wren(loop_wren),
-    .user_w_wr_loop_full(loop_full),
-    .user_w_wr_loop_data(wr_loop_data),
-    .user_w_wr_loop_open(wr_loop_open),
 
     // Signals to top level
     .PCIE_PERST_B_LS(PCIE_PERST_B_LS),
@@ -81,6 +77,7 @@ module xillydemo(input CLK_P, CLK_N, reset
     if(reset) begin
       pc_msg32_ack <= 0;
       n_frame <= 0; //32'hFFFFFFFF;
+      pc_msg32 <= 32'hFFFFFFFF;
     end else begin
       pc_msg32_ack <= `FALSE; //Default value
       

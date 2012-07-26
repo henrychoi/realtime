@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/cilly3/verilog/sim_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="6" />
+   <wvobject fp_name="/sim/GPIO_LED" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">GPIO_LED[7:4]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:4]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/bus_clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_clk</obj_property>
+      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_z_pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_z_pclk</obj_property>
+      <obj_property name="ObjectShortName">cl_z_pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_fval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_fval</obj_property>
+      <obj_property name="ObjectShortName">cl_fval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_z_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_z_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_z_lval</obj_property>
+   </wvobject>
+</wave_config>

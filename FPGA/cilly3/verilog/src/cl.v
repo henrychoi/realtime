@@ -16,28 +16,45 @@ module cl(input reset, bus_clk
   reg[FRAME_NUM_SIZE-1:0] frame_num;
   reg[LINE_NUM_SIZE-1:0] line_num;
   reg[CLK_COUNT_SIZE-1:0] clk_count;
+  reg fval_d, lval_d;
 
-  assign fpga_msg = {cl_data};
-  always @(posedge reset, posedge cl_fval) begin
-    line_num <= 0;
-    clk_count <= 0;
+  assign fpga_msg = {line_num, frame_num // 32b
+                     , 6'b0, clk_count   // 16b
+                     , cl_data};         // 80b
+  assign fpga_msg_valid = frame_num && state == CAPTURING && cl_lval;
+
+  always @(posedge reset, posedge cl_clk)
+    if(reset) begin
+      fval_d <= `FALSE;
+      lval_d <= `FALSE;
+    end else begin
+      fval_d <= cl_fval;
+      lval_d <= cl_lval;
+    end
+
+  always @(posedge reset, posedge cl_fval)
     if(reset) begin
       frame_num <= 0;
-      //fval_lval <= 3'b000;
     end else begin
-      frame_num <= frame_num + 1'b1;
-      //Q: does LVAL go high with FVAL?
-      //fval_lval <= {cl_x_lval, cl_y_lval, cl_z_lval};
-    end//posedge cl_fval
-  end//always
+      if(state == CAPTURING) frame_num <= frame_num + 1'b1;
+      else frame_num <= 0;
+    end
+    
+  always @(posedge reset, posedge cl_lval)
+    if(reset) line_num <= 0;
+    else
+      if(!fval_d) line_num <= 0;
+      else line_num <= line_num + 1'b1;
 
-  always @(posedge cl_lval) line_num <= line_num + 1'b1;
-  always @(posedge cl_clk) clk_count <= clk_count + 1'b1;
+  always @(posedge reset, posedge cl_clk)
+    if(reset) clk_count <= 0;
+    else
+      if(!lval_d) clk_count <= 0;
+      else clk_count <= clk_count + 1'b1;
 
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
       pc_msg_ack <= `FALSE;
-      //pc_msg32 <= 32'hFFFFFFFF;
       state <= STANDBY;
     end else begin
       pc_msg_ack <= `FALSE;
