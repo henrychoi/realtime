@@ -81,7 +81,7 @@ int __cdecl main(int argc, char *argv[]) {
   DWORD startTick, elapsedMS;
   struct xillyfifo fifo;
   struct xillyinfo info;
-  unsigned int fifo_size = 4096*16, n_frame = 0, cur_frame, n_bytes = 0;
+  unsigned int fifo_size = 4096*2048, n_frame = 0, cur_frame, n_bytes = 0;
   int read_bytes;
   FILE* rawf = NULL;
   int loop_fd, write_fd = _open(writefn, O_WRONLY | _O_BINARY);
