@@ -10,18 +10,23 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="6" />
+   <WVObjectSize size="16" />
    <wvobject fp_name="/sim/GPIO_LED" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">GPIO_LED[7:4]</obj_property>
-      <obj_property name="ObjectShortName">GPIO_LED[7:4]</obj_property>
+      <obj_property name="ElementShortName">GPIO_LED[7:5]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:5]</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/reset" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">reset</obj_property>
       <obj_property name="ObjectShortName">reset</obj_property>
    </wvobject>
-   <wvobject fp_name="/sim/bus_clk" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">bus_clk</obj_property>
-      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   <wvobject fp_name="/sim/cl/state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/bus_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/cl_z_pclk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">cl_z_pclk</obj_property>
@@ -31,8 +36,48 @@
       <obj_property name="ElementShortName">cl_fval</obj_property>
       <obj_property name="ObjectShortName">cl_fval</obj_property>
    </wvobject>
+   <wvobject fp_name="/sim/cl/fval_d" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fval_d</obj_property>
+      <obj_property name="ObjectShortName">fval_d</obj_property>
+   </wvobject>
    <wvobject fp_name="/sim/cl_z_lval" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">cl_z_lval</obj_property>
       <obj_property name="ObjectShortName">cl_z_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/lval_d" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">lval_d</obj_property>
+      <obj_property name="ObjectShortName">lval_d</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/fpga_msg_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/cl_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_line" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_line[11:0]</obj_property>
+      <obj_property name="ObjectShortName">n_line[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_clk" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_clk[9:0]</obj_property>
+      <obj_property name="ObjectShortName">n_clk[9:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/fpga_msg_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">n_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/cl_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_done</obj_property>
+      <obj_property name="ObjectShortName">cl_done</obj_property>
    </wvobject>
 </wave_config>

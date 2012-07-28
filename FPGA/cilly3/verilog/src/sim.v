@@ -12,7 +12,7 @@ module sim;
   wire wr_fifo_ack, rd_fifo_wren;
   reg wr_fifo_empty, rd_fifo_full;
   wire[127:0] rd_fifo_data;
-  wire[7:4] GPIO_LED;
+  wire[7:5] GPIO_LED;
 
   cl cl(.reset(reset), .bus_clk(bus_clk)
     , .pc_msg_pending(!wr_fifo_empty), .pc_msg_ack(wr_fifo_ack)
@@ -28,22 +28,71 @@ module sim;
     cl_z_lval = `FALSE; cl_fval = `FALSE;
 
 #2  reset = `TRUE;
-       wr_fifo_empty = `TRUE;
+    wr_fifo_empty = `TRUE;
 #2  reset = `FALSE;
     cl_port_a = 8'h1A; cl_port_b = 8'h1B; cl_port_c = 8'h1C; cl_port_d = 8'h1D;
     cl_port_e = 8'h1E; cl_port_f = 8'h1F; cl_port_g = 8'h09; cl_port_h = 8'h06;
     cl_port_i = 8'h01; cl_port_j = 8'h07;
 
-#4  wr_fifo_data = 32'h1;
+#4  wr_fifo_data = 32'h001_00002;
     wr_fifo_empty = `FALSE;
-#2  ;
-#2  ;
-#2  ;
-#2  ;
-#2  cl_fval = `TRUE;
+#4  ;
+#4  cl_fval = `TRUE;
     cl_z_lval = `TRUE;
+#2  ;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `TRUE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+    cl_fval = `FALSE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `TRUE;
+    cl_fval = `TRUE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `TRUE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+    cl_fval = `FALSE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `TRUE;
+    cl_fval = `TRUE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `TRUE;
+#12 ;
+#12 ;
+#12 ;
+#12 cl_z_lval = `FALSE;
+    cl_fval = `FALSE;
 	end
   
+  always @(posedge bus_clk) if(wr_fifo_ack) wr_fifo_empty = `TRUE;
   always #2 bus_clk = ~bus_clk;
   always #6 cl_z_pclk = ~cl_z_pclk;
+  
 endmodule

@@ -1,27 +1,30 @@
 `define TRUE 1'b1
 `define FALSE 1'b0
 
-localparam STANDBY = 2'b0, CAPTURING = 1'b1, MAX_STATE = 2;
-localparam FRAME_NUM_SIZE = 20, LINE_NUM_SIZE = 12, CLK_COUNT_SIZE = 10;
+localparam STANDBY = 0, ARMED = 1, CAPTURING = 2, MAX_STATE = 3;
+localparam N_FRAME_SIZE = 20, N_LINE_SIZE = 12, N_CLK_SIZE = 10;
 
 module cl(input reset, bus_clk
   , input pc_msg_pending, output reg pc_msg_ack
   , input[31:0] pc_msg, input fpga_msg_overflow
-  , output[127:0] fpga_msg, output fpga_msg_valid
+  , output[127:0] fpga_msg, output fpga_msg_valid, output reg cl_done
   , input cl_clk, cl_lval, cl_fval
   , input[79:0] cl_data
-  , output[3:0] led);
+  , output[2:0] led);
   `include "function.v"
   reg[log2(MAX_STATE)-1:0] state;
-  reg[FRAME_NUM_SIZE-1:0] frame_num;
-  reg[LINE_NUM_SIZE-1:0] line_num;
-  reg[CLK_COUNT_SIZE-1:0] clk_count;
+  wire[N_FRAME_SIZE-1:0] n_frame;
+  reg[N_FRAME_SIZE-1:0] bus_frame, cl_frame;
+  reg[N_LINE_SIZE-1:0] n_line;
+  reg[N_CLK_SIZE-1:0] n_clk;
   reg fval_d, lval_d;
 
-  assign fpga_msg = {line_num, frame_num // 32b
-                     , 6'b0, clk_count   // 16b
-                     , cl_data};         // 80b
-  assign fpga_msg_valid = frame_num && state == CAPTURING && cl_lval;
+  assign n_frame = bus_frame - cl_frame;
+  assign fpga_msg = {n_line, n_frame // 32b
+                   , 3'b000, cl_fval, 2'b00, n_clk   // 16b
+                   , cl_data};     // 80b
+  assign fpga_msg_valid = cl_frame && state == CAPTURING && cl_lval;
+  assign led[0] = fpga_msg_valid;
 
   always @(posedge reset, posedge cl_clk)
     if(reset) begin
@@ -34,35 +37,55 @@ module cl(input reset, bus_clk
 
   always @(posedge reset, posedge cl_fval)
     if(reset) begin
-      frame_num <= 0;
+      cl_frame <= 0;
     end else begin
-      if(state == CAPTURING) frame_num <= frame_num + 1'b1;
-      else frame_num <= 0;
+      case(state)
+        ARMED: cl_frame <= bus_frame;
+        CAPTURING: cl_frame <= cl_frame - 1'b1;
+        default: cl_frame <= 0;
+      endcase
     end
     
   always @(posedge reset, posedge cl_lval)
-    if(reset) line_num <= 0;
+    if(reset) n_line <= 0;
     else
-      if(!fval_d) line_num <= 0;
-      else line_num <= line_num + 1'b1;
+      if(!fval_d) n_line <= 0;
+      else n_line <= n_line + 1'b1;
 
   always @(posedge reset, posedge cl_clk)
-    if(reset) clk_count <= 0;
+    if(reset) n_clk <= 0;
     else
-      if(!lval_d) clk_count <= 0;
-      else clk_count <= clk_count + 1'b1;
+      if(!lval_d) n_clk <= 0;
+      else n_clk <= n_clk + 1'b1;
 
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
       pc_msg_ack <= `FALSE;
       state <= STANDBY;
+      bus_frame <= 0;
+      cl_done <= `FALSE;
     end else begin
       pc_msg_ack <= `FALSE;
-      if(pc_msg_pending && !pc_msg_ack) begin
-        // Process the message
-        if(pc_msg == 32'h1) state <= CAPTURING;
-        pc_msg_ack <= `TRUE;
-      end
+      cl_done <= `FALSE;
+      
+      case(state)
+        STANDBY:
+          if(pc_msg_pending && !pc_msg_ack) begin // Process the message
+            if(pc_msg[31:N_FRAME_SIZE] == 'h1) begin
+              state <= ARMED;
+              bus_frame <= pc_msg[N_FRAME_SIZE-1:0];
+            end
+            pc_msg_ack <= `TRUE;
+          end
+        ARMED:
+          if(cl_frame) state <= CAPTURING;
+        CAPTURING:
+          if(!cl_frame) begin
+            state <= STANDBY;//If done sending, STANDBY
+            cl_done <= `TRUE;
+          end
+        default: bus_frame <= 0;
+      endcase//state
     end//posedge clk
   end//always
 endmodule

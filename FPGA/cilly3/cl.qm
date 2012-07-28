@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.1.02" framework="qpn">
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="CameraLink" superclass="qpn::QActive">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="4,11,5,3,7">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="standby">
+     <tran trig="PC_MSG(1, n_frame)" target="../../2">
+      <action brief="\bus_frame = n_frame"/>
+      <tran_glyph conn="24,10,1,3,18">
+       <action box="1,1,16,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="11,5,13,11"/>
+    </state>
+    <state name="armed">
+     <tran trig="cl_frame != 0" target="../../3">
+      <tran_glyph conn="47,16,2,1,5,-5">
+       <action box="0,0,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="\cl_frame = bus_frame"/>
+      <tran_glyph conn="45,16,2,-1,-3">
+       <action box="-2,-8,15,5"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="42,5,16,11"/>
+    </state>
+    <state name="capturing">
+     <tran trig="cl_frame == 0" target="../../1">
+      <action brief="^EoF(CL_DONE)"/>
+      <tran_glyph conn="25,21,3,2,-8,-5">
+       <action box="-10,1,10,4"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="--cl_frame"/>
+      <tran_glyph conn="28,27,2,-1,-3">
+       <action box="-2,-6,15,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="25,16,17,11"/>
+    </state>
+    <state_diagram size="77,50"/>
+   </statechart>
+  </class>
+ </package>
+ <filesystem path=".">
+  <file name="project.h"/>
+  <file name="myao.c"/>
+ </filesystem>
+</model>
