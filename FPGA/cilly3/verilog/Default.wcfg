@@ -28,6 +28,10 @@
       <obj_property name="ObjectShortName">bus_frame[19:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="/sim/bus_clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_clk</obj_property>
+      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   </wvobject>
    <wvobject fp_name="/sim/cl_z_pclk" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">cl_z_pclk</obj_property>
       <obj_property name="ObjectShortName">cl_z_pclk</obj_property>
@@ -66,10 +70,6 @@
       <obj_property name="ElementShortName">n_clk[9:0]</obj_property>
       <obj_property name="ObjectShortName">n_clk[9:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/cl/fpga_msg_valid" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
-      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/cl/n_frame" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">n_frame[19:0]</obj_property>

@@ -23,7 +23,7 @@ module cl(input reset, bus_clk
   assign fpga_msg = {n_line, n_frame // 32b
                    , 3'b000, cl_fval, 2'b00, n_clk   // 16b
                    , cl_data};     // 80b
-  assign fpga_msg_valid = cl_frame && state == CAPTURING && cl_lval;
+  assign fpga_msg_valid = cl_frame && cl_lval;//&& state == CAPTURING;
   assign led[0] = fpga_msg_valid;
 
   always @(posedge reset, posedge cl_clk)
@@ -48,15 +48,11 @@ module cl(input reset, bus_clk
     
   always @(posedge reset, posedge cl_lval)
     if(reset) n_line <= 0;
-    else
-      if(!fval_d) n_line <= 0;
-      else n_line <= n_line + 1'b1;
+    else n_line <= (fval_d && cl_fval) ? n_line + 1'b1 : 0;
 
   always @(posedge reset, posedge cl_clk)
     if(reset) n_clk <= 0;
-    else
-      if(!lval_d) n_clk <= 0;
-      else n_clk <= n_clk + 1'b1;
+    else n_clk <= (lval_d && cl_fval) ? n_clk + 1'b1 : 0;
 
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin

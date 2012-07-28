@@ -24,8 +24,8 @@ module sim;
     , .led(GPIO_LED));
     
 	initial begin
-		reset = `FALSE; bus_clk = `FALSE; cl_z_pclk = `FALSE;
-    cl_z_lval = `FALSE; cl_fval = `FALSE;
+		reset = `FALSE; bus_clk = `FALSE; cl_z_pclk = `TRUE;
+    cl_fval = `FALSE; cl_z_lval = `FALSE;
 
 #2  reset = `TRUE;
     wr_fifo_empty = `TRUE;
@@ -34,65 +34,18 @@ module sim;
     cl_port_e = 8'h1E; cl_port_f = 8'h1F; cl_port_g = 8'h09; cl_port_h = 8'h06;
     cl_port_i = 8'h01; cl_port_j = 8'h07;
 
-#4  wr_fifo_data = 32'h001_00002;
+#4  wr_fifo_data = 32'h001_00001;
     wr_fifo_empty = `FALSE;
-#4  ;
-#4  cl_fval = `TRUE;
-    cl_z_lval = `TRUE;
-#2  ;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `TRUE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-    cl_fval = `FALSE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `TRUE;
-    cl_fval = `TRUE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `TRUE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-    cl_fval = `FALSE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `TRUE;
-    cl_fval = `TRUE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `TRUE;
-#12 ;
-#12 ;
-#12 ;
-#12 cl_z_lval = `FALSE;
-    cl_fval = `FALSE;
 	end
   
   always @(posedge bus_clk) if(wr_fifo_ack) wr_fifo_empty = `TRUE;
   always #2 bus_clk = ~bus_clk;
   always #6 cl_z_pclk = ~cl_z_pclk;
   
+  always begin
+    #1200 cl_fval = `TRUE; cl_fval <= #1176 `FALSE;
+  end
+  always begin
+    #120 cl_z_lval = `TRUE; cl_z_lval <= #96 `FALSE;
+  end
 endmodule
