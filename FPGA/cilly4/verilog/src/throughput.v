@@ -1,12 +1,7 @@
 `define TRUE 1'b1
 `define FALSE 1'b0
 
-module main(input reset
-  , input cl_fval//, cl_x_lval, cl_x_pclk, , cl_y_pclk, cl_y_lval
-    , cl_z_pclk, cl_z_lval
-  // These come from Camera Link
-  , input[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
-             , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j
+module test(input CLK_P, CLK_N, reset
   // These come from PCIe
   , input PCIE_PERST_B_LS //The host's master bus reset
   //For Virtex-6 a 250 MHz clock, which is derived from the PCIe bus clock,
@@ -19,16 +14,23 @@ module main(input reset
   , output[3:0] PCIE_TX_N, PCIE_TX_P
   , output[7:0] GPIO_LED // For debugging
 );
+  // These come from Camera Link
+  wire cl_fval//, cl_x_lval, cl_x_pclk, , cl_y_pclk, cl_y_lval
+    , cl_z_pclk, cl_z_lval;
+  wire [7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
+             , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
+
   wire bus_clk, quiesce, cl_done
      , rd_rden, rd_empty, rd_open, wr_wren, wr_full, wr_open
      , loop_rden, loop_empty, rd_loop_open, loop_full
      , wr_fifo_ack, fpga_msg_valid, wr_fifo_empty, rd_fifo_full;
   wire [31:0] rd_data, wr_data, rd_loop_data, wr_fifo_data;
   wire[127:0] rd_fifo_data;
-    
-  //If you have a clock signal coming in, if it is routed over a global clock
-  //buffer then everything that uses that clock must be after the clock buffer
-  //IBUFG dsClkBuf(.O(cl_pclk), .I(cl_z_pclk));
+  reg[20:0] n_clk;
+  
+  // ML605's external oscillator: 200 MHz
+  clock85MHz dsClkBuf(.CLK_IN1_P(CLK_P), .CLK_IN1_N(CLK_N)//, .RESET(reset)
+    , .CLK_OUT1(cl_z_pclk));
 
   xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
     , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
@@ -73,4 +75,22 @@ module main(input reset
     , .led(GPIO_LED[7:5]));
     
   assign GPIO_LED[4] = ~rd_empty;
+  assign cl_port_a = 8'hA;
+  assign cl_port_b = 8'hB;
+  assign cl_port_c = 8'hC;
+  assign cl_port_d = 8'hD;
+  assign cl_port_e = 8'hE;
+  assign cl_port_f = 8'hF;
+  assign cl_port_g = 8'h9;
+  assign cl_port_h = 8'h6;
+  assign cl_port_i = 8'h1;
+  assign cl_port_j = 8'h7;
+  
+  assign cl_fval = n_clk[20];
+  assign cl_z_lval = n_clk[9:0] < 10'd777;
+  
+  always @(posedge reset, posedge cl_z_pclk)
+    if(reset) n_clk <= 0;
+    else n_clk <= n_clk + 1'b1;
+
 endmodule

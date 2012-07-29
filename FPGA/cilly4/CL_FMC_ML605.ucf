@@ -1,0 +1,94 @@
+# CLOCK_DEDICATED_ROUTE is a workaround until we respin the FMC board
+# to connect those pins to the IOPADs that can be connected to the global
+# clock network
+NET cl_* IOSTANDARD=LVCMOS25;
+#                                                       #FMC pin|IO  |CL    |CL
+#                                                       #       |bank|signal|grp
+#-------------------------------------------------------#-------+----+------+-----
+NET	cl_fval      LOC=AJ30 | CLOCK_DEDICATED_ROUTE=FALSE;#J64 J31 12 FVAL	  X
+#NET	cl_x_pclk  LOC=AL31;                              #J64 E33 12	PCLK0	  X
+#NET	cl_x_lval  LOC=AJ29;                              #J64 J30 12	LVAL	  X
+#NET	cl_y_pclk  LOC=AF19;                              #J64 H10 22	PCLK1	  Y
+#NET	cl_y_lval  LOC=AJ22;                              #J64 G13 22	LVAL	  Y
+NET	cl_z_pclk    LOC=K24;                               #J64 H4  24	PCLK2	  Z
+NET	cl_z_lval    LOC=AJ27 | CLOCK_DEDICATED_ROUTE=FALSE;#J64 H32 23	LVAL	  Z
+NET	cl_port_a[0] LOC=AL30;                              #J64 E21 12	Port A0	X
+NET	cl_port_a[1] LOC=AM31;                              #J64 E22 12	Port A1	X
+NET	cl_port_a[2] LOC=AN33;                              #J64 E24 12	Port A2	X
+NET	cl_port_a[3] LOC=AN34;                              #J64 E25 12	Port A3	X
+NET	cl_port_a[4] LOC=AL34;                              #J64 E27 12	Port A4	X
+NET	cl_port_a[5] LOC=AG30;                              #J64 K26 12	Port A5	X
+NET	cl_port_a[6] LOC=AK34;                              #J64 E28 12	Port A6	X
+NET	cl_port_a[7] LOC=AH33;                              #J64 E30 12	Port A7	X
+NET	cl_port_b[0] LOC=AP32;                              #J64 F22 12	Port B0	X
+NET	cl_port_b[1] LOC=AP33;                              #J64 F23 12	Port B1	X
+NET	cl_port_b[2] LOC=AF26;                              #J64 K28 12	Port B2	X
+NET	cl_port_b[3] LOC=AE26;                              #J64 K29 12	Port B3	X
+NET	cl_port_b[4] LOC=AM33;                              #J64 F25 12	Port B4	X
+NET	cl_port_b[5] LOC=AL33;                              #J64 F26 12	Port B5	X
+NET	cl_port_b[6] LOC=AK33;                              #J64 F28 12	Port B6	X
+NET	cl_port_b[7] LOC=AK32;                              #J64 F29 12	Port B7	X
+NET	cl_port_c[0] LOC=AF28;                              #J64 K31 12	Port C0	X
+NET	cl_port_c[1] LOC=AF29;                              #J64 K32 12	Port C1	X
+NET	cl_port_c[2] LOC=AJ31;                              #J64 F31 12	Port C2	X
+NET	cl_port_c[3] LOC=AN32;                              #J64 J24 12	Port C3	X
+NET	cl_port_c[4] LOC=AM32;                              #J64 J25 12	Port C4	X
+NET	cl_port_c[5] LOC=AJ34;                              #J64 J27 12	Port C5	X
+NET	cl_port_c[6] LOC=AH34;                              #J64 J28 12	Port C6	X
+NET	cl_port_c[7] LOC=AE27;                              #J64 K34 12	Port C7	X
+NET	cl_port_d[0] LOC=AE28;                              #J64 J33 12	Port D0	X
+NET	cl_port_d[1] LOC=AF30;                              #J64 K25 12	Port D1	X
+NET	cl_port_d[2] LOC=AG20;                              #J64 C10 22	Port D2	Y
+NET	cl_port_d[3] LOC=AG21;                              #J64 C11 22	Port D3	Y
+NET	cl_port_d[4] LOC=AM20;                              #J64 C14 22	Port D4	Y
+NET	cl_port_d[5] LOC=AL20;                              #J64 C15 22	Port D5	Y
+NET	cl_port_d[6] LOC=AN19;                              #J64 C18 22	Port D6	Y
+NET	cl_port_d[7] LOC=AM21;                              #J64 G15 22	Port D7	Y
+NET	cl_port_e[0] LOC=AN20;                              #J64 C19 22	Port E0	Y
+NET	cl_port_e[1] LOC=AK19;                              #J64 D8  22	Port E1	Y
+NET	cl_port_e[2] LOC=AL19;                              #J64 D9  22	Port E2	Y
+NET	cl_port_e[3] LOC=AG22;                              #J64 D11 22	Port E3	Y
+NET	cl_port_e[4] LOC=AL21;                              #J64 G16 22	Port E4	Y
+NET	cl_port_e[5] LOC=AP22;                              #J64 G18 22	Port E5	Y
+NET	cl_port_e[6] LOC=AH22;                              #J64 D12 22	Port E6	Y
+NET	cl_port_e[7] LOC=AM18;                              #J64 D14 22	Port E7	Y
+NET	cl_port_f[0] LOC=AL18;                              #J64 D15 22	Port F0	Y
+NET	cl_port_f[1] LOC=AP19;                              #J64 D17 22	Port F1	Y
+NET	cl_port_f[2] LOC=AN23;                              #J64 G19 22	Port F2	Y
+NET	cl_port_f[3] LOC=AC20;                              #J64 H7  22	Port F3	Y
+NET	cl_port_f[4] LOC=AN18;                              #J64 D18 22	Port F4	Y
+NET	cl_port_f[5] LOC=AP20;                              #J64 G2  22	Port F5	Y
+NET	cl_port_f[6] LOC=AP21;                              #J64 G3	 22	Port F6	Y
+NET	cl_port_f[7] LOC=AF20;                              #J64 G6  22	Port F7	Y
+NET	cl_port_g[0] LOC=AF21;                              #J64 G7  22	Port G0	Y
+NET	cl_port_g[1] LOC=AD20;                              #J64 H8	 22	Port G1	Y
+NET	cl_port_g[2] LOC=AC19;                              #J64 G9	 22	Port G2	Y
+NET	cl_port_g[3] LOC=AD19;                              #J64 G10 22	Port G3	Y
+NET	cl_port_g[4] LOC=AK22;                              #J64 G12 22	Port G4	Y
+NET	cl_port_g[5] LOC=AJ25;                              #J64 C23 23	Port G5	Z
+NET	cl_port_g[6] LOC=AP30;                              #J64 C26 23	Port G6	Z
+NET	cl_port_g[7] LOC=AP31;                              #J64 C27 23	Port G7	Z
+NET	cl_port_h[0] LOC=AL26;                              #J64 D23 23	Port H0	Z
+NET	cl_port_h[1] LOC=AM26;                              #J64 D24 23	Port H1	Z
+NET	cl_port_h[2] LOC=AJ24;                              #J64 H34 23	Port H2	Z
+NET	cl_port_h[3] LOC=AM25;                              #J64 D26 23	Port H3	Z
+NET	cl_port_h[4] LOC=AL25;                              #J64 D27 23	Port H4	Z
+NET	cl_port_h[5] LOC=AP27;                              #J64 G24 23	Port H5	Z
+NET	cl_port_h[6] LOC=AP26;                              #J64 G25 23	Port H6	Z
+NET	cl_port_h[7] LOC=AK24;                              #J64 H35 23	Port H7	Z
+NET	cl_port_i[0] LOC=AG25;                              #J64 H37 23	Port I0	Z
+NET	cl_port_i[1] LOC=AN28;                              #J64 G27 23	Port I1	Z
+NET	cl_port_i[2] LOC=AM28;                              #J64 G28 23	Port I2	Z
+NET	cl_port_i[3] LOC=AL28;                              #J64 G30 23	Port I3	Z
+NET	cl_port_i[4] LOC=AK28;                              #J64 G31 23	Port I4	Z
+NET	cl_port_i[5] LOC=AG26;                              #J64 H38 23	Port I5	Z
+NET	cl_port_i[6] LOC=AH23;                              #J64 G36 23	Port I6	Z
+NET	cl_port_i[7] LOC=AL29;                              #J64 G33 23	Port I7	Z
+NET	cl_port_j[0] LOC=AN25;                              #J64 H22 23	Port J0	Z
+NET	cl_port_j[1] LOC=AN24;                              #J64 H23 23	Port J1	Z
+NET	cl_port_j[2] LOC=AN29;                              #J64 H25 23	Port J2	Z
+NET	cl_port_j[3] LOC=AP29;                              #J64 H26 23	Port J3	Z
+NET	cl_port_j[4] LOC=AH24;                              #J64 G37 23	Port J4	Z
+NET	cl_port_j[5] LOC=AN30;                              #J64 H28 23	Port J5	Z
+NET	cl_port_j[6] LOC=AM30;                              #J64 H29 23	Port J6	Z
+NET	cl_port_j[7] LOC=AK27;                              #J64 H31 23	Port J7	Z

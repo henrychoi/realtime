@@ -3,11 +3,11 @@
 
 localparam STANDBY = 0, ARMED = 1, CAPTURING = 2, MAX_STATE = 3;
 localparam N_FRAME_SIZE = 20, N_LINE_SIZE = 12, N_CLK_SIZE = 10
-  , N_OVERFLOW_SIZE = 6;
+  , N_OVERFLOW_SIZE = 4;
 
 module cl(input reset, bus_clk
   , input pc_msg_pending, output reg pc_msg_ack
-  , input[31:0] pc_msg, input fpga_msg_fulll
+  , input[31:0] pc_msg, input fpga_msg_full
   , output[127:0] fpga_msg, output fpga_msg_valid, output reg cl_done
   , input cl_clk, cl_lval, cl_fval
   , input[79:0] cl_data
@@ -23,19 +23,21 @@ module cl(input reset, bus_clk
 
   assign n_frame = bus_frame - cl_frame;
   assign fpga_msg = {n_line, n_frame   // 12 + 20 = 32b
-                   , n_overflow, n_clk //  6 + 10 = 16b
-                   , cl_data};         //           80b
-  assign fpga_msg_valid = cl_frame && cl_lval;//&& state == CAPTURING;
-  assign led = {fpga_msg_fulll, fpga_msg_valid, 1'b0};
+                   , n_overflow, cl_fval, fval_d, n_clk //4 + 2 + 10 = 16b
+                   , cl_data}; // 80b
+  assign fpga_msg_valid = cl_frame && cl_lval && cl_fval;//&& state == CAPTURING;
+  assign led = {fpga_msg_full, fpga_msg_valid, cl_fval};
 
   always @(posedge reset, posedge cl_clk)
     if(reset) begin
-      fval_d <= `FALSE;
       n_overflow <= 0;
+      fval_d = 0;
+      n_clk <= 0;
     end else begin
-      fval_d <= cl_fval;
-      n_overflow <= (state == CAPTURING && fpga_msg_fulll)
+      fval_d = cl_fval;
+      n_overflow <= (state == CAPTURING && fpga_msg_full)
         ? n_overflow + 1'b1 : 0;
+      n_clk <= cl_lval ? n_clk + 1'b1 : 0;
     end
 
   always @(posedge reset, posedge cl_fval)
@@ -52,10 +54,6 @@ module cl(input reset, bus_clk
   always @(posedge reset, posedge cl_lval)
     if(reset) n_line <= 0;
     else n_line <= fval_d ? n_line + 1'b1 : 0;
-
-  always @(posedge reset, posedge cl_clk)
-    if(reset) n_clk <= 0;
-    else n_clk <= cl_fval ? n_clk + 1'b1 : 0;
 
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
