@@ -66,8 +66,8 @@
      </state>
      <state name="XT0">
       <tran trig="CL_CLK" target="../../4">
-       <tran_glyph conn="45,11,0,3,-2,11">
-        <action box="1,-1,6,2"/>
+       <tran_glyph conn="46,14,1,3,7,-4,3">
+        <action box="1,-3,6,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="39,11,7,8"/>
@@ -82,7 +82,7 @@
      </state>
      <state_glyph node="32,4,39,22"/>
     </state>
-    <state_diagram size="75,34"/>
+    <state_diagram size="77,50"/>
    </statechart>
   </class>
  </package>

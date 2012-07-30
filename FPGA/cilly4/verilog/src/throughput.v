@@ -17,7 +17,7 @@ module test(input CLK_P, CLK_N, reset
   // These come from Camera Link
   wire cl_fval//, cl_x_lval, cl_x_pclk, , cl_y_pclk, cl_y_lval
     , cl_z_pclk, cl_z_lval;
-  wire [7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
+  reg[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
              , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
 
   wire bus_clk, quiesce, cl_done
@@ -66,31 +66,42 @@ module test(input CLK_P, CLK_N, reset
 
   cl(.reset(reset), .bus_clk(bus_clk)
     , .pc_msg_pending(!wr_fifo_empty), .pc_msg_ack(wr_fifo_ack)
-    , .pc_msg(wr_fifo_data), .fpga_msg_overflow(rd_fifo_full)
+    , .pc_msg(wr_fifo_data), .fpga_msg_full(rd_fifo_full)
     , .fpga_msg(rd_fifo_data), .fpga_msg_valid(fpga_msg_valid)
     , .cl_clk(cl_z_pclk), .cl_lval(cl_z_lval), .cl_fval(cl_fval)
-    , .cl_data({cl_port_j, cl_port_i, cl_port_h, cl_port_g, cl_port_f
-              , cl_port_e, cl_port_d, cl_port_c, cl_port_b, cl_port_a})
+    , .cl_data_top({cl_port_e, cl_port_d, cl_port_c, cl_port_b, cl_port_a})
+    , .cl_data_btm({cl_port_j, cl_port_i, cl_port_h, cl_port_g, cl_port_f})
     , .cl_done(cl_done)
     , .led(GPIO_LED[7:5]));
     
   assign GPIO_LED[4] = ~rd_empty;
-  assign cl_port_a = 8'hA;
-  assign cl_port_b = 8'hB;
-  assign cl_port_c = 8'hC;
-  assign cl_port_d = 8'hD;
-  assign cl_port_e = 8'hE;
-  assign cl_port_f = 8'hF;
-  assign cl_port_g = 8'h9;
-  assign cl_port_h = 8'h6;
-  assign cl_port_i = 8'h1;
-  assign cl_port_j = 8'h7;
-  
   assign cl_fval = n_clk[20];
   assign cl_z_lval = n_clk[9:0] < 10'd777;
   
   always @(posedge reset, posedge cl_z_pclk)
-    if(reset) n_clk <= 0;
-    else n_clk <= n_clk + 1'b1;
-
+    if(reset) begin
+      n_clk <= 0;
+      cl_port_a <= 8'h0A;
+      cl_port_b <= 8'h0B;
+      cl_port_c <= 8'h0C;
+      cl_port_d <= 8'h0D;
+      cl_port_e <= 8'h0E;
+      cl_port_f <= 8'h0F;
+      cl_port_g <= 8'h09;
+      cl_port_h <= 8'h06;
+      cl_port_i <= 8'h01;
+      cl_port_j <= 8'h07;
+    end else begin
+      n_clk <= n_clk + 1'b1;
+      cl_port_a[4] <= ~cl_port_a[4];
+      cl_port_b[4] <= ~cl_port_b[4];
+      cl_port_c[4] <= ~cl_port_c[4];
+      cl_port_d[4] <= ~cl_port_d[4];
+      cl_port_e[4] <= ~cl_port_e[4];
+      cl_port_f[4] <= ~cl_port_f[4];
+      cl_port_g[4] <= ~cl_port_g[4];
+      cl_port_h[4] <= ~cl_port_h[4];
+      cl_port_i[4] <= ~cl_port_i[4];
+      cl_port_j[4] <= ~cl_port_j[4];
+    end
 endmodule
