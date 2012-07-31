@@ -1,5 +1,7 @@
 `ifndef function_v
 `define function_v
+`define TRUE 1'b1
+`define FALSE 1'b0
 
 function integer max(input integer a, input integer b);
   begin //The actual manipulation of data in the function has to be placed

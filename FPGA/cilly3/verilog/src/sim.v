@@ -1,27 +1,16 @@
-`define TRUE 1'b1
-`define FALSE 1'b0
 `timescale 100ps / 10ps
 
 module sim;
   reg CLK_P, CLK_N;
-  wire cl_fval//, cl_x_lval, cl_x_pclk, , cl_y_pclk, cl_y_lval
-    , cl_z_pclk, cl_z_lval;
-  reg[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
-             , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
   reg reset, bus_clk;
   reg[1:0] n_busclk;
   reg[31:0] wr_fifo_data;
-  wire wr_fifo_ack, fpga_msg_valid, rd_empty;
   reg wr_fifo_empty;
   wire rd_fifo_full, rd_fifo_rden;
-  wire[31:0] rd_fifo_data;
   wire[7:5] GPIO_LED;
-  localparam N_CLCLK_SIZE = 16;
-  reg[N_CLCLK_SIZE-1:0] n_clclk;
+`include "function.v"
+`include "camera.v"
     
-  clock85MHz dsClkBuf(.CLK_IN1_P(CLK_P), .CLK_IN1_N(CLK_N)//, .RESET(reset)
-    , .CLK_OUT1(cl_z_pclk));
-
   xb_rd_fifo_bram rd_fifo(.wr_clk(cl_z_pclk), .rd_clk(bus_clk)//, .rst(reset)
     , .din(rd_fifo_data), .wr_en(fpga_msg_valid)
     , .rd_en(rd_fifo_rden), .dout(rd_data)
@@ -44,7 +33,7 @@ module sim;
 #10 reset = `TRUE;
     wr_fifo_empty = `TRUE;
 #20 reset = `FALSE;
-#90 wr_fifo_data = 32'h001_00001;
+#90 wr_fifo_data = 32'h001_00002;
     wr_fifo_empty = `FALSE;
 	end
   
@@ -53,37 +42,10 @@ module sim;
   always begin
     #25 CLK_N = ~CLK_N; CLK_P = ~CLK_P;
   end
-  assign cl_fval = n_clclk < 16'd65000;
-  assign cl_z_lval = n_clclk[9:0] < 10'd1000;
+  //assign cl_fval = n_clclk < 16'd65000;
+  //assign cl_z_lval = n_clclk[9:0] < 10'd1000;
   assign rd_fifo_rden = n_busclk != 0;
   always @(posedge reset, posedge bus_clk)
     if(reset) n_busclk <= 0;
     else n_busclk <= n_busclk + 1'b1;
-  
-  always @(posedge reset, posedge cl_z_pclk)
-    if(reset) begin
-      n_clclk <= ~0 - 1'b1;
-      cl_port_a <= 8'hA0;
-      cl_port_b <= 8'hB0;
-      cl_port_c <= 8'hC0;
-      cl_port_d <= 8'hD0;
-      cl_port_e <= 8'hE0;
-      cl_port_f <= 8'hF0;
-      cl_port_g <= 8'h90;
-      cl_port_h <= 8'h60;
-      cl_port_i <= 8'h10;
-      cl_port_j <= 8'h70;
-    end else begin
-      n_clclk <= n_clclk + 1'b1;
-      cl_port_a[0] <= ~cl_port_a[0];
-      cl_port_b[0] <= ~cl_port_b[0];
-      cl_port_c[0] <= ~cl_port_c[0];
-      cl_port_d[0] <= ~cl_port_d[0];
-      cl_port_e[0] <= ~cl_port_e[0];
-      cl_port_f[0] <= ~cl_port_f[0];
-      cl_port_g[0] <= ~cl_port_g[0];
-      cl_port_h[0] <= ~cl_port_h[0];
-      cl_port_i[0] <= ~cl_port_i[0];
-      cl_port_j[0] <= ~cl_port_j[0];
-    end
 endmodule

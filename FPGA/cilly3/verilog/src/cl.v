@@ -1,6 +1,3 @@
-`define TRUE 1'b1
-`define FALSE 1'b0
-
 module cl(input reset, bus_clk
   , input pc_msg_pending, output reg pc_msg_ack
   , input[31:0] pc_msg, input fpga_msg_full
@@ -26,7 +23,7 @@ module cl(input reset, bus_clk
   wire[3:0] header;
   
   assign n_frame = bus_frame - cl_frame;
-  assign header= {tx_state, (n_frame == 0), (n_line == 0)}; //4b
+  assign header= {tx_state, cl_fval, cl_lval}; //4b
   assign tx0 = {header, 4'h0, n_line, 2'h0, n_clk
         //, cl_port_a[7:4], cl_port_b[3:0], cl_port_d[7:4], cl_port_e[3:2]//14b
         //, cl_port_f[7:4], cl_port_g[3:0], cl_port_i[7:4], cl_port_j[3:2]//14b
@@ -35,12 +32,14 @@ module cl(input reset, bus_clk
         //, cl_top_d, cl_port_b[7:4], cl_port_c[3:0], cl_port_e[7:4]//14b
         //, cl_btm_d, cl_port_g[7:4], cl_port_h[3:0], cl_port_i[7:4]//14b
         };
-  assign tx1 = {header, cl_fval, cl_lval, n_full, n_line, 2'h0, n_clk
+  assign tx1 = {header, (n_frame == 0), (n_line == 0), n_full
+        , n_line, 2'h0, n_clk
         //, cl_port_a[3:0], cl_port_c[7:4], cl_port_d[3:0] //12b
         //, cl_port_f[3:0], cl_port_h[7:4], cl_port_i[3:0] //12b
         };
   assign fpga_msg = (tx_state == 0) ? tx0 : (tx_state == 1) ? tx1 : tx2;  
-  assign fpga_msg_valid = cl_frame && (cl_lval || lval_d);// && cl_fval 
+  assign fpga_msg_valid = cl_frame
+      && (cl_lval || ((tx_state == 2) && lval_d ));// && cl_fval 
   assign led = {fpga_msg_full, fpga_msg_valid, cl_fval};
 
   always @(posedge reset, posedge cl_clk)

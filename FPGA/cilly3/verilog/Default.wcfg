@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="22" />
+   <WVObjectSize size="25" />
    <wave_markers>
       <marker time="446000000" label="" />
    </wave_markers>
@@ -99,9 +99,23 @@
       <obj_property name="TextColor">230 230 230</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/n_clclk" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">n_clclk[15:0]</obj_property>
-      <obj_property name="ObjectShortName">n_clclk[15:0]</obj_property>
+      <obj_property name="ElementShortName">n_clclk[9:0]</obj_property>
+      <obj_property name="ObjectShortName">n_clclk[9:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_row" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_row[0:0]</obj_property>
+      <obj_property name="ObjectShortName">n_row[0:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">n_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/camstate" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">camstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">camstate[1:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/rd_fifo_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">rd_fifo_data[31:0]</obj_property>
