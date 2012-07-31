@@ -76,8 +76,10 @@ module test(input CLK_P, CLK_N, reset
     , .led(GPIO_LED[7:5]));
     
   assign GPIO_LED[4] = ~rd_empty;
+  
+  FIXME MAKE IT REALISTIC
   assign cl_fval = n_clk[20];
-  assign cl_z_lval = n_clk[9:0] < 10'd777;
+  assign cl_z_lval = n_clk[9:0] < 10'd1000;
   
   always @(posedge reset, posedge cl_z_pclk)
     if(reset) begin
