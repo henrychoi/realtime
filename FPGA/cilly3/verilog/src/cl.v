@@ -22,34 +22,26 @@ module cl(input reset, bus_clk
   reg fval_d, lval_d;
   reg[1:0] tx_state;
   reg[1:0] cl_top_d, cl_btm_d;
-  wire[27:0] tx1, tx2, tx0;
+  wire[31:0] tx1, tx2, tx0;
   wire[3:0] header;
   
   assign n_frame = bus_frame - cl_frame;
-<<<<<<< HEAD
   assign header= {tx_state, (n_frame == 0), (n_line == 0)}; //4b
-  assign tx0 = {header
-        , cl_port_a[7:4], cl_port_b[3:0], cl_port_d[7:4], cl_port_e[3:2]//14b
-        , cl_port_f[7:4], cl_port_g[3:0], cl_port_i[7:4], cl_port_j[3:2]//14b
+  assign tx0 = {header, 4'h0, n_line, 2'h0, n_clk
+        //, cl_port_a[7:4], cl_port_b[3:0], cl_port_d[7:4], cl_port_e[3:2]//14b
+        //, cl_port_f[7:4], cl_port_g[3:0], cl_port_i[7:4], cl_port_j[3:2]//14b
         };
-  assign tx2 = {header
-        , cl_top_d, cl_port_b[7:4], cl_port_c[3:0], cl_port_e[7:4]//14b
-        , cl_btm_d, cl_port_g[7:4], cl_port_h[3:0], cl_port_i[7:4]//14b
+  assign tx2 = {header, 4'h0, n_line, 2'h0, n_clk
+        //, cl_top_d, cl_port_b[7:4], cl_port_c[3:0], cl_port_e[7:4]//14b
+        //, cl_btm_d, cl_port_g[7:4], cl_port_h[3:0], cl_port_i[7:4]//14b
         };
-  assign tx1 = {header, cl_fval, cl_lval, n_full //8b
-        , cl_port_a[3:0], cl_port_c[7:4], cl_port_d[3:0] //12b
-        , cl_port_f[3:0], cl_port_h[7:4], cl_port_i[3:0] //12b
+  assign tx1 = {header, cl_fval, cl_lval, n_full, n_line, 2'h0, n_clk
+        //, cl_port_a[3:0], cl_port_c[7:4], cl_port_d[3:0] //12b
+        //, cl_port_f[3:0], cl_port_h[7:4], cl_port_i[3:0] //12b
         };
   assign fpga_msg = (tx_state == 0) ? tx0 : (tx_state == 1) ? tx1 : tx2;  
   assign fpga_msg_valid = cl_frame && (cl_lval || lval_d);// && cl_fval 
   assign led = {fpga_msg_full, fpga_msg_valid, cl_fval};
-=======
-  assign fpga_msg = {n_line, n_frame // 32b
-                   , 3'b000, cl_fval, 2'b00, n_clk   // 16b
-                   , cl_data};     // 80b
-  assign fpga_msg_valid = cl_frame && cl_lval;//&& state == CAPTURING;
-  assign led = {cl_fval, fpga_msg_overflow, fpga_msg_valid};
->>>>>>> 245482888d793f0f69cedc78a649dcd9db273908
 
   always @(posedge reset, posedge cl_clk)
     if(reset) begin

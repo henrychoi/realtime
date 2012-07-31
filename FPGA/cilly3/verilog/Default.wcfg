@@ -10,10 +10,19 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="21" />
+   <WVObjectSize size="22" />
    <wave_markers>
       <marker time="446000000" label="" />
    </wave_markers>
+   <wvobject fp_name="/sim/cl/pc_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/capture_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+   </wvobject>
    <wvobject fp_name="/sim/cl/tx_state" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">tx_state[1:0]</obj_property>
       <obj_property name="ObjectShortName">tx_state[1:0]</obj_property>
@@ -23,19 +32,19 @@
       <obj_property name="ElementShortName">header[3:0]</obj_property>
       <obj_property name="ObjectShortName">header[3:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/sim/cl/tx2" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tx2[27:0]</obj_property>
-      <obj_property name="ObjectShortName">tx2[27:0]</obj_property>
+   <wvobject fp_name="/sim/cl/tx0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx0[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/cl/tx1" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tx1[27:0]</obj_property>
-      <obj_property name="ObjectShortName">tx1[27:0]</obj_property>
+      <obj_property name="ElementShortName">tx1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx1[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/sim/cl/tx0" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">tx0[27:0]</obj_property>
-      <obj_property name="ObjectShortName">tx0[27:0]</obj_property>
+   <wvobject fp_name="/sim/cl/tx2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx2[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/sim/cl/bus_frame" type="array" db_ref_id="1">
@@ -107,9 +116,5 @@
    <wvobject fp_name="/sim/rd_fifo_full" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">rd_fifo_full</obj_property>
       <obj_property name="ObjectShortName">rd_fifo_full</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/rd_fifo_rden" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">rd_fifo_rden</obj_property>
-      <obj_property name="ObjectShortName">rd_fifo_rden</obj_property>
    </wvobject>
 </wave_config>

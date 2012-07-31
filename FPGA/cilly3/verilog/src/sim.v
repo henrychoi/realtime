@@ -44,7 +44,7 @@ module sim;
 #10 reset = `TRUE;
     wr_fifo_empty = `TRUE;
 #20 reset = `FALSE;
-#20 wr_fifo_data = 32'h001_00001;
+#90 wr_fifo_data = 32'h001_00001;
     wr_fifo_empty = `FALSE;
 	end
   
