@@ -67,7 +67,7 @@
 //*****************************************************************************
 
 `timescale 1 ps / 1 ps
-(* X_CORE_INFO = "mig_v3_91_ddr3_V6, Coregen 13.4" , CORE_GENERATION_INFO = "ddr3_V6,mig_v3_91,{LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, LEVEL=CONTROLLER, AXI_ENABLE=0, NO_OF_CONTROLLERS=1, INTERFACE_TYPE=DDR3, CLK_PERIOD=2500, MEMORY_TYPE=SODIMM, MEMORY_PART=mt4jsf6464hy-1g1, DQ_WIDTH=64, ECC=OFF, DATA_MASK=1, BURST_MODE=8, BURST_TYPE=SEQ, OUTPUT_DRV=HIGH, RTT_NOM=60, REFCLK_FREQ=200, MMCM_ADV_BANDWIDTH=MMCM_ADV_BANDWIDTH, CLKFBOUT_MULT_F=6, CLKOUT_DIVIDE=3, DEBUG_PORT=OFF, IODELAY_HP_MODE=ON, INTERNAL_VREF=0, DCI_INOUTS=1, CLASS_ADDR=II, INPUT_CLK_TYPE=DIFFERENTIAL}" *)
+(* X_CORE_INFO = "mig_v3_91_ddr3_V6, Coregen 13.4" , CORE_GENERATION_INFO = "ddr3_V6,mig_v3_91,{LANGUAGE=Verilog, SYNTHESIS_TOOL=ISE, LEVEL=CONTROLLER, AXI_ENABLE=0, NO_OF_CONTROLLERS=1, INTERFACE_TYPE=DDR3, CLK_PERIOD=2500, MEMORY_TYPE=SODIMM, MEMORY_PART=mt4jsf6464hy-1g1, DQ_WIDTH=64, ECC=OFF, DATA_MASK=1, BURST_MODE=8, BURST_TYPE=SEQ, OUTPUT_DRV=HIGH, RTT_NOM=60, REFCLK_FREQ=200, MMCM_ADV_BANDWIDTH=MMCM_ADV_BANDWIDTH, CLKFBOUT_MULT_F=6, CLKOUT_DIVIDE=3, DEBUG_PORT=ON, IODELAY_HP_MODE=ON, INTERNAL_VREF=0, DCI_INOUTS=1, CLASS_ADDR=I, INPUT_CLK_TYPE=DIFFERENTIAL}" *)
 module memc_ui_top #
   (
    parameter REFCLK_FREQ             = 200,
@@ -263,7 +263,7 @@ module memc_ui_top #
                                        // Mapping of Ranks.
    parameter SLOT_1_CONFIG           = 8'b0000_0000,
                                        // Mapping of Ranks.
-   parameter DEBUG_PORT              = "OFF",
+   parameter DEBUG_PORT              = "ON",
                                        // # = "ON" Enable debug signals/controls.
                                        //   = "OFF" Disable debug signals/controls.
    parameter ADDR_WIDTH              = 27,

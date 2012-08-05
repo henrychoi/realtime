@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/ram/ipcore_dir/ram/example_design/par/sim_tb_top_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim_tb_top" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="43" />
+   <wvobject fp_name="/sim_tb_top/sys_rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sys_rst</obj_property>
+      <obj_property name="ObjectShortName">sys_rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/error" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">error</obj_property>
+      <obj_property name="ObjectShortName">error</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/phy_init_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">phy_init_done</obj_property>
+      <obj_property name="ObjectShortName">phy_init_done</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_parity" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_parity</obj_property>
+      <obj_property name="ObjectShortName">ddr3_parity</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_reset_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_reset_n</obj_property>
+      <obj_property name="ObjectShortName">ddr3_reset_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dq_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dq_fpga[63:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dq_fpga[63:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_addr_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_addr_fpga[12:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_addr_fpga[12:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ba_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ba_fpga[2:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ba_fpga[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ras_n_fpga" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ras_n_fpga</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ras_n_fpga</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cas_n_fpga" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cas_n_fpga</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cas_n_fpga</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_we_n_fpga" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_we_n_fpga</obj_property>
+      <obj_property name="ObjectShortName">ddr3_we_n_fpga</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cs_n_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cs_n_fpga[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cs_n_fpga[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_odt_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_odt_fpga[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_odt_fpga[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cke_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cke_fpga[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cke_fpga[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dm_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dm_fpga[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dm_fpga[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dqs_p_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dqs_p_fpga[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dqs_p_fpga[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dqs_n_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dqs_n_fpga[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dqs_n_fpga[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ck_p_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ck_p_fpga[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ck_p_fpga[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ck_n_fpga" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ck_n_fpga[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ck_n_fpga[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dq_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dq_sdram[63:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dq_sdram[63:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dm_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dm_sdram[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dm_sdram[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dqs_p_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dqs_p_sdram[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dqs_p_sdram[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dqs_n_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dqs_n_sdram[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dqs_n_sdram[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/sys_rst_n" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">sys_rst_n</obj_property>
+      <obj_property name="ObjectShortName">sys_rst_n</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_dm_sdram_tmp" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_dm_sdram_tmp[7:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_dm_sdram_tmp[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_addr_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_addr_sdram[12:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_addr_sdram[12:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ba_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ba_sdram[2:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ba_sdram[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ras_n_sdram" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ras_n_sdram</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ras_n_sdram</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cas_n_sdram" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cas_n_sdram</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cas_n_sdram</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_we_n_sdram" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_we_n_sdram</obj_property>
+      <obj_property name="ObjectShortName">ddr3_we_n_sdram</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cs_n_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cs_n_sdram[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cs_n_sdram[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_odt_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_odt_sdram[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_odt_sdram[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cke_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cke_sdram[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cke_sdram[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ck_p_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ck_p_sdram[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ck_p_sdram[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ck_n_sdram" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ck_n_sdram[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ck_n_sdram[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_addr_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_addr_r[12:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_addr_r[12:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ba_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ba_r[2:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ba_r[2:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_ras_n_r" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_ras_n_r</obj_property>
+      <obj_property name="ObjectShortName">ddr3_ras_n_r</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cas_n_r" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cas_n_r</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cas_n_r</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_we_n_r" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_we_n_r</obj_property>
+      <obj_property name="ObjectShortName">ddr3_we_n_r</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cs_n_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cs_n_r[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cs_n_r[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_odt_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_odt_r[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_odt_r[0:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/ddr3_cke_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr3_cke_r[0:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr3_cke_r[0:0]</obj_property>
+   </wvobject>
+</wave_config>
