@@ -250,7 +250,11 @@ module example_top #
    output [CK_WIDTH-1:0]                ddr3_ck_n,
  //  inout                                sda,      // ML605
  //  output                               scl,      // ML605 
-  output[7:0] GPIO_LED,
+   output                               error,
+   output                               phy_init_done,
+   output                               pll_lock,   // ML605 GPIO LED
+   output                               heartbeat,  // ML605 GPIO LED
+
    input                                sys_rst   // System reset
    );
 
@@ -273,8 +277,6 @@ module example_top #
   localparam BURST_LENGTH        = STR_TO_INT(BURST_MODE);
   localparam APP_DATA_WIDTH      = PAYLOAD_WIDTH * 4;
   localparam APP_MASK_WIDTH      = APP_DATA_WIDTH / 8;
-
-  wire error, phy_init_done, pll_lock, heartbeat;
 
   wire                                clk_ref;
   wire                                sys_clk;
@@ -404,7 +406,8 @@ module example_top #
   wire [31:0]                         ddr3_cs4_sync_out;
 
   //***************************************************************************
-  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, heartbeat, 4'b0};
+
+
   assign app_hi_pri = 1'b0;
   assign app_wdf_mask = {APP_MASK_WIDTH{1'b0}};
 

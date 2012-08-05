@@ -10,18 +10,27 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="43" />
+   <WVObjectSize size="44" />
+   <wvobject fp_name="/sim_tb_top/u_ip_top/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_init/init_state_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">init_state_r[5:0]</obj_property>
+      <obj_property name="ObjectShortName">init_state_r[5:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/phy_init_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">phy_init_done</obj_property>
+      <obj_property name="ObjectShortName">phy_init_done</obj_property>
+   </wvobject>
    <wvobject fp_name="/sim_tb_top/sys_rst" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">sys_rst</obj_property>
       <obj_property name="ObjectShortName">sys_rst</obj_property>
    </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/rst" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
    <wvobject fp_name="/sim_tb_top/error" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">error</obj_property>
       <obj_property name="ObjectShortName">error</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim_tb_top/phy_init_done" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">phy_init_done</obj_property>
-      <obj_property name="ObjectShortName">phy_init_done</obj_property>
    </wvobject>
    <wvobject fp_name="/sim_tb_top/ddr3_parity" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_parity</obj_property>
@@ -34,10 +43,12 @@
    <wvobject fp_name="/sim_tb_top/ddr3_dq_fpga" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_dq_fpga[63:0]</obj_property>
       <obj_property name="ObjectShortName">ddr3_dq_fpga[63:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/sim_tb_top/ddr3_addr_fpga" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_addr_fpga[12:0]</obj_property>
       <obj_property name="ObjectShortName">ddr3_addr_fpga[12:0]</obj_property>
+      <obj_property name="Radix">BINARYRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/sim_tb_top/ddr3_ba_fpga" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_ba_fpga[2:0]</obj_property>
@@ -102,10 +113,6 @@
    <wvobject fp_name="/sim_tb_top/ddr3_dqs_n_sdram" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_dqs_n_sdram[7:0]</obj_property>
       <obj_property name="ObjectShortName">ddr3_dqs_n_sdram[7:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim_tb_top/sys_rst_n" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">sys_rst_n</obj_property>
-      <obj_property name="ObjectShortName">sys_rst_n</obj_property>
    </wvobject>
    <wvobject fp_name="/sim_tb_top/ddr3_dm_sdram_tmp" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_dm_sdram_tmp[7:0]</obj_property>

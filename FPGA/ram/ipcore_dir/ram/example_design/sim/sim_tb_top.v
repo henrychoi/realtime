@@ -72,7 +72,7 @@
 // Revision History :
 //*****************************************************************************
 
-`timescale 1ps/100fs
+`timescale 1ps/1ps //1ps/100fs
 
 module sim_tb_top;
 
@@ -154,8 +154,9 @@ module sim_tb_top;
                                     //   = "OFF" - Components, SODIMMs, UDIMMs.
   parameter CLKFBOUT_MULT_F       = 6;
                                     // write PLL VCO multiplier.
-  parameter DIVCLK_DIVIDE         = 2;
-                                    // write PLL VCO divisor.
+  // See http://forums.xilinx.com/t5/Xilinx-Boards-and-Kits/ML605-MIG-Reference-Design/td-p/135372
+  parameter DIVCLK_DIVIDE = 1;//2; // write PLL VCO divisor.
+  
   parameter CLKOUT_DIVIDE         = 3;
                                     // VCO output divisor for fast (memory) clocks.
   parameter tCK                   = 2500;
@@ -257,6 +258,7 @@ module sim_tb_top;
   //**************************************************************************//
   // Wire Declarations
   //**************************************************************************//
+  wire[7:0] GPIO_LED;
   reg clk_ref;// sys_clk;
   reg sys_rst_n;
   wire clk_ref_p, clk_ref_n;// sys_clk_p, sys_clk_n;
@@ -503,10 +505,9 @@ module sim_tb_top;
        .ddr3_dq              (ddr3_dq_fpga),
        .ddr3_dqs_p           (ddr3_dqs_p_fpga),
        .ddr3_dqs_n           (ddr3_dqs_n_fpga),
-       .error                (error),
        //.sda                  (sda),//Not for ML605
        //.scl                  (scl),//Not for ML605
-       .phy_init_done        (phy_init_done)
+       .GPIO_LED(GPIO_LED)
        );
 
    // Extra one clock pipelining for RDIMM address and

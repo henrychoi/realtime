@@ -121,6 +121,8 @@ NET  "clk_ref_n"                                IOSTANDARD = LVDS_25 | DIFF_TERM
 ## NET  "sda"                                      IOSTANDARD = LVCMOS25;
 ## NET  "scl"                                      IOSTANDARD = LVCMOS25;
 NET  "sys_rst"                                  IOSTANDARD = SSTL15;      ## ML605 
+NET  "phy_init_done"                            IOSTANDARD = LVCMOS25;
+NET  "error"                                    IOSTANDARD = LVCMOS25;
 NET  "ddr3_dqs_p[*]"                            IOSTANDARD = DIFF_SSTL15_T_DCI;
 NET  "ddr3_dqs_n[*]"                            IOSTANDARD = DIFF_SSTL15_T_DCI;
 NET  "ddr3_ck_p[*]"                             IOSTANDARD = DIFF_SSTL15;
@@ -245,6 +247,8 @@ NET  "clk_ref_n"                                 LOC = "H9" ;          #Bank 34
 ## NET  "sda"                                       LOC = "F9" ;          #Bank 34
 ## NET  "scl"                                       LOC = "F10" ;          #Bank 34
 NET  "sys_rst"                                   LOC = "H10" ;          #ML605 CPU_RESET switch
+NET  "phy_init_done"                             LOC = "AE23" ;         #ML605 GPIO LED 3
+NET  "error"                                     LOC = "AE22" ;         #ML605 GPIO LED 2
 NET  "ddr3_dqs_p[0]"                             LOC = "D12" ;          #Bank 35
 NET  "ddr3_dqs_n[0]"                             LOC = "E12" ;          #Bank 35
 NET  "ddr3_dqs_p[1]"                             LOC = "H12" ;          #Bank 35
@@ -375,13 +379,10 @@ INST "u_infrastructure/u_mmcm_adv"      LOC = "MMCM_ADV_X0Y8"; #Banks 16, 26, 36
 
 
 ###########################################################################
-##  ML605 additions moved to ml605_led.ucf
+##  ML605 additions
 ###########################################################################
-#NET  "pll_lock"                 IOSTANDARD = LVCMOS25;
-#NET  "heartbeat"                IOSTANDARD = LVCMOS25;
-#NET  "heartbeat"                LOC = "AC24";   # ML605 GPIO LED 1
-#NET  "pll_lock"                 LOC = "AC22" ;  # ML605 GPIO LED 0
-#NET  "phy_init_done" LOC = "AE23" ;         #ML605 GPIO LED 3
-#NET  "error" LOC = "AE22" ;         #ML605 GPIO LED 2
-#NET  "phy_init_done" IOSTANDARD = LVCMOS25;
-#NET  "error"         IOSTANDARD = LVCMOS25;
+NET  "pll_lock"                 IOSTANDARD = LVCMOS25;
+NET  "heartbeat"                IOSTANDARD = LVCMOS25;
+
+NET  "heartbeat"                LOC = "AC24";   # ML605 GPIO LED 1
+NET  "pll_lock"                 LOC = "AC22" ;  # ML605 GPIO LED 0
