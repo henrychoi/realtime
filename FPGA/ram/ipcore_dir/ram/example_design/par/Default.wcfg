@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="44" />
+   <WVObjectSize size="49" />
    <wvobject fp_name="/sim_tb_top/u_ip_top/u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_init/init_state_r" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">init_state_r[5:0]</obj_property>
       <obj_property name="ObjectShortName">init_state_r[5:0]</obj_property>
@@ -31,6 +31,26 @@
    <wvobject fp_name="/sim_tb_top/error" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">error</obj_property>
       <obj_property name="ObjectShortName">error</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/m_traffic_gen/mcb_control/current_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">current_state[4:0]</obj_property>
+      <obj_property name="ObjectShortName">current_state[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/mode_load_o" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">mode_load_o</obj_property>
+      <obj_property name="ObjectShortName">mode_load_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/run_traffic" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">run_traffic</obj_property>
+      <obj_property name="ObjectShortName">run_traffic</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/end_addr_reached" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">end_addr_reached</obj_property>
+      <obj_property name="ObjectShortName">end_addr_reached</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/addr_mode_o" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">addr_mode_o[2:0]</obj_property>
+      <obj_property name="ObjectShortName">addr_mode_o[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/sim_tb_top/ddr3_parity" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">ddr3_parity</obj_property>
