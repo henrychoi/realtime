@@ -1,89 +1,6 @@
-//*****************************************************************************
-// (c) Copyright 2009 - 2010 Xilinx, Inc. All rights reserved.
-//
-// This file contains confidential and proprietary information
-// of Xilinx, Inc. and is protected under U.S. and
-// international copyright and other intellectual property
-// laws.
-//
-// DISCLAIMER
-// This disclaimer is not a license and does not grant any
-// rights to the materials distributed herewith. Except as
-// otherwise provided in a valid license issued to you by
-// Xilinx, and to the maximum extent permitted by applicable
-// law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
-// WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
-// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
-// BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
-// INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
-// (2) Xilinx shall not be liable (whether in contract or tort,
-// including negligence, or under any other theory of
-// liability) for any loss or damage of any kind or nature
-// related to, arising under or in connection with these
-// materials, including for any direct, or any indirect,
-// special, incidental, or consequential loss or damage
-// (including loss of data, profits, goodwill, or any type of
-// loss or damage suffered as a result of any action brought
-// by a third party) even if such damage or loss was
-// reasonably foreseeable or Xilinx had been advised of the
-// possibility of the same.
-//
-// CRITICAL APPLICATIONS
-// Xilinx products are not designed or intended to be fail-
-// safe, or for use in any application requiring fail-safe
-// performance, such as life-support or safety devices or
-// systems, Class III medical devices, nuclear facilities,
-// applications related to the deployment of airbags, or any
-// other applications that could lead to death, personal
-// injury, or severe property or environmental damage
-// (individually and collectively, "Critical
-// Applications"). Customer assumes the sole risk and
-// liability of any use of Xilinx products in Critical
-// Applications, subject only to applicable laws and
-// regulations governing limitations on product liability.
-//
-// THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
-// PART OF THIS FILE AT ALL TIMES.
-//
-//*****************************************************************************
-//   ____  ____
-//  /   /\/   /
-// /___/  \  /    Vendor             : Xilinx
-// \   \   \/     Version            : 3.8
-//  \   \         Application        : MIG
-//  /   /         Filename           : example_top.v
-// /___/   /\     Date Last Modified : $Date: 2011/05/27 15:51:20 $
-// \   \  /  \    Date Created       : Mon Jun 23 2008
-//  \___\/\___\
-//
-// Device           : Virtex-6
-// Design Name      : DDR3 SDRAM
-// Purpose          :
-//                   Top-level  module. This module serves both as an example,
-//                   and allows the user to synthesize a self-contained design,
-//                   which they can use to test their hardware. In addition to
-//                   the memory controller.
-//                   instantiates:
-//                     1. Clock generation/distribution, reset logic
-//                     2. IDELAY control block
-//                     3. Synthesizable testbench - used to model user's backend
-//                        logic
-// Reference        :
-// Revision History :  Target ML605 
-//    1. Add output ports for "pll_lock" and "heartbeat" LEDS
-//    2. Comment out "sda" and "scl" ports and logic.
-//    3. Add "pll_lock" port on module "infrastructure.v" connect to wire "locked"
-//    4. Define active high system reset switch "RST_ACTIVE_LOW = 0"
-//    5. Modify MMCM parameters to generate 400MHz clock using 200MHz input clock (versus default 400MHz)
-//    6. Modify "iodelay_ctrl" module to provide clk_200 output to "infrastructure" MMCM CLKIN
-//    7. Add counter and output assignment for "heartbeat" 
-//    8. Add VIO control inputs to permit traffic generator update from VIO console
-//*****************************************************************************
-
 `timescale 1ps/1ps
 
-module example_top #
-  (
+module main #(
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= 533 MHz,
                                        //   = 300 when design frequency > 533 MHz.
@@ -276,8 +193,7 @@ module example_top #
 
   wire error, phy_init_done, pll_lock, heartbeat;
 
-  wire                                clk_ref;
-  wire                                sys_clk;
+  //wire clk_ref, sys_clk;
   wire                                mmcm_clk;
   wire                                iodelay_ctrl_rdy;
       
@@ -404,7 +320,7 @@ module example_top #
   wire [31:0]                         ddr3_cs4_sync_out;
 
   //***************************************************************************
-  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, heartbeat, 4'b0};
+  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, app_rdy, 4'b0};
   assign app_hi_pri = 1'b0;
   assign app_wdf_mask = {APP_MASK_WIDTH{1'b0}};
 
@@ -414,8 +330,8 @@ module example_top #
 // assign data_mode_manual_sel   = 3'b010; // ADDR_DATA
 // assign addr_mode_manual_sel   = 3'b011; //SEQUENTIAL_ADDR
 
-  wire  locked; // ML605
-  assign pll_lock = locked;  // ML605 
+  //wire  locked; // ML605
+  //assign pll_lock = locked;  // ML605 
 
 /*  MUXCY scl_inst
     (
@@ -433,7 +349,7 @@ module example_top #
      .S  (1'b1)
      );
 */
-  assign clk_ref = 1'b0;
+  //assign clk_ref = 1'b0;
 //  assign sys_clk = 1'b0; 
 // ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
   wire clk_200;    
@@ -450,7 +366,7 @@ module example_top #
       (
        .clk_ref_p        (clk_ref_p),  // ML605 200MHz EPSON oscillator
        .clk_ref_n        (clk_ref_n),
-       .clk_ref          (clk_ref),
+       .clk_ref          (1'b0),
        .sys_rst          (sys_rst),
        .clk_200          (clk_200),    // ML605 200MHz clock from BUFG to MMCM CLKIN1
        .iodelay_ctrl_rdy (iodelay_ctrl_rdy)
@@ -486,9 +402,9 @@ module example_top #
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       .pll_lock         (locked),     // ML605 GPIO LED output port
+       .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
-       .mmcm_clk         (clk_200),    // ML605 single input clock 200MHz from "iodelay_ctrl"
+       .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
        .sys_rst          (sys_rst),
        .iodelay_ctrl_rdy (iodelay_ctrl_rdy),
        .PSDONE           (pd_PSDONE),
@@ -622,121 +538,6 @@ module example_top #
    .dbg_dq_tap_cnt                   (dbg_dq_tap_cnt),
    .dbg_rddata                       (dbg_rddata)
    );
-
-
-  // Traffic Gen Modules
-  init_mem_pattern_ctr #
-    (
-     .FAMILY        ("VIRTEX6"),
-     .MEM_BURST_LEN (BURST_LENGTH),
-     .BEGIN_ADDRESS (BEGIN_ADDRESS),
-     .END_ADDRESS   (END_ADDRESS),
-     .DWIDTH        (APP_DATA_WIDTH),
-     .ADDR_WIDTH    (ADDR_WIDTH),
-     .EYE_TEST      (EYE_TEST)
-     )
-    init_mem0
-      (
-       .clk_i                (clk),
-       .rst_i                (rst),
-       .mcb_cmd_en_i         (app_en),
-       .mcb_cmd_instr_i      (app_cmd[2:0]),
-       .mcb_cmd_addr_i       (app_addr),
-       .mcb_cmd_bl_i         (6'b001000),
-       .mcb_init_done_i      (phy_init_done),
-       .cmp_error            (error),
-       .run_traffic_o        (t_gen_run_traffic),
-       .start_addr_o         (t_gen_start_addr),
-       .end_addr_o           (t_gen_end_addr),
-       .cmd_seed_o           (t_gen_cmd_seed),
-       .data_seed_o          (t_gen_data_seed),
-       .load_seed_o          (t_gen_load_seed),
-       .addr_mode_o          (t_gen_addr_mode),
-       .instr_mode_o         (t_gen_instr_mode),
-       .bl_mode_o            (t_gen_bl_mode),
-       .data_mode_o          (t_gen_data_mode),
-       .mode_load_o          (t_gen_mode_load),
-       .fixed_bl_o           (t_gen_fixed_bl),
-       .fixed_instr_o        (t_gen_fixed_instr),
-       .fixed_addr_o         (t_gen_fixed_addr),
-       .mcb_wr_en_i          (app_wdf_wren),
-       .vio_modify_enable    (modify_enable_sel),
-       .vio_data_mode_value  (data_mode_manual_sel),
-       .vio_addr_mode_value  (addr_mode_manual_sel),
-       .vio_bl_mode_value    (2'b01),
-       .vio_fixed_bl_value   (6'b000010)
-       );
-
-  mcb_traffic_gen #
-    (
-     .FAMILY              ("VIRTEX6"),
-     .MEM_BURST_LEN       (BURST_LENGTH),
-     .PORT_MODE           ("BI_MODE"),
-     .DATA_PATTERN        (DATA_PATTERN),
-     .CMD_PATTERN         (CMD_PATTERN),
-     .ADDR_WIDTH          (ADDR_WIDTH),
-     .MEM_COL_WIDTH       (COL_WIDTH),
-     .NUM_DQ_PINS         (PAYLOAD_WIDTH),
-     .SEL_VICTIM_LINE     (SEL_VICTIM_LINE),
-     .DWIDTH              (APP_DATA_WIDTH),
-     .DQ_ERROR_WIDTH      (PAYLOAD_WIDTH/8),
-     .PRBS_SADDR_MASK_POS (PRBS_SADDR_MASK_POS),
-     .PRBS_EADDR_MASK_POS (PRBS_EADDR_MASK_POS),
-     .PRBS_SADDR          (BEGIN_ADDRESS),
-     .PRBS_EADDR          (END_ADDRESS),
-     .EYE_TEST            (EYE_TEST)
-     )
-    m_traffic_gen
-      (
-       .clk_i              (clk),
-       .rst_i              (rst),
-       .run_traffic_i      (t_gen_run_traffic),
-       .manual_clear_error (manual_clear_error),
-       .start_addr_i       (t_gen_start_addr),
-       .end_addr_i         (t_gen_end_addr),
-       .cmd_seed_i         (t_gen_cmd_seed),
-       .data_seed_i        (t_gen_data_seed),
-       .load_seed_i        (t_gen_load_seed),
-       .addr_mode_i        (t_gen_addr_mode),
-       .instr_mode_i       (t_gen_instr_mode),
-       .bl_mode_i          (t_gen_bl_mode),
-       .data_mode_i        (t_gen_data_mode),
-       .mode_load_i        (t_gen_mode_load),
-       .fixed_bl_i         (t_gen_fixed_bl),
-       .fixed_instr_i      (t_gen_fixed_instr),
-       .fixed_addr_i       (t_gen_fixed_addr),
-       .bram_cmd_i         (39'b0),
-       .bram_valid_i       (1'b0),
-       .bram_rdy_o         (),
-       .mcb_cmd_en_o       (app_en),
-       .mcb_cmd_instr_o    (app_cmd[2:0]),
-       .mcb_cmd_addr_o     (app_addr),
-       .mcb_cmd_bl_o       (),
-       .mcb_cmd_full_i     (~app_rdy),
-       .mcb_wr_en_o        (app_wdf_wren),
-       .mcb_wr_data_o      (app_wdf_data[APP_DATA_WIDTH-1:0]),
-       .mcb_wr_full_i      (~app_wdf_rdy),
-       .mcb_wr_data_end_o  (app_wdf_end),
-       .mcb_wr_fifo_counts (tg_wr_fifo_counts),
-       .mcb_wr_mask_o      (),
-       .mcb_rd_en_o        (tg_rd_en),
-       .mcb_rd_data_i      (app_rd_data[APP_DATA_WIDTH-1:0]),
-       .mcb_rd_empty_i     (~app_rd_data_valid),
-       .mcb_rd_fifo_counts (tg_rd_fifo_counts),
-       .counts_rst         (rst),
-       .wr_data_counts     (),
-       .rd_data_counts     (),
-       .cmp_data           (),
-       .cmp_error          (),
-       .cmp_data_valid     (),
-       .error              (error),
-       .error_status       (),
-       .mem_rd_data        (),
-       .fixed_data_i       ({APP_DATA_WIDTH{1'b0}}),
-       .dq_error_bytelane_cmp(),
-       .cumlative_dq_lane_error()
-       );
-
 
 
   // If debug port is not enabled, then make certain control input
@@ -939,17 +740,20 @@ module example_top #
     end
   endgenerate
 
+`ifdef FROM_XTP047_EXAMPLE
 // Add ML605 heartbeat counter and LED assignments
-  reg   [28:0] led_counter;
-
-always @( posedge clk )
-  begin
-    if ( rst )
-      led_counter <= 0;
-    else
-      led_counter <= led_counter + 1;
-  end
-
+  reg[28:0] led_counter;
+always @(posedge clk)
+  if(rst) led_counter <= 0;
+  else led_counter <= led_counter + 1;
 assign heartbeat = led_counter[27];
+`endif
 
+  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
+    app(.clk(clk), .reset(rst), .error(error)
+      , .app_rdy(app_rdy), .app_en(app_en), .app_cmd(app_cmd), .app_addr(app_addr)
+      , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
+      , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
+      , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
+      );
 endmodule
