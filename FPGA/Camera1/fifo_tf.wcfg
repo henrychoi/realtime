@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/Camera1/fifo_tf_isim_beh1.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="fifo_tf" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="16" />
+   <wvobject fp_name="/fifo_tf/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/bus_clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_clk</obj_property>
+      <obj_property name="ObjectShortName">bus_clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/cl_pclk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_pclk</obj_property>
+      <obj_property name="ObjectShortName">cl_pclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_full</obj_property>
+      <obj_property name="ObjectShortName">wr_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_empty</obj_property>
+      <obj_property name="ObjectShortName">wr_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_in" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_in[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_out[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_wren</obj_property>
+      <obj_property name="ObjectShortName">wr_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/wr_rden" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_rden</obj_property>
+      <obj_property name="ObjectShortName">wr_rden</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/rd_out" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_out[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/rd_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_full</obj_property>
+      <obj_property name="ObjectShortName">rd_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/rd_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_empty</obj_property>
+      <obj_property name="ObjectShortName">rd_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/frame_num" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">frame_num[63:0]</obj_property>
+      <obj_property name="ObjectShortName">frame_num[63:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/line_num" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">line_num[63:0]</obj_property>
+      <obj_property name="ObjectShortName">line_num[63:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/rd_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_wren</obj_property>
+      <obj_property name="ObjectShortName">rd_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/fifo_tf/rd_rden" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_rden</obj_property>
+      <obj_property name="ObjectShortName">rd_rden</obj_property>
+   </wvobject>
+</wave_config>

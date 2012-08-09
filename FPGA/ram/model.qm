@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.1.02" framework="qpn">
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="Simple1ValTest" superclass="qpn::QHsm">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../6">
+     <initial_glyph conn="5,16,4,0,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="ERROR">
+     <entry brief="\app_en = 0;\error = 1"/>
+     <state_glyph node="70,21,12,10">
+      <entry box="1,2,11,6"/>
+     </state_glyph>
+    </state>
+    <state name="WRFIFO_WAIT">
+     <entry brief="\app_wdf_wren = 1;\app_wdf_data = TEST_VAL;\app_wdf_end = 0;"/>
+     <tran trig="app_wdf_rdy" target="../../7">
+      <action brief="\app_cmd = WRITE;\app_addr = TEST_ADDR;\app_en = 1;"/>
+      <tran_glyph conn="24,20,0,2,-4">
+       <action box="-17,-8,19,7"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="14,20,21,11">
+      <entry box="1,2,20,7"/>
+     </state_glyph>
+    </state>
+    <state name="DATA_WAIT">
+     <tran trig="app_rd_data_valid">
+      <action brief="\mydata = app_rd_data;"/>
+      <choice guard="else" target="../../../1">
+       <choice_glyph conn="66,24,4,3,5,4">
+        <action box="0,5,6,2"/>
+       </choice_glyph>
+      </choice>
+      <choice guard="app_rd_data == TEST_VAL" target="../../../2">
+       <choice_glyph conn="66,24,4,1,5,-31">
+        <action box="-19,5,19,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="69,16,2,-1,8,-3">
+       <action box="0,1,15,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="66,10,10,6"/>
+    </state>
+    <state name="WR_WAIT">
+     <exit brief="app_en = 0"/>
+     <tran trig="app_rdy" target="../../5">
+      <action brief="\app_addr = TEST_ADDR;\app_cmd = READ;\app_en = 1;"/>
+      <tran_glyph conn="46,17,2,2,2,13,-3">
+       <action box="0,2,16,7"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="40,10,12,7">
+      <exit box="1,2,11,3"/>
+     </state_glyph>
+    </state>
+    <state name="RD_WAIT">
+     <tran trig="app_rdy" target="../../3">
+      <action brief="\app_en = 0"/>
+      <tran_glyph conn="61,16,2,2,2,7,-2">
+       <action box="0,2,8,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="56,10,9,6"/>
+    </state>
+    <state name="STARTUP">
+     <entry brief="app_en = 0"/>
+     <tran trig="app_rdy" target="../../2">
+      <tran_glyph conn="7,28,2,3,2,7">
+       <action box="1,0,7,3"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="3,19,8,9">
+      <entry box="1,2,7,5"/>
+     </state_glyph>
+    </state>
+    <state name="WR2">
+     <exit brief="\app_wdf_end = 1;"/>
+     <tran trig="clk" target="../../4">
+      <tran_glyph conn="35,13,1,3,5">
+       <action box="0,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="22,10,13,6">
+      <exit box="1,2,12,4"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="86,36"/>
+   </statechart>
+  </class>
+ </package>
+ <filesystem path=".">
+  <file name="project.h"/>
+  <file name="myao.c"/>
+ </filesystem>
+</model>

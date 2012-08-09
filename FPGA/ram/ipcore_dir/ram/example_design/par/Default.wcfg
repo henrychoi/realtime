@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/ram/ipcore_dir/ram/example_design/par/sim_tb_top_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim_tb_top" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="20" />
+   <wvobject fp_name="/sim_tb_top/u_ip_top/phy_init_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">phy_init_done</obj_property>
+      <obj_property name="ObjectShortName">phy_init_done</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/error" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">error</obj_property>
+      <obj_property name="ObjectShortName">error</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/m_traffic_gen/mcb_control/current_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">current_state[4:0]</obj_property>
+      <obj_property name="ObjectShortName">current_state[4:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/mode_load_o" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">mode_load_o</obj_property>
+      <obj_property name="ObjectShortName">mode_load_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/run_traffic" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">run_traffic</obj_property>
+      <obj_property name="ObjectShortName">run_traffic</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/init_mem0/end_addr_reached" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">end_addr_reached</obj_property>
+      <obj_property name="ObjectShortName">end_addr_reached</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider67" type="divider">
+      <obj_property name="label">New Divider</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_en" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_en</obj_property>
+      <obj_property name="ObjectShortName">app_en</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rdy</obj_property>
+      <obj_property name="ObjectShortName">app_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_addr[26:0]</obj_property>
+      <obj_property name="ObjectShortName">app_addr[26:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_cmd" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_cmd[2:0]</obj_property>
+      <obj_property name="ObjectShortName">app_cmd[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_sz" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_sz</obj_property>
+      <obj_property name="ObjectShortName">app_sz</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_wdf_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_data[255:0]</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_data[255:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_wdf_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_rdy</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_wdf_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_wren</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_wdf_end" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_end</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_end</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_rd_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rd_data[255:0]</obj_property>
+      <obj_property name="ObjectShortName">app_rd_data[255:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/app_rd_data_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rd_data_valid</obj_property>
+      <obj_property name="ObjectShortName">app_rd_data_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/modify_enable_sel" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">modify_enable_sel</obj_property>
+      <obj_property name="ObjectShortName">modify_enable_sel</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim_tb_top/u_ip_top/u_memc_ui_top/ddr_dq" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ddr_dq[63:0]</obj_property>
+      <obj_property name="ObjectShortName">ddr_dq[63:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

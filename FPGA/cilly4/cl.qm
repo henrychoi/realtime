@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.1.02" framework="qpn">
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="CameraLink" superclass="qpn::QActive">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="3,8,5,3,4">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="standby">
+     <tran trig="PC_MSG(1, n_frame)" target="../../2">
+      <action brief="\bus_frame = n_frame"/>
+      <tran_glyph conn="7,11,3,3,-2,14,2">
+       <action box="-1,2,16,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="7,4,13,8"/>
+    </state>
+    <state name="armed">
+     <tran trig="cl_frame != 0" target="../../3">
+      <tran_glyph conn="23,29,1,2,14,-3">
+       <action box="2,-3,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="\cl_frame = bus_frame"/>
+      <tran_glyph conn="10,31,2,-1,-3">
+       <action box="-2,-8,15,5"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="7,20,16,11"/>
+    </state>
+    <state name="capturing">
+     <initial target="../5">
+      <initial_glyph conn="39,9,5,0,3,2">
+       <action box="0,-2,6,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="cl_frame == 0" target="../../1">
+      <action brief="^EoF(CL_DONE)"/>
+      <tran_glyph conn="32,10,3,1,-12">
+       <action box="-10,-4,10,4"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="--cl_frame"/>
+      <tran_glyph conn="32,23,3,-1,2">
+       <action box="3,-1,15,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="!LVAL_d" target="../5">
+      <tran_glyph conn="32,15,3,3,7">
+       <action box="1,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="XT2">
+      <tran trig="CL_CLK" target="../../6">
+       <tran_glyph conn="60,13,2,0,5">
+        <action box="1,1,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="56,7,9,6"/>
+     </state>
+     <state name="XT0">
+      <tran trig="CL_CLK" target="../../4">
+       <tran_glyph conn="46,14,1,3,7,-4,3">
+        <action box="1,-3,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="39,11,7,8"/>
+     </state>
+     <state name="XT1">
+      <tran trig="CL_CLK" target="../../5">
+       <tran_glyph conn="56,21,3,1,-5,-5,-5">
+        <action box="-6,0,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="56,18,9,6"/>
+     </state>
+     <state_glyph node="32,4,39,22"/>
+    </state>
+    <state_diagram size="77,50"/>
+   </statechart>
+  </class>
+ </package>
+ <filesystem path=".">
+  <file name="project.h"/>
+  <file name="myao.c"/>
+ </filesystem>
+</model>

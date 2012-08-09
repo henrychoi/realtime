@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/cilly3/verilog/sim_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="25" />
+   <wave_markers>
+      <marker time="446000000" label="" />
+   </wave_markers>
+   <wvobject fp_name="/sim/cl/pc_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/capture_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/tx_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_state[1:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/header" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">header[3:0]</obj_property>
+      <obj_property name="ObjectShortName">header[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/tx0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx0[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/tx1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx1[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/tx2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx2[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/bus_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_fval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_fval</obj_property>
+      <obj_property name="ObjectShortName">cl_fval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_z_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_z_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_z_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/lval_d" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">lval_d</obj_property>
+      <obj_property name="ObjectShortName">lval_d</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/fpga_msg_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/cl_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_line" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_line[11:0]</obj_property>
+      <obj_property name="ObjectShortName">n_line[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_clk" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_clk[9:0]</obj_property>
+      <obj_property name="ObjectShortName">n_clk[9:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/n_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">n_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl/cl_done" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_done</obj_property>
+      <obj_property name="ObjectShortName">cl_done</obj_property>
+   </wvobject>
+   <wvobject fp_name="divider43" type="divider">
+      <obj_property name="label">sim</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="BkColor">128 128 255</obj_property>
+      <obj_property name="TextColor">230 230 230</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_clclk" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_clclk[9:0]</obj_property>
+      <obj_property name="ObjectShortName">n_clclk[9:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_row" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_row[0:0]</obj_property>
+      <obj_property name="ObjectShortName">n_row[0:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/n_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">n_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/camstate" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">camstate[1:0]</obj_property>
+      <obj_property name="ObjectShortName">camstate[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/rd_fifo_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_fifo_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_fifo_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/cl_port_a" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_port_a[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_port_a[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/rd_fifo_full" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_fifo_full</obj_property>
+      <obj_property name="ObjectShortName">rd_fifo_full</obj_property>
+   </wvobject>
+</wave_config>
