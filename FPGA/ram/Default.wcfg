@@ -10,14 +10,14 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="13" />
    <wvobject fp_name="/main_tb/GPIO_LED" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
       <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/main_tb/main/app/state" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">state[2:0]</obj_property>
-      <obj_property name="ObjectShortName">state[2:0]</obj_property>
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/main_tb/main/app/app_en" type="logic" db_ref_id="1">
@@ -66,11 +66,6 @@
    <wvobject fp_name="/main_tb/main/app/app_rd_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">app_rd_data[255:0]</obj_property>
       <obj_property name="ObjectShortName">app_rd_data[255:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/main_tb/main/u_memc_ui_top/ddr_dq" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">ddr_dq[63:0]</obj_property>
-      <obj_property name="ObjectShortName">ddr_dq[63:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 </wave_config>

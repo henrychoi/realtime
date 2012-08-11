@@ -150,8 +150,8 @@ module main_tb;
 
   parameter BEGIN_ADDRESS           = 32'h00000000;
   parameter PRBS_SADDR_MASK_POS     = 32'h00000000;
-  parameter END_ADDRESS             = 32'h000003ff;
-  parameter PRBS_EADDR_MASK_POS     = 32'hfffffc00;
+  parameter END_ADDRESS             = 32'h0000ffff;//000003ff;//
+  parameter PRBS_EADDR_MASK_POS     = 32'hffff0000;
   parameter SEL_VICTIM_LINE         = 11;
 
   //**************************************************************************//
