@@ -7,86 +7,108 @@
    <documentation>Test active object</documentation>
    <statechart>
     <initial target="../1">
-     <action brief="app_en = 0;\app_addr = START_ADDR;\app_wdf_data = 0;"/>
-     <initial_glyph conn="22,5,5,3,4">
-      <action box="-18,-3,18,6"/>
+     <initial_glyph conn="84,3,4,1,4,-4">
+      <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
-    <state name="WR_WAIT">
-     <entry brief="app_en = 1;\app_cmd = WRITE;\app_wdf_wren = 0;"/>
-     <tran trig="app_rdy &amp;&amp; app_wdf_rdy" target="../../4">
-      <tran_glyph conn="26,9,3,0,-9,4">
-       <action box="-18,0,11,5"/>
+    <state name="OK">
+     <initial target="../3">
+      <action brief="app_en = 0;\app_addr = START_ADDR;\app_wdf_data = 0;\expected_data = 1;"/>
+      <initial_glyph conn="22,7,5,3,4">
+       <action box="-18,-3,19,8"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="app_rd_data != expected_data" target="../../2">
+      <tran_glyph conn="80,15,1,0,5,6">
+       <action box="0,-4,10,5"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="26,2,15,10">
-      <entry box="1,2,14,6"/>
-     </state_glyph>
+     <tran trig="app_rd_data_valid">
+      <action brief="expected_data++"/>
+      <tran_glyph conn="80,26,1,-1,-3">
+       <action box="-16,-1,14,4"/>
+      </tran_glyph>
+     </tran>
+     <state name="WR_WAIT">
+      <entry brief="app_en = 1;\app_cmd = WRITE;\app_wdf_wren = 0;"/>
+      <tran trig="app_rdy &amp;&amp; app_wdf_rdy" target="../../6">
+       <tran_glyph conn="26,11,3,0,-9,4">
+        <action box="-18,0,11,5"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="26,4,15,10">
+       <entry box="1,2,14,6"/>
+      </state_glyph>
+     </state>
+     <state name="WR2">
+      <entry brief="app_wdf_end = 1;\app_wdf_data++"/>
+      <exit brief="app_wdf_wren = 0;\app_wdf_end = 0;"/>
+      <tran trig="clk">
+       <choice target="../../../3">
+        <guard brief="else">guard1</guard>
+        <action brief="\app_addr += 0x40;"/>
+        <choice_glyph conn="45,18,4,1,-5,-4">
+         <action box="-3,-9,13,4"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../../../5">
+        <guard brief="app_addr ==\END_ADDR">guard2</guard>
+        <action brief="\app_addr = START_ADDR"/>
+        <choice_glyph conn="45,18,4,3,4,15">
+         <action box="4,-3,12,8"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="40,18,1,-1,5">
+        <action box="0,-2,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,15,18,11">
+       <entry box="1,2,17,4"/>
+       <exit box="1,6,17,4"/>
+      </state_glyph>
+     </state>
+     <state name="RD">
+      <entry brief="app_en = 1;\app_cmd = READ;"/>
+      <exit brief="app_en = 0;"/>
+      <tran trig="app_rdy">
+       <choice target="../../../3">
+        <guard brief="app_addr == END_ADDR">guard1</guard>
+        <action brief="app_addr = 0"/>
+        <choice_glyph conn="63,5,5,1,-22">
+         <action box="-17,0,17,4"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../..">
+        <guard brief="else">guard2</guard>
+        <action brief="app_addr += 0x40"/>
+        <choice_glyph conn="63,5,5,0,12,10">
+         <action box="2,0,9,6"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="63,15,0,-1,-10">
+        <action box="1,-3,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="60,15,19,9">
+       <entry box="1,2,16,4"/>
+       <exit box="1,6,16,2"/>
+      </state_glyph>
+     </state>
+     <state name="WR1">
+      <entry brief="app_en = 0;\app_wdf_wren = 1;\app_wdf_end = 0;\app_wdf_data++"/>
+      <tran trig="app_wdf_rdy" target="../../4">
+       <tran_glyph conn="17,26,2,2,2,7,-2">
+        <action box="-10,0,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="2,15,17,11">
+       <entry box="1,2,16,7"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="1,1,79,28"/>
     </state>
-    <state name="WR2">
-     <entry brief="app_wdf_end = 1;\app_wdf_data++"/>
-     <exit brief="app_wdf_wren = 0;\app_wdf_end = 0;"/>
-     <tran trig="clk">
-      <choice target="../../../1">
-       <guard brief="else">guard1</guard>
-       <action brief="\app_addr += 0x40;"/>
-       <choice_glyph conn="45,16,4,1,-5,-4">
-        <action box="-3,-9,13,4"/>
-       </choice_glyph>
-      </choice>
-      <choice target="../../../3">
-       <guard brief="app_addr ==\END_ADDR">guard2</guard>
-       <action brief="\app_addr = START_ADDR"/>
-       <choice_glyph conn="45,16,4,3,4,15">
-        <action box="4,-3,12,8"/>
-       </choice_glyph>
-      </choice>
-      <tran_glyph conn="40,16,1,-1,5">
-       <action box="0,-2,6,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="22,13,18,11">
-      <entry box="1,2,17,4"/>
-      <exit box="1,6,17,4"/>
-     </state_glyph>
-    </state>
-    <state name="RD">
-     <entry brief="app_en = 1;\app_cmd = READ;"/>
-     <exit brief="app_en = 0;"/>
-     <tran trig="app_rdy">
-      <choice target="../../../1">
-       <guard brief="app_addr == END_ADDR">guard1</guard>
-       <action brief="app_addr = 0"/>
-       <choice_glyph conn="63,3,5,1,-22">
-        <action box="-17,0,17,4"/>
-       </choice_glyph>
-      </choice>
-      <choice target="../..">
-       <guard brief="else">guard2</guard>
-       <action brief="app_addr += 0x40"/>
-       <choice_glyph conn="63,3,5,0,12,10">
-        <action box="2,0,9,6"/>
-       </choice_glyph>
-      </choice>
-      <tran_glyph conn="63,13,0,-1,-10">
-       <action box="1,-3,6,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="60,13,19,9">
-      <entry box="1,2,16,4"/>
-      <exit box="1,6,16,2"/>
-     </state_glyph>
-    </state>
-    <state name="WR1">
-     <entry brief="app_en = 0;\app_wdf_wren = 1;\app_wdf_end = 0;\app_wdf_data++"/>
-     <tran trig="app_wdf_rdy" target="../../2">
-      <tran_glyph conn="17,24,2,2,2,7,-2">
-       <action box="-10,0,10,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,13,17,11">
-      <entry box="1,2,16,7"/>
-     </state_glyph>
+    <state name="ERROR">
+     <state_glyph node="82,21,6,6"/>
     </state>
     <state_diagram size="91,30"/>
    </statechart>

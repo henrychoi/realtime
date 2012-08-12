@@ -7,9 +7,10 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 );
 `include "function.v"
-  localparam WR_WAIT = 0, WR1 = 1, WR2 = 2, RD = 3, NUM_STATE = 4;
-  localparam START_ADDR = 27'h0000000, END_ADDR = 27'h0000000//0001fc0
-    , ADDR_INC = 7'h40;
+  localparam WR_WAIT = 0, WR1 = 1, WR2 = 2, RD = 3, ERROR = 4
+    , NUM_STATE = 5;
+  localparam START_ADDR = 27'h0001f00, END_ADDR = 27'h0002100//0001fc0
+    , ADDR_INC = 7'h8; // Front and back of BL8 burst skips by 0x8
   reg[log2(NUM_STATE)-1:0] state;
   reg bread;
   reg[APP_DATA_WIDTH-1:0] expected_data;
@@ -18,8 +19,8 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 
   always @(posedge clk)
     if(reset) begin
-      expected_data <= 0;
-      error = `FALSE;
+      expected_data <= 1;
+      error <= `FALSE;
   		app_addr <= START_ADDR;
       app_en <= `TRUE;
       bread <= `FALSE;
@@ -28,6 +29,14 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       app_wdf_data <= 0;
       state <= WR_WAIT;
     end else begin
+      if(app_rd_data_valid) begin
+        if(app_rd_data != expected_data) begin
+          error <= `TRUE;
+          state <= ERROR;
+        end
+        expected_data <= expected_data + `TRUE;
+      end
+      
       case(state)
         WR_WAIT: begin
           if(app_rdy && app_wdf_rdy) begin
@@ -76,9 +85,9 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         end
         default: begin
           app_en <= `FALSE;
-          bread = `FALSE;
+          bread <= `FALSE;
           app_wdf_wren <= `FALSE;
-          error = `TRUE;
+          error <= `TRUE;
         end
       endcase
     end
