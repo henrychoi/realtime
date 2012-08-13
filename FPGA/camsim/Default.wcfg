@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/camsim/sim_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="sim" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="16" />
+   <wvobject fp_name="/sim/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/capture_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/tx_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_state[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/pc_msg_ack" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg_ack</obj_property>
+      <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/pc_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/cl_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/bus_frame" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="ObjectShortName">bus_frame[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/pc_msg_pending" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg_pending</obj_property>
+      <obj_property name="ObjectShortName">pc_msg_pending</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/cl_fval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_fval</obj_property>
+      <obj_property name="ObjectShortName">cl_fval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/cl_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/dram_fifo_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">dram_fifo_wren</obj_property>
+      <obj_property name="ObjectShortName">dram_fifo_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/tx0_header" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx0_header[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tx0_header[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/tx2_header" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx2_header[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tx2_header[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/tx1_header" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tx1_header[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tx1_header[3:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/cl_stride" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_stride[12:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_stride[12:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/sim/app/n_stride" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">n_stride[12:0]</obj_property>
+      <obj_property name="ObjectShortName">n_stride[12:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
