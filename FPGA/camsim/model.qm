@@ -7,93 +7,125 @@
    <documentation>Test active object</documentation>
    <statechart>
     <initial target="../1">
-     <initial_glyph conn="8,8,5,3,4">
+     <initial_glyph conn="3,8,5,3,4">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
     <state name="standby">
      <tran trig="PC_MSG(stride, n_frame)" target="../../2">
       <action brief="\bus_frame = n_frame;\cl_stride = stride;"/>
-      <tran_glyph conn="13,11,2,0,6">
-       <action box="1,0,17,6"/>
+      <tran_glyph conn="8,11,2,0,8">
+       <action box="1,1,17,6"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="12,5,7,6"/>
+     <state_glyph node="7,5,7,6"/>
     </state>
     <state name="armed">
-     <tran trig="cl_frame != 0" target="../../3">
-      <tran_glyph conn="21,22,1,3,11">
-       <action box="0,-3,11,2"/>
+     <tran trig="cl_frame != 0 &amp;&amp; app_rdy" target="../../3">
+      <tran_glyph conn="16,25,1,3,10">
+       <action box="1,-4,9,5"/>
       </tran_glyph>
      </tran>
      <tran trig="CL_FVAL">
       <action brief="\cl_frame = bus_frame"/>
-      <tran_glyph conn="7,20,3,-1,1">
+      <tran_glyph conn="2,22,3,-1,2">
        <action box="3,-1,11,6"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="7,17,14,9"/>
+     <state_glyph node="2,19,14,9"/>
     </state>
-    <state name="capturing">
+    <state name="CAPTURING">
+     <initial target="../7">
+      <initial_glyph conn="39,29,4,3,-3,4">
+       <action box="-3,-2,6,2"/>
+      </initial_glyph>
+     </initial>
      <tran trig="cl_frame == 0" target="../../1">
       <action brief="^EoF(CL_DONE)"/>
-      <tran_glyph conn="32,6,3,1,-13">
-       <action box="-12,0,12,4"/>
+      <tran_glyph conn="26,6,3,1,-12">
+       <action box="-11,0,10,5"/>
       </tran_glyph>
      </tran>
      <tran trig="CL_FVAL">
       <action brief="\if(stride == 0) cl_frame--;\else stride++"/>
-      <tran_glyph conn="32,21,3,-1,3">
-       <action box="1,1,17,6"/>
+      <tran_glyph conn="26,8,3,-1,2">
+       <action box="3,-1,11,8"/>
       </tran_glyph>
      </tran>
-     <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../5">
-      <tran_glyph conn="32,20,3,3,12">
-       <action box="1,-6,9,6"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="!LVAL">
+     <tran trig="!LVAL" target="../7">
       <action brief="\pack buffer (FVAL=0 for remaining pixels) and write buffer to FIFO"/>
-      <tran_glyph conn="32,8,3,-1,3">
-       <action box="4,-1,23,6"/>
+      <tran_glyph conn="26,24,3,3,17">
+       <action box="1,-7,16,9"/>
       </tran_glyph>
      </tran>
-     <state name="TX2">
-      <entry brief="save pixel1 to buffer"/>
+     <state name="CL5">
       <tran trig="CL_CLK" target="../../6">
-       <tran_glyph conn="76,13,2,0,3">
-        <action box="1,1,6,2"/>
+       <action brief="write buffer to FIFO"/>
+       <tran_glyph conn="66,25,0,2,-1,0,-3">
+        <action box="1,-4,10,4"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="68,7,19,6">
-       <entry box="1,2,18,2"/>
-      </state_glyph>
+      <state_glyph node="63,25,6,6"/>
      </state>
-     <state name="TX0">
-      <entry brief="save pixel0 to buffer"/>
-      <tran trig="CL_CLK" target="../../4">
-       <tran_glyph conn="56,18,1,3,7,-6,5">
-        <action box="1,-2,6,2"/>
+     <state name="CL1">
+      <tran trig="CL_CLK" target="../../8">
+       <action brief="save pixel1 to buffer"/>
+       <tran_glyph conn="54,10,1,3,9">
+        <action box="0,-2,8,6"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="44,15,12,8">
-       <entry box="1,2,11,4"/>
-      </state_glyph>
+      <state_glyph node="48,7,6,6"/>
      </state>
-     <state name="TX1">
-      <entry brief="save pixel2 to buffer;\write buffer to FIFO"/>
+     <state name="CL0">
       <tran trig="CL_CLK" target="../../5">
-       <tran_glyph conn="66,21,3,1,-10">
-        <action box="-6,1,7,3"/>
+       <action brief="save pixel0 to buffer"/>
+       <tran_glyph conn="63,18,3,2,-11,-5">
+        <action box="-10,-4,10,5"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="66,16,21,9">
-       <entry box="1,2,20,5"/>
+      <state_glyph node="63,15,6,6"/>
+     </state>
+     <state name="INTERLINE">
+      <exit brief="save pixel0 to buffer"/>
+      <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../5">
+       <tran_glyph conn="49,19,0,2,-6">
+        <action box="-11,-5,12,4"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="43,19,15,8">
+       <exit box="1,2,14,4"/>
       </state_glyph>
      </state>
-     <state_glyph node="32,4,56,24"/>
+     <state name="CL2">
+      <tran trig="CL_CLK" target="../../9">
+       <action brief="save pixel2 to buffer"/>
+       <tran_glyph conn="69,10,1,3,11">
+        <action box="0,-2,10,4"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="63,7,6,6"/>
+     </state>
+     <state name="CL3">
+      <tran trig="CL_CLK" target="../../10">
+       <action brief="save pixel3 to buffer"/>
+       <tran_glyph conn="82,13,2,0,6">
+        <action box="-8,0,8,6"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="80,7,6,6"/>
+     </state>
+     <state name="CL4">
+      <tran trig="CL_CLK" target="../../4">
+       <action brief="save pixel4 to buffer"/>
+       <tran_glyph conn="81,25,2,1,2,-12">
+        <action box="-10,2,11,4"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="78,19,6,6"/>
+     </state>
+     <state_glyph node="26,4,62,28"/>
     </state>
-    <state_diagram size="89,30"/>
+    <state_diagram size="89,40"/>
    </statechart>
   </class>
   <class name="CameraSimulator" superclass="qpn::QHsm">
@@ -201,8 +233,5 @@
    </statechart>
   </class>
  </package>
- <directory name=".">
-  <file name="project.h"/>
-  <file name="myao.c"/>
- </directory>
+ <directory name="."/>
 </model>

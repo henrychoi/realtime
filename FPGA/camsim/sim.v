@@ -11,7 +11,8 @@ module sim;
           , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
   wire[3:0] led;
 
-  application app(CLK_P, CLK_N, reset
+  application#(.SIMULATION(1))
+    app(CLK_P, CLK_N, reset
     , pc_msg_ack, !wr_fifo_empty, wr_fifo_data
     , led);
 

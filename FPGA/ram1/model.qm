@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.2.00">
+ <framework name="qpn"/>
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="IncreasingValTest" superclass="qpn::QHsm">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="84,3,4,1,4,-4">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="OK">
+     <initial target="../3">
+      <action brief="app_en = 0;\app_addr = START_ADDR;\app_wdf_data = 0;\expected_data = 1;\app_wdf_end = 0;"/>
+      <initial_glyph conn="22,7,5,3,4">
+       <action box="-18,-3,20,10"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="app_rd_data != expected_data" target="../../2">
+      <tran_glyph conn="80,15,1,0,5,6">
+       <action box="0,-4,10,5"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="app_rd_data_valid">
+      <action brief="expected_data++"/>
+      <tran_glyph conn="80,26,1,-1,-3">
+       <action box="-16,-1,14,4"/>
+      </tran_glyph>
+     </tran>
+     <state name="WR_WAIT">
+      <entry brief="app_en = 1;\app_cmd = WRITE;\app_wdf_wren = 0;"/>
+      <tran trig="app_rdy &amp;&amp; app_wdf_rdy" target="../../4">
+       <tran_glyph conn="26,11,3,3,-7,11,3">
+        <action box="-16,7,11,5"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="26,4,15,10">
+       <entry box="1,2,14,6"/>
+      </state_glyph>
+     </state>
+     <state name="WR">
+      <entry brief="app_en = 0;\app_wdf_wren = 1;\app_wdf_data++"/>
+      <exit brief="app_wdf_wren = 0;"/>
+      <tran trig="app_wdf_rdy">
+       <choice target="../../../3">
+        <guard brief="else">guard1</guard>
+        <action brief="\app_addr += 4;"/>
+        <choice_glyph conn="50,18,4,1,-5,-9">
+         <action box="0,-5,11,4"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../../../5">
+        <guard brief="app_addr == END_ADDR">guard2</guard>
+        <action brief="\app_addr = START_ADDR"/>
+        <choice_glyph conn="50,18,4,3,4,10">
+         <action box="-6,5,18,4"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="40,18,1,-1,10">
+        <action box="0,-2,12,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="22,15,18,11">
+       <entry box="1,2,17,4"/>
+       <exit box="1,6,17,3"/>
+      </state_glyph>
+     </state>
+     <state name="RD">
+      <entry brief="app_en = 1;\app_cmd = READ;"/>
+      <exit brief="app_en = 0;"/>
+      <tran trig="app_rdy">
+       <choice target="../../../3">
+        <guard brief="app_addr == END_ADDR">guard1</guard>
+        <action brief="app_addr = 0"/>
+        <choice_glyph conn="63,5,5,1,-22">
+         <action box="-17,0,17,4"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../..">
+        <guard brief="else">guard2</guard>
+        <action brief="app_addr += 4"/>
+        <choice_glyph conn="63,5,5,0,12,10">
+         <action box="2,0,9,6"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="63,15,0,-1,-10">
+        <action box="1,-3,6,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="60,15,19,9">
+       <entry box="1,2,16,4"/>
+       <exit box="1,6,16,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="1,1,79,28"/>
+    </state>
+    <state name="ERROR">
+     <state_glyph node="82,21,6,6"/>
+    </state>
+    <state_diagram size="91,30"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name="."/>
+</model>

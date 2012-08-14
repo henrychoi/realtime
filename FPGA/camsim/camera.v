@@ -9,7 +9,7 @@ module clsim(input CLK_P, CLK_N, reset
   localparam N_CLCLK_SIZE = 10
     , FVAL_LOW_DURATION = 40
     , LVAL_LOW_DURATION = 7
-    , N_COL = 5//780
+    , N_COL = 6//780
     , N_ROW = 4;//1080;
   reg[N_CLCLK_SIZE-1:0] n_clclk;
   reg[10:0] n_row;
