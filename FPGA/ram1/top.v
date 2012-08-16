@@ -57,7 +57,7 @@ module main #(
                                        // # of DQS/DQS# bits.
    parameter ROW_WIDTH               = 13,
                                        // # of memory Row Address bits.
-   parameter BURST_MODE              = "8",
+   parameter BURST_MODE              = "4",
                                        // Burst Length (Mode Register 0).
                                        // # = "8", "4", "OTF".
    parameter BM_CNT_WIDTH            = 2,
@@ -117,35 +117,9 @@ module main #(
    parameter ECC                     = "OFF",
    parameter ECC_TEST                = "OFF",
    parameter TCQ                     = 100,
-   // Traffic Gen related parameters
-   parameter EYE_TEST                = "FALSE",
-                                       // set EYE_TEST = "TRUE" to probe memory
-                                       // signals. Traffic Generator will only
-                                       // write to one single location and no
-                                       // read transactions will be generated.
-   parameter DATA_PATTERN            = "DGEN_ALL",
-                                        // "DGEN_HAMMER", "DGEN_WALKING1",
-                                        // "DGEN_WALKING0","DGEN_ADDR","
-                                        // "DGEN_NEIGHBOR","DGEN_PRBS","DGEN_ALL"
-   parameter CMD_PATTERN             = "CGEN_ALL",
-                                        // "CGEN_PRBS","CGEN_FIXED","CGEN_BRAM",
-                                        // "CGEN_SEQUENTIAL", "CGEN_ALL"
-
-   parameter BEGIN_ADDRESS           = 32'h00000000,
-   parameter PRBS_SADDR_MASK_POS     = 32'h00000000,
-   parameter END_ADDRESS             = 32'h00ffffff,
-   parameter PRBS_EADDR_MASK_POS     = 32'hff000000,
-   parameter SEL_VICTIM_LINE         = 11,
-   parameter RST_ACT_LOW             = 0,              // ML605 reset active high
-                                       // =1 for active low reset,
-                                       // =0 for active high.
-   parameter INPUT_CLK_TYPE          = "DIFFERENTIAL",
-                                       // input clock type DIFFERENTIAL or SINGLE_ENDED
-   parameter STARVE_LIMIT            = 2
-                                       // # = 2,3,4.
-   )
+   parameter RST_ACT_LOW             = 0, // ML605 reset active high
+   parameter INPUT_CLK_TYPE          = "DIFFERENTIAL")
   (
-
 //  input                             sys_clk_p,    //differential system clocks
 //  input                             sys_clk_n,
   input                             clk_ref_p,     //differential iodelayctrl clk
@@ -320,7 +294,8 @@ module main #(
   wire [31:0]                         ddr3_cs4_sync_out;
 
   //***************************************************************************
-  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, app_rdy, 4'b0};
+  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, app_rdy
+    , heartbeat, 3'b0};
   assign app_hi_pri = 1'b0;
   assign app_wdf_mask = {APP_MASK_WIDTH{1'b0}};
 
@@ -740,17 +715,9 @@ module main #(
     end
   endgenerate
 
-`ifdef FROM_XTP047_EXAMPLE
-// Add ML605 heartbeat counter and LED assignments
-  reg[28:0] led_counter;
-always @(posedge clk)
-  if(rst) led_counter <= 0;
-  else led_counter <= led_counter + 1;
-assign heartbeat = led_counter[27];
-`endif
-
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
-    app(.clk(clk), .reset(rst), .error(error)
+    app(.clk(clk), .reset(rst)
+      , .error(error), .heartbeat(heartbeat)
       , .app_rdy(app_rdy), .app_en(app_en), .app_cmd(app_cmd), .app_addr(app_addr)
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)

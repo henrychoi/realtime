@@ -1,0 +1,8 @@
+NET sys_rst LOC=H10 |IOSTANDARD=SSTL15 |TIG;
+#NET clk TNM_NET = sys_clk_pin;
+#TIMESPEC TS_sys_clk_pin = PERIOD sys_clk_pin 200000 kHz;
+NET clk_ref_n LOC=H9 | IOSTANDARD=LVDS_25 | DIFF_TERM=TRUE; #Default for
+NET clk_ref_p LOC=J9 | IOSTANDARD=LVDS_25 | DIFF_TERM=TRUE; # differential IO
+
+NET clk_ref_p TNM_NET = TNM_clk_ref;
+TIMESPEC TS_clk_ref=PERIOD TNM_clk_ref 5 ns;

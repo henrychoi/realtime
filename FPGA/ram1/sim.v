@@ -49,7 +49,7 @@ module main_tb;
                                     // # of DQS/DQS# bits.
   parameter ROW_WIDTH             = 13;
                                     // # of memory Row Address bits.
-  parameter BURST_MODE            = "8";
+  parameter BURST_MODE            = "4";
                                     // Burst Length (Mode Register 0).
                                     // # = "8", "4", "OTF".
   parameter INPUT_CLK_TYPE        = "DIFFERENTIAL";
@@ -100,59 +100,9 @@ module main_tb;
   parameter ADDR_WIDTH              = 27;
                                     // # = RANK_WIDTH + BANK_WIDTH
                                     //     + ROW_WIDTH + COL_WIDTH;
-  parameter STARVE_LIMIT            = 2;
-                                    // # = 2,3,4.
   parameter TCQ                     = 100;
   parameter ECC                     = "OFF";
   parameter ECC_TEST                = "OFF";
-
-
-  //***********************************************************************//
-  // Traffic Gen related parameters
-  //***********************************************************************//
-  parameter EYE_TEST                = "FALSE";
-                                      // set EYE_TEST = "TRUE" to probe memory
-                                      // signals. Traffic Generator will only
-                                      // write to one single location and no
-                                      // read transactions will be generated.
-
-  parameter SIMULATION              = "TRUE";
-  // PRBS_DATA_MODE can only be used together with either PRBS_ADDR or SEQUENTIAL_ADDR
-  // FIXED_DATA_MODE is designed to work with FIXED_ADDR
-  parameter ADDR_MODE               = 3;
-                                      //FIXED_ADDR      = 2'b01;
-                                      //PRBS_ADDR       = 2'b10;
-                                      //SEQUENTIAL_ADDR = 2'b11;
-  parameter DATA_MODE               = 2;  // To change simulation data pattern
-                                      // FIXED_DATA_MODE       =    4'b0001;
-                                      // ADDR_DATA_MODE        =    4'b0010;
-                                      // HAMMER_DATA_MODE      =    4'b0011;
-                                      // NEIGHBOR_DATA_MODE    =    4'b0100;
-                                      // WALKING1_DATA_MODE    =    4'b0101;
-                                      // WALKING0_DATA_MODE    =    4'b0110;
-                                      // PRBS_DATA_MODE        =    4'b0111;
-  parameter TST_MEM_INSTR_MODE      = "R_W_INSTR_MODE";
-                                      // available instruction modes:
-                                      //"FIXED_INSTR_R_MODE"
-                                      // "FIXED_INSTR_W_MODE"
-                                      // "R_W_INSTR_MODE"
-  parameter DATA_PATTERN            = "DGEN_ALL";
-                                      // DATA_PATTERN shoule be set to "DGEN_ALL"
-                                      // unless it is targeted for S6 small device.
-                                      // "DGEN_HAMMER", "DGEN_WALKING1",
-                                      // "DGEN_WALKING0","DGEN_ADDR","
-                                      // "DGEN_NEIGHBOR","DGEN_PRBS","DGEN_ALL"
-  parameter CMD_PATTERN             = "CGEN_ALL";
-                                      // CMD_PATTERN shoule be set to "CGEN_ALL"
-                                      // unless it is targeted for S6 small device.
-                                      // "CGEN_RPBS","CGEN_FIXED","CGEN_BRAM",
-                                      // "CGEN_SEQUENTIAL", "CGEN_ALL"
-
-  parameter BEGIN_ADDRESS           = 32'h00000000;
-  parameter PRBS_SADDR_MASK_POS     = 32'h00000000;
-  parameter END_ADDRESS             = 32'h0000ffff;//000003ff;//
-  parameter PRBS_EADDR_MASK_POS     = 32'hffff0000;
-  parameter SEL_VICTIM_LINE         = 11;
 
   //**************************************************************************//
   // Local parameters Declarations
@@ -391,23 +341,10 @@ module main_tb;
      .tZQI                      (tZQI),
      .ADDR_CMD_MODE             (ADDR_CMD_MODE),
      .ORDERING                  (ORDERING),
-     .STARVE_LIMIT              (STARVE_LIMIT),
      .ADDR_WIDTH                (ADDR_WIDTH),
      .ECC                       (ECC),
      .ECC_TEST                  (ECC_TEST),
-     .TCQ                       (TCQ),
-     .EYE_TEST                  (EYE_TEST),
-     .SIMULATION                (SIMULATION),
-     .DATA_MODE                 (DATA_MODE),
-     .ADDR_MODE                 (ADDR_MODE),
-     .TST_MEM_INSTR_MODE        (TST_MEM_INSTR_MODE),
-     .DATA_PATTERN              (DATA_PATTERN),
-     .CMD_PATTERN               (CMD_PATTERN),
-     .BEGIN_ADDRESS             (BEGIN_ADDRESS),
-     .END_ADDRESS               (END_ADDRESS),
-     .PRBS_EADDR_MASK_POS       (PRBS_EADDR_MASK_POS),
-     .PRBS_SADDR_MASK_POS       (PRBS_SADDR_MASK_POS),
-     .SEL_VICTIM_LINE           (SEL_VICTIM_LINE)
+     .TCQ                       (TCQ)
      )main(
        //.sys_clk_p            (sys_clk_p),//Not for ML605
        //.sys_clk_n            (sys_clk_n),//Not for ML605

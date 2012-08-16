@@ -15,3 +15,14 @@ function integer log2(input integer n);
     for(i = 0; 2**i < n; i = i+1) log2 = i + 1;
   end
 endfunction
+
+function integer STR_TO_INT(input [7:0] in);
+  begin
+    if(in == "8")
+      STR_TO_INT = 8;
+    else if(in == "4")
+      STR_TO_INT = 4;
+    else
+      STR_TO_INT = 0;
+  end
+endfunction

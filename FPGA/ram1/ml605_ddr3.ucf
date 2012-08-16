@@ -53,13 +53,6 @@
 ############################################################################
 # Timing constraints                                                        #
 ############################################################################
-## ML605 comment out the following 2 lines for single 200MHz input clock
-## NET "sys_clk_p" TNM_NET = TNM_sys_clk;
-## TIMESPEC "TS_sys_clk" = PERIOD "TNM_sys_clk" 2.5 ns;
-
-NET "clk_ref_p" TNM_NET = TNM_clk_ref;
-TIMESPEC "TS_clk_ref" = PERIOD "TNM_clk_ref" 5 ns ;
-
 # Constrain BUFR clocks used to synchronize data from IOB to fabric logic
 # Note that ISE cannot infer this from other PERIOD constraints because
 # of the use of OSERDES blocks in the BUFR clock generation path
@@ -98,11 +91,9 @@ disable = reg_sr_r;
 # Data Mask:     1
 ########################################################################
 
-
 ################################################################################
 # I/O STANDARDS
 ################################################################################
-
 NET  "ddr3_dq[*]"                               IOSTANDARD = SSTL15_T_DCI;
 NET  "ddr3_addr[*]"                             IOSTANDARD = SSTL15;
 NET  "ddr3_ba[*]"                               IOSTANDARD = SSTL15;
@@ -116,8 +107,8 @@ NET  "ddr3_cs_n[*]"                             IOSTANDARD = SSTL15;
 NET  "ddr3_dm[*]"                               IOSTANDARD = SSTL15;
 ## NET  "sys_clk_p"                                IOSTANDARD = LVDS_25;
 ## NET  "sys_clk_n"                                IOSTANDARD = LVDS_25;
-NET  "clk_ref_p"                                IOSTANDARD = LVDS_25 | DIFF_TERM = TRUE;
-NET  "clk_ref_n"                                IOSTANDARD = LVDS_25 | DIFF_TERM = TRUE;
+NET  "clk_ref_p"                                IOSTANDARD = LVDS_25 |DIFF_TERM = TRUE;
+NET  "clk_ref_n"                                IOSTANDARD = LVDS_25 |DIFF_TERM = TRUE;
 ## NET  "sda"                                      IOSTANDARD = LVCMOS25;
 ## NET  "scl"                                      IOSTANDARD = LVCMOS25;
 NET  "sys_rst"                                  IOSTANDARD = SSTL15;      ## ML605 
@@ -131,7 +122,6 @@ NET  "ddr3_ck_n[*]"                             IOSTANDARD = DIFF_SSTL15;
 ################################################################################
 ## NET  "sda"                                      S;
 ## NET  "scl"                                      S;
-
 ###############################################################################
 #DCI_CASCADING
 #Syntax : CONFIG DCI_CASCADE = "<master> <slave1> <slave2> ..";
@@ -264,14 +254,12 @@ NET  "ddr3_dqs_n[7]"                             LOC = "D30" ;          #Bank 25
 NET  "ddr3_ck_p[0]"                              LOC = "G18" ;          #Bank 36
 NET  "ddr3_ck_n[0]"                              LOC = "H18" ;          #Bank 36
 
-
 ##################################################################################################
 ##The following locations must be reserved and cannot be used for external I/O because          ##
 ##the I/O elements associated with these sites (IODELAY, OSERDES, and associated routing)       ##
 ##are used to generate and route the clocks necessary for read data capture and synchronization ##
 ##to the core clock domain. These pins should not be routed out on the user's PCB               ##
 ##################################################################################################
-
 ##################################################################################################
 ##The logic of this pin is used internally to drive a BUFR in the column. This chosen pin must  ##
 ##be a clock pin capable of spanning to all of the banks containing data bytes in the particular##
@@ -279,13 +267,11 @@ NET  "ddr3_ck_n[0]"                              LOC = "H18" ;          #Bank 36
 ##used for other functions and should not be connected externally. If a different pin is chosen,##
 ##he corresponding LOC constraint must also be changed.                                         ##
 ##################################################################################################
-
 CONFIG PROHIBIT = C29,M12;
 
 ######################################################################################
 ##Place RSYNC OSERDES and IODELAY:                                                  ##
 ######################################################################################
-
 ##Site: C29 -- Bank 25
 INST "u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_loop_col1.u_oserdes_rsync"
   LOC = "OLOGIC_X1Y139";
@@ -310,13 +296,11 @@ INST "u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_loop_col
 ##this pin. This pin cannot be used for other functions and should not be connected externally. ##
 ##If a different pin is chosen, the corresponding LOC constraint must also be changed.          ##
 ##################################################################################################
-
 CONFIG PROHIBIT = B20,C13,C28,D24,F21,F25,K14,L13;
 
 ######################################################################################
 ##Place CPT OSERDES and IODELAY:                                                    ##
 ######################################################################################
-
 ##Site: C13 -- Bank 35
 INST "u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[0].u_oserdes_cpt"
   LOC = "OLOGIC_X2Y137";
@@ -369,9 +353,7 @@ INST "u_memc_ui_top/u_mem_intfc/phy_top0/u_phy_read/u_phy_rdclk_gen/gen_ck_cpt[7
 ######################################################################################
 ## MMCM_ADV CONSTRAINTS                                                             ##
 ######################################################################################
-
 INST "u_infrastructure/u_mmcm_adv"      LOC = "MMCM_ADV_X0Y8"; #Banks 16, 26, 36
-
 
 
 ###########################################################################

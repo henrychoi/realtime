@@ -1,17 +1,22 @@
-module application#(parameter SIMULATION=0)
-(input CLK_P, CLK_N, reset
-  , output reg pc_msg_ack
-  , input pc_msg_pending, input[31:0] pc_msg
-  , output[3:0] led);
+module application#(parameter SIMULATION=0
+, parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
+(input ram_clk, bus_clk, cl_pclk, reset
+  , output reg error
+  , input app_rdy, output reg app_en, output[2:0] app_cmd
+  , output reg[ADDR_WIDTH-1:0] app_addr
+  , input app_wdf_rdy, output reg app_wdf_wren, output app_wdf_end
+  , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
+  , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
+);
   `include "function.v"
-  localparam STANDBY = 0, ARMED = 1, CAPTURING = 2, N_CAPTURE_STATE = 3;
+  localparam INIT = 0, STANDBY = 1, ARMED = 2, CAPTURING = 3
+    , N_CAPTURE_STATE = 4;
   localparam CL0 = 2'h0, CL1 = 2'h1, CL2 = 2'h2, INTERLINE = 2'h3
     , N_CL_STATE = 4;
   reg[log2(N_CAPTURE_STATE)-1:0] capture_state;
   wire cl_fval, cl_lval, cl_pclk;
   wire[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
           , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
-  wire bus_clk, ram_clk;
   reg capture_done;
   reg fval_d, lval_d;
   wire dram_wr_fifo_full, dram_wr_fifo_empty, dram_wr_fifo_wren;
@@ -29,25 +34,28 @@ module application#(parameter SIMULATION=0)
   reg[4:0] cl0_header; 
   reg[3:0] cl1_header;
   reg[39:0] cl0_top, cl1_top, cl0_btm, cl1_btm;
+  
+  reg[1:0] app_rdy_cl;
 
-  clk125MHz clk125(.CLK_IN1_P(CLK_P), .CLK_IN1_N(CLK_N), .CLK_OUT1(bus_clk));
-  IBUFGDS ibufgds(.O(ram_clk), .I(CLK_P), .IB(CLK_N));
-  clsim cl(CLK_P, CLK_N, reset, cl_fval, cl_lval, cl_pclk
-    , cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
-    , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j);
+  clsim cl(.reset(reset), .cl_fval(cl_fval)
+    , .cl_z_lval(cl_lval), .cl_z_pclk(cl_pclk)
+    , .cl_port_a(cl_port_a), .cl_port_b(cl_port_b), .cl_port_c(cl_port_c)
+    , .cl_port_d(cl_port_d), .cl_port_e(cl_port_e)
+    , .cl_port_f(cl_port_f), .cl_port_g(cl_port_g), .cl_port_h(cl_port_h)
+    , .cl_port_i(cl_port_i), .cl_port_j(cl_port_j));
 
-  generate
-    if(SIMULATION) dram_wr_fifo_bram dram_wr_fifo(
-        .wr_clk(cl_pclk), .rd_clk(ram_clk)
+  //generate
+  //  if(SIMULATION)
+  dram_wr_fifo_bram dram_wr_fifo(.wr_clk(cl_pclk), .rd_clk(ram_clk)
         , .din(dram_wr_fifo_din), .wr_en(dram_wr_fifo_wren)
         , .rd_en(dram_wr_fifo_rden), .dout(dram_wr_fifo_dout)
         , .full(dram_wr_fifo_full), .empty(dram_wr_fifo_empty));
-    else dram_wr_fifo dram_wr_fifo(
-        .rst(reset), .wr_clk(cl_pclk), .rd_clk(ram_clk)
-        , .din(dram_wr_fifo_din), .wr_en(dram_wr_fifo_wren)
-        , .rd_en(dram_wr_fifo_rden), .dout(dram_wr_fifo_dout)
-        , .full(dram_wr_fifo_full), .empty(dram_wr_fifo_empty));
-  endgenerate
+  //  else dram_wr_fifo dram_wr_fifo(
+  //      .rst(reset), .wr_clk(cl_pclk), .rd_clk(ram_clk)
+  //      , .din(dram_wr_fifo_din), .wr_en(dram_wr_fifo_wren)
+  //      , .rd_en(dram_wr_fifo_rden), .dout(dram_wr_fifo_dout)
+  //      , .full(dram_wr_fifo_full), .empty(dram_wr_fifo_empty));
+  //endgenerate
   
   assign led = {4{`FALSE}};
   assign n_frame = bus_frame - cl_frame;
@@ -115,25 +123,25 @@ module application#(parameter SIMULATION=0)
     
   always @(posedge reset, posedge bus_clk) begin
     if(reset) begin
-      pc_msg_ack <= `FALSE;
-      capture_state <= STANDBY;
+      //pc_msg_ack <= `FALSE;
+      capture_state <= INIT;
       bus_frame <= 0;
       capture_done <= `FALSE;
       cl_stride <= {N_STRIDE_SIZE{1'b1}};
     end else begin
-      pc_msg_ack <= `FALSE;
+      // Cross from DRAM logic clock domain to camera link clock domain
+      app_rdy_cl[1] <= app_rdy_cl[0]; app_rdy_cl[0] <= app_rdy;
+      
+      //pc_msg_ack <= `FALSE;
       capture_done <= `FALSE;
 
       case(capture_state)
-        STANDBY:
-          if(pc_msg_pending && !pc_msg_ack) begin // Process the message
-            if(pc_msg[31:N_FRAME_SIZE]) begin
-              bus_frame <= pc_msg[N_FRAME_SIZE-1:0];
-              cl_stride <= pc_msg[31:N_FRAME_SIZE] - 1'b1;
-              capture_state <= ARMED;
-            end
-            pc_msg_ack <= `TRUE;
-          end
+        INIT: if(app_rdy_cl[1]) capture_state <= STANDBY;
+        STANDBY: begin
+          bus_frame <= 1;//pc_msg[N_FRAME_SIZE-1:0];
+          cl_stride <= 1;//pc_msg[31:N_FRAME_SIZE] - 1'b1;
+          capture_state <= ARMED;
+        end
         ARMED:
           if(cl_frame) capture_state <= CAPTURING;
         CAPTURING:

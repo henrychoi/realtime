@@ -1,36 +1,39 @@
 module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
-(input reset, clk, output reg error
+(input reset, clk, output reg error, heartbeat
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
 , input app_wdf_rdy, output reg app_wdf_wren, output app_wdf_end
-, output reg[APP_DATA_WIDTH-1:0] app_wdf_data
+, output[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 );
 `include "function.v"
-  localparam WR_WAIT = 0, WR = 1, RD = 2, ERROR = 3
+  localparam WR_WAIT = 1, WR = 2, RD = 3, ERROR = 0
     , NUM_STATE = 4;
-  localparam START_ADDR = 27'h0001ff0, END_ADDR = 27'h0002010//0001fc0
-    , ADDR_INC = 7'h8; // Front and back of BL8 burst skips by 0x8
+  localparam START_ADDR = 27'h000_0000//h3ff_ff00//h0001f00
+    , END_ADDR = 27'h3ff_fffc//h0002100//0001fc0
+    , ADDR_INC = 7'h4;// Front and back of BL8 burst skips by 0x8
   reg[log2(NUM_STATE)-1:0] state;
   reg bread;
-  reg[APP_DATA_WIDTH-1:0] expected_data;
+  reg[/*APP_DATA_WIDTH-1*/31:0] expected_data, wr_data;
   
   assign app_cmd = {2'b00, bread};
   assign app_wdf_end = `TRUE;
+  assign app_wdf_data = {{(APP_DATA_WIDTH-32){1'b0}}, wr_data};
 
   always @(posedge clk)
     if(reset) begin
       expected_data <= 1;
       error <= `FALSE;
+      heartbeat <= `FALSE;
   		app_addr <= START_ADDR;
       app_en <= `TRUE;
       bread <= `FALSE;
       app_wdf_wren <= `FALSE;
-      app_wdf_data <= 0;
+      wr_data <= 0;
       state <= WR_WAIT;
     end else begin
       if(app_rd_data_valid) begin
-        if(app_rd_data != expected_data) begin
+        if(app_rd_data[31:0] != expected_data) begin
           error <= `TRUE;
           state <= ERROR;
         end
@@ -43,7 +46,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
             app_en <= `FALSE;
             app_wdf_wren <= `TRUE;
             state <= WR;
-            app_wdf_data <= app_wdf_data + `TRUE;
+            wr_data <= wr_data + `TRUE;
           end
         end
         WR: begin
@@ -66,6 +69,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 					    app_addr <= START_ADDR;
               bread <= `FALSE;
               app_en <= `TRUE;
+              heartbeat <= ~heartbeat;
               state <= WR_WAIT;
             end else begin
               app_addr <= app_addr + ADDR_INC;

@@ -1,5 +1,5 @@
-module clsim(input CLK_P, CLK_N, reset
-, output reg cl_fval, cl_z_lval, output cl_z_pclk
+module clsim(input reset
+, output reg cl_fval, cl_z_lval, input cl_z_pclk
 , output reg[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
              , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j);
   `include "function.v"
@@ -15,10 +15,6 @@ module clsim(input CLK_P, CLK_N, reset
   reg[10:0] n_row;
   reg[19:0] n_frame;
   
-  // ML605's external oscillator: 200 MHz
-  clock85MHz dsClkBuf(.CLK_IN1_P(CLK_P), .CLK_IN1_N(CLK_N)//, .RESET(reset)
-    , .CLK_OUT1(cl_z_pclk));
-
   always @(posedge reset, posedge cl_z_pclk)
     if(reset) begin
       n_clclk <= 0;

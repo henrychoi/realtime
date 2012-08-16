@@ -10,154 +10,76 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="19" />
-   <wvobject fp_name="/sim/app/capture_state" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
-      <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/pc_msg_ack" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">pc_msg_ack</obj_property>
-      <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/pc_msg" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
-      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl_frame" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">cl_frame[19:0]</obj_property>
-      <obj_property name="ObjectShortName">cl_frame[19:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/bus_frame" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">bus_frame[19:0]</obj_property>
-      <obj_property name="ObjectShortName">bus_frame[19:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/pc_msg_pending" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">pc_msg_pending</obj_property>
-      <obj_property name="ObjectShortName">pc_msg_pending</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/n_stride" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">n_stride[12:0]</obj_property>
-      <obj_property name="ObjectShortName">n_stride[12:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl_stride" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">cl_stride[12:0]</obj_property>
-      <obj_property name="ObjectShortName">cl_stride[12:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl_fval" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">cl_fval</obj_property>
-      <obj_property name="ObjectShortName">cl_fval</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl_lval" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">cl_lval</obj_property>
-      <obj_property name="ObjectShortName">cl_lval</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl_state" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
-      <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl0_header" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">cl0_header[4:0]</obj_property>
-      <obj_property name="ObjectShortName">cl0_header[4:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/cl1_header" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">cl1_header[3:0]</obj_property>
-      <obj_property name="ObjectShortName">cl1_header[3:0]</obj_property>
-   </wvobject>
-   <wvobject fp_name="vbus278" type="vbus" db_ref_id="1">
-      <obj_property name="label">header</obj_property>
+   <WVObjectSize size="2" />
+   <wvobject fp_name="group57" type="group">
+      <obj_property name="label">DRAM</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[255]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[255]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[255]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[254]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[254]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[254]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[253]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[253]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[253]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[252]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[252]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[252]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[251]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[251]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[251]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[250]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[250]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[250]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[249]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[249]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[249]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[248]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[248]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[248]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[247]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[247]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[247]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[246]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[246]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[246]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[245]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[245]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[245]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[244]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[244]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[244]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[243]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[243]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[243]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[242]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[242]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[242]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[241]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[241]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[241]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/sim/app/dram_wr_fifo_din[240]" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">[240]</obj_property>
-         <obj_property name="ObjectShortName">dram_wr_fifo_din[240]</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject fp_name="/sim/app/dram_wr_fifo_wren" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">dram_wr_fifo_wren</obj_property>
-      <obj_property name="ObjectShortName">dram_wr_fifo_wren</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/dram_wr_fifo_din" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">dram_wr_fifo_din[255:0]</obj_property>
-      <obj_property name="ObjectShortName">dram_wr_fifo_din[255:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/sim/main/app/app_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_addr[26:0]</obj_property>
+         <obj_property name="ObjectShortName">app_addr[26:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_cmd" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_cmd[2:0]</obj_property>
+         <obj_property name="ObjectShortName">app_cmd[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_en</obj_property>
+         <obj_property name="ObjectShortName">app_en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_rd_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_rd_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">app_rd_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_rd_data_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_rd_data_valid</obj_property>
+         <obj_property name="ObjectShortName">app_rd_data_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_rdy</obj_property>
+         <obj_property name="ObjectShortName">app_rdy</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_wdf_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_wdf_end" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_end</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_end</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_wdf_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_rdy</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_rdy</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/app_wdf_wren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_wren</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_wren</obj_property>
+      </wvobject>
    </wvobject>
-   <wvobject fp_name="/sim/app/dram_wr_fifo_full" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">dram_wr_fifo_full</obj_property>
-      <obj_property name="ObjectShortName">dram_wr_fifo_full</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/dram_wr_fifo_empty" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">dram_wr_fifo_empty</obj_property>
-      <obj_property name="ObjectShortName">dram_wr_fifo_empty</obj_property>
-   </wvobject>
-   <wvobject fp_name="/sim/app/dram_wr_fifo_dout" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">dram_wr_fifo_dout[255:0]</obj_property>
-      <obj_property name="ObjectShortName">dram_wr_fifo_dout[255:0]</obj_property>
+   <wvobject fp_name="group60" type="group">
+      <obj_property name="label">CL</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/sim/main/app/capture_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/capture_done" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">capture_done</obj_property>
+         <obj_property name="ObjectShortName">capture_done</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/cl_fval" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_fval</obj_property>
+         <obj_property name="ObjectShortName">cl_fval</obj_property>
+      </wvobject>
+      <wvobject fp_name="/sim/main/app/cl_lval" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_lval</obj_property>
+         <obj_property name="ObjectShortName">cl_lval</obj_property>
+      </wvobject>
    </wvobject>
 </wave_config>

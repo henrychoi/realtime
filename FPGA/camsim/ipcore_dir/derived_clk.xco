@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Tue Aug 14 21:56:44 2012
+# Date: Tue Aug 14 22:05:25 2012
 #
 ##############################################################
 #
@@ -74,9 +74,9 @@ CSET clkout1_requested_out_freq=125
 CSET clkout1_requested_phase=0.000
 CSET clkout2_drives=BUFG
 CSET clkout2_requested_duty_cycle=50.000
-CSET clkout2_requested_out_freq=100.000
+CSET clkout2_requested_out_freq=85
 CSET clkout2_requested_phase=0.000
-CSET clkout2_used=false
+CSET clkout2_used=true
 CSET clkout3_drives=BUFG
 CSET clkout3_requested_duty_cycle=50.000
 CSET clkout3_requested_out_freq=100.000
@@ -103,7 +103,7 @@ CSET clkout7_requested_out_freq=100.000
 CSET clkout7_requested_phase=0.000
 CSET clkout7_used=false
 CSET clock_mgr_type=MANUAL
-CSET component_name=clk125MHz
+CSET component_name=derived_clk
 CSET daddr_port=DADDR
 CSET dclk_port=DCLK
 CSET dcm_clk_feedback=1X
@@ -148,16 +148,16 @@ CSET jitter_options=UI
 CSET jitter_sel=No_Jitter
 CSET locked_port=LOCKED
 CSET mmcm_bandwidth=OPTIMIZED
-CSET mmcm_clkfbout_mult_f=5.000
+CSET mmcm_clkfbout_mult_f=61.000
 CSET mmcm_clkfbout_phase=0.000
 CSET mmcm_clkfbout_use_fine_ps=false
 CSET mmcm_clkin1_period=5.000
 CSET mmcm_clkin2_period=10.0
-CSET mmcm_clkout0_divide_f=8.000
+CSET mmcm_clkout0_divide_f=8.875
 CSET mmcm_clkout0_duty_cycle=0.500
 CSET mmcm_clkout0_phase=0.000
 CSET mmcm_clkout0_use_fine_ps=false
-CSET mmcm_clkout1_divide=1
+CSET mmcm_clkout1_divide=13
 CSET mmcm_clkout1_duty_cycle=0.500
 CSET mmcm_clkout1_phase=0.000
 CSET mmcm_clkout1_use_fine_ps=false
@@ -184,12 +184,12 @@ CSET mmcm_clkout6_phase=0.000
 CSET mmcm_clkout6_use_fine_ps=false
 CSET mmcm_clock_hold=false
 CSET mmcm_compensation=ZHOLD
-CSET mmcm_divclk_divide=1
+CSET mmcm_divclk_divide=11
 CSET mmcm_notes=None
 CSET mmcm_ref_jitter1=0.010
 CSET mmcm_ref_jitter2=0.010
 CSET mmcm_startup_wait=false
-CSET num_out_clks=1
+CSET num_out_clks=2
 CSET override_dcm=false
 CSET override_dcm_clkgen=false
 CSET override_mmcm=false
@@ -263,4 +263,4 @@ CSET use_status=false
 MISC pkg_timestamp=2011-06-09T17:33:40Z
 # END Extra information
 GENERATE
-# CRC: 70460208
+# CRC: 3d24fa48
