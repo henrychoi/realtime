@@ -1,4 +1,6 @@
-module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
+module application#(
+parameter START_ADDR = 27'h3ff_ff00, parameter END_ADDR = 27'h3ff_fffc
+, parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 (input reset, clk, output reg error, heartbeat
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
@@ -9,9 +11,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 `include "function.v"
   localparam WR_WAIT = 1, WR = 2, RD = 3, ERROR = 0
     , NUM_STATE = 4;
-  localparam START_ADDR = 27'h000_0000//h3ff_ff00//h0001f00
-    , END_ADDR = 27'h3ff_fffc//h0002100//0001fc0
-    , ADDR_INC = 7'h4;// Front and back of BL8 burst skips by 0x8
+  localparam ADDR_INC = 7'h4;// Front and back of BL8 burst skips by 0x8
   reg[log2(NUM_STATE)-1:0] state;
   reg bread;
   reg[/*APP_DATA_WIDTH-1*/31:0] expected_data, wr_data;

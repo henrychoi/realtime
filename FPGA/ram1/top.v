@@ -1,6 +1,7 @@
 `timescale 1ps/1ps
 
 module main #(
+   parameter START_ADDR = 27'h000_0000, parameter END_ADDR = 27'h3ff_fffc,
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= 533 MHz,
                                        //   = 300 when design frequency > 533 MHz.
@@ -715,7 +716,8 @@ module main #(
     end
   endgenerate
 
-  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
+  application#(.START_ADDR(START_ADDR), .END_ADDR(END_ADDR)
+    , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(.clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)
       , .app_rdy(app_rdy), .app_en(app_en), .app_cmd(app_cmd), .app_addr(app_addr)

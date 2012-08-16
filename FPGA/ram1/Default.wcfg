@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/fpga/ram1/main_tb_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="main_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="14" />
+   <wvobject fp_name="/main_tb/main/app/app_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_addr[26:0]</obj_property>
+      <obj_property name="ObjectShortName">app_addr[26:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_cmd" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_cmd[2:0]</obj_property>
+      <obj_property name="ObjectShortName">app_cmd[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_en" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_en</obj_property>
+      <obj_property name="ObjectShortName">app_en</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_rd_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rd_data[255:0]</obj_property>
+      <obj_property name="ObjectShortName">app_rd_data[255:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_rd_data_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rd_data_valid</obj_property>
+      <obj_property name="ObjectShortName">app_rd_data_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_rdy</obj_property>
+      <obj_property name="ObjectShortName">app_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_wdf_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_data[255:0]</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_data[255:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_wdf_end" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_end</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_end</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_wdf_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_rdy</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/app_wdf_wren" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">app_wdf_wren</obj_property>
+      <obj_property name="ObjectShortName">app_wdf_wren</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/expected_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">expected_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">expected_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/heartbeat" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">heartbeat</obj_property>
+      <obj_property name="ObjectShortName">heartbeat</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/main_tb/main/app/wr_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

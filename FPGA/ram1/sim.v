@@ -1,7 +1,6 @@
 `timescale 1ps/1ps //1ps/100fs
 
 module main_tb;
-
   parameter REFCLK_FREQ           = 200;
                                     // # = 200 for all design frequencies of
                                     //         -1 speed grade devices
@@ -305,8 +304,7 @@ module main_tb;
   //assign sda = 1'b1;
   //assign scl = 1'b1;
 
-  main #
-    (
+  main #(.START_ADDR(27'h3ff_ff00), .END_ADDR(27'h3ff_fffc),
      .nCK_PER_CLK               (nCK_PER_CLK),
      .tCK                       (tCK),
      .RST_ACT_LOW               (RST_ACT_LOW),
