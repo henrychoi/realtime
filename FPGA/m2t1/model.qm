@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.2.00">
+ <framework name="qpn"/>
+ <package name="FPGA" stereotype="0x00">
+  <class name="m2t" superclass="qpn::QHsm"/>
+ </package>
+</model>
