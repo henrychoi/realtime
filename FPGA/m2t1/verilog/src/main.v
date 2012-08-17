@@ -145,12 +145,6 @@ module main #(parameter SIMULATION = 0,
   , output[3:0] PCIE_TX_N, PCIE_TX_P
    );
 `include "function.v"
-  // Xillybus signals
-  wire bus_clk;
-  wire quiesce, app_done
-   , rd_rden, rd_open, wr_wren, wr_full, wr_open
-   , loop_rden, loop_empty, rd_loop_open, loop_full, rd_fifo_full;
-  wire[31:0] rd_data, wr_data, rd_loop_data, wr_fifo_data;
 
   localparam SYSCLK_PERIOD          = tCK * nCK_PER_CLK;
 
@@ -270,7 +264,8 @@ module main #(parameter SIMULATION = 0,
   //assign clk_ref = 1'b0;
   //assign sys_clk = 1'b0; 
   //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
-  wire clk_200;    
+  wire clk_200;
+  wire clk_85;
 
   iodelay_ctrl #
     (
@@ -318,6 +313,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
+       .clk_85(clk_85),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -454,42 +450,6 @@ module main #(parameter SIMULATION = 0,
    .dbg_dq_tap_cnt                   (dbg_dq_tap_cnt),
    .dbg_rddata                       (dbg_rddata)
    );
-   
-generate
-  if(!SIMULATION) begin: instantiate_xb
-  xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
-    , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
-    , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
-    , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
-    , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
-    , .bus_clk(bus_clk), .quiesce(quiesce)
-
-    , .user_r_rd_rden(rd_rden), .user_r_rd_empty(rd_empty)
-    , .user_r_rd_data(rd_data), .user_r_rd_open(rd_open)
-    , .user_r_rd_eof((!wr_fifo_empty && (wr_fifo_data == 0) && rd_empty)
-                     || app_done)
-    , .user_w_wr_wren(wr_rden), .user_w_wr_full(wr_full)
-    , .user_w_wr_data(wr_data), .user_w_wr_open(wr_open)
-    , .user_r_rd_loop_rden(loop_rden), .user_r_rd_loop_empty(loop_empty)
-    , .user_r_rd_loop_data(rd_loop_data), .user_r_rd_loop_open(rd_loop_open)
-    , .user_r_rd_loop_eof(!wr_open && loop_empty));
-
-  xb_wr_fifo(.clk(bus_clk)
-    , .din(wr_data), .wr_en(wr_rden)
-    , .rd_en(wr_fifo_ack), .dout(wr_fifo_data)
-    , .full(wr_32_full), .empty(wr_fifo_empty));
-
-  xb_rd_fifo(.clk(bus_clk)//, .rst(reset)
-    , .din(rd_fifo_data), .wr_en(fpga_msg_valid && rd_open)
-    , .rd_en(rd_rden), .dout(rd_data)
-    , .full(rd_fifo_full), .empty(rd_empty));
-
-  xb_rd_fifo(.clk(bus_clk)//, .rst(reset)
-    , .din(wr_fifo_data), .wr_en(wr_fifo_ack)
-    , .rd_en(loop_rden), .dout(rd_loop_data)
-    , .full(loop_full), .empty(loop_empty));
-  end
-endgenerate
 
   // If debug port is not enabled, then make certain control input
   // to Debug Port are disabled
@@ -690,6 +650,87 @@ endgenerate
     end
   endgenerate
 
+  wire app_done;
+
+  // Xillybus signals
+  wire bus_clk, quiesce
+   , xb_rd_rden         //xb_rd_fifo -> xillybus
+   , xb_rd_empty        //xb_rd_fifo -> xillybus
+   , xb_rd_open         //xillybus -> xb_rd_fifo
+   , fpga_msg_valid     //app -> xb_rd_fifo
+   , fpga_msg_full      //xb_rd_fifo -> app
+   , pc_msg_empty, pc_msg_pending //xb_wr_fifo -> app; NOT of empty
+   , pc_msg_ack         // app -> xb_wr_fifo
+   , xb_wr_wren         // xillybus -> xb_wr_fifo
+   , xb_wr_full         // xb_wr_fifo -> xillybus
+   , xb_wr_open         // xillybus -> xb_wr_fifo
+   , xb_loop_rden       // xillybus -> xb_loop_fifo
+   , xb_loop_empty      // xb_loop_fifo -> xillybus
+   , xb_loop_full;      // xb_loop_fifo -> xillybus
+  wire[31:0] xb_rd_data//xb_rd_fifo -> xillybus
+   , xb_loop_data // xb_loopback_fifo -> xillybus
+   , xb_wr_data          // xillybus -> xb_wr_fifo
+   , pc_msg;
+  wire[63:0] fpga_msg;  //app -> xb_rd_fifo
+
+  generate
+    if(SIMULATION == 1) begin: simulate_xb
+      reg[31:0] pc_msg_r;
+      reg bus_clk_r, pc_msg_empty_r;
+      initial begin
+        bus_clk_r <= `FALSE;
+        pc_msg_empty_r <= `TRUE;
+        pc_msg_r <= 0;
+        #120000 pc_msg_r = 1;
+      end
+      always #4000 bus_clk_r = ~bus_clk_r;
+      assign bus_clk = bus_clk_r;
+      assign pc_msg = pc_msg_r;
+      assign pc_msg_empty = pc_msg_empty_r;
+    end else begin: instantiate_xb
+        
+      xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
+        , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
+        , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
+        , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
+        , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
+        , .bus_clk(bus_clk), .quiesce(quiesce)
+
+        , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
+        , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
+        , .user_r_rd_eof((pc_msg_pending && (pc_msg == ~0) && xb_rd_empty)
+                         || app_done)
+                         
+        , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full)
+        , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
+        
+        , .user_r_rd_loop_rden(xb_loop_rden)
+        , .user_r_rd_loop_empty(xb_loop_empty)
+        , .user_r_rd_loop_data(xb_loop_data)
+        , .user_r_rd_loop_open(xb_loop_open)
+        , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
+        );
+
+      xb_wr_fifo(.clk(bus_clk)
+        , .din(xb_wr_data), .wr_en(xb_wr_wren)
+        , .rd_en(pc_msg_ack), .dout(pc_msg)
+        , .full(xb_wr_full), .empty(pc_msg_empty));
+
+      xb_loopback_fifo(.clk(bus_clk)//, .rst(reset)
+        , .din(pc_msg), .wr_en(pc_msg_ack)
+        , .rd_en(xb_loop_rden), .dout(xb_loop_data)
+        , .full(xb_loop_full), .empty(xb_loop_empty));
+    end
+  endgenerate
+
+  // Corss from camera link clock tp PCIe bus clock
+  xb_rd_fifo xb_rd_fifo(.wr_clk(bus_clk), .rd_clk(cl_clk)//, .rst(reset)
+    , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
+    , .rd_en(xb_rd_rden), .dout(xb_rd_data)
+    , .full(fpga_msg_full), .empty(xb_rd_empty));
+
+  assign pc_msg_pending = !pc_msg_empty;
+  
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
       .clk(clk), .reset(rst)
@@ -699,21 +740,15 @@ endgenerate
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
       //xillybus signals
-      , .bus_clk(bus_clk), .pc_msg_pending(!wr_fifo_empty), .pc_msg_ack(wr_fifo_ack)
-      , .pc_msg(wr_fifo_data), .fpga_msg_full(rd_fifo_full)
-      , .fpga_msg(rd_fifo_data), .fpga_msg_valid(fpga_msg_valid)
+      , .bus_clk(bus_clk)
+      , .pc_msg_pending(pc_msg_pending), .pc_msg_ack(pc_msg_ack)
+      , .pc_msg(pc_msg)
+      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
+      , .fpga_msg(fpga_msg)
       , .app_done(app_done)
+      
+      //camera link signals
+      , .clk_85(clk_85)
       );
 
-  generate
-    if(SIMULATION) begin: simulate_xb
-      initial begin
-        bus_clk = `FALSE;
-        wr_fifo_empty = `TRUE;
-        wr_fifo_data <= 0;
-        #120000 wr_fifo_data = 1;
-      end
-      always #4000 bus_clk = ~bus_clk;
-    end  
-  endgenerate
 endmodule

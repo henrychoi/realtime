@@ -1,13 +1,14 @@
 module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
-(input reset, clk, output reg error, heartbeat
+(input reset, clk, output reg error, heartbeat, app_done
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
 , input app_wdf_rdy, output reg app_wdf_wren
 , output[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
-, input bus_clk, pc_msg_pending, output reg pc_msg_ack
-, input[31:0] pc_msg, input fpga_msg_full
-, output[31:0] fpga_msg, output fpga_msg_valid, output reg app_done);
+, input bus_clk
+, input pc_msg_pending, output reg pc_msg_ack, input[31:0] pc_msg
+, input fpga_msg_full, output reg fpga_msg_valid, output reg[63:0] fpga_msg
+, input clk_85);
 `include "function.v"
   localparam START_ADDR = 27'h000_0000, END_ADDR = 27'h3ff_fffc;
   localparam WR_WAIT = 1, WR = 2, RD = 3, ERROR = 0, NUM_STATE = 4;
@@ -30,6 +31,9 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       app_wdf_wren <= `FALSE;
       wr_data <= 0;
       state <= WR_WAIT;
+      pc_msg_ack <= `FALSE;
+      fpga_msg_valid <= `FALSE;
+      fpga_msg <= 0;
     end else begin
       if(app_rd_data_valid) begin
         if(app_rd_data[31:0] != expected_data) begin
