@@ -2,6 +2,242 @@
 <model version="2.2.00">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
-  <class name="m2t" superclass="qpn::QHsm"/>
+  <class name="CameraLink" superclass="qpn::QHsm">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../4">
+     <initial_glyph conn="4,5,4,0,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="standby">
+     <tran trig="PC_MSG(stride, n_frame)" target="../../2">
+      <action brief="\bus_frame = n_frame;\cl_stride = stride;"/>
+      <tran_glyph conn="12,8,2,0,9">
+       <action box="1,1,17,6"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="11,2,7,6"/>
+    </state>
+    <state name="armed">
+     <tran trig="cl_frame != 0 &amp;&amp; app_rdy" target="../../3">
+      <tran_glyph conn="20,22,1,3,10">
+       <action box="1,-4,9,5"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="cl_frame = bus_frame"/>
+      <tran_glyph conn="20,24,1,-1,-3">
+       <action box="-14,-3,13,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,17,18,8"/>
+    </state>
+    <state name="CAPTURING">
+     <initial target="../3">
+      <initial_glyph conn="32,26,4,3,-2,2">
+       <action box="-3,-2,6,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="cl_frame == 0" target="../../1">
+      <action brief="^EoF(CL_DONE)"/>
+      <tran_glyph conn="30,3,3,1,-12">
+       <action box="-11,0,10,5"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="CL_FVAL">
+      <action brief="\if(stride == 0) cl_frame--;\else stride++"/>
+      <tran_glyph conn="30,5,3,-1,2">
+       <action box="3,-1,11,8"/>
+      </tran_glyph>
+     </tran>
+     <state name="INTERLINE">
+      <entry brief="l_col = -1;\r_col = 0"/>
+      <exit brief="publish 3 pixels;\save last 4 bits"/>
+      <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../4/1">
+       <tran_glyph conn="42,17,0,3,-5,10">
+        <action box="0,-11,9,6"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="34,17,13,12">
+       <entry box="1,2,11,4"/>
+       <exit box="1,6,12,6"/>
+      </state_glyph>
+     </state>
+     <state name="INTRALINE">
+      <tran trig="!LVAL" target="../../3">
+       <tran_glyph conn="50,14,3,0,-6,3">
+        <action box="-5,0,5,2"/>
+       </tran_glyph>
+      </tran>
+      <state name="CL1">
+       <entry brief="l_col = r_col + 1;\r_col += 3"/>
+       <tran trig="CL_CLK" target="../../3">
+        <action brief="\compose 3 pixels from saved and new; publish 3 pixels; save last 8 bits to buffer"/>
+        <tran_glyph conn="62,8,1,3,15">
+         <action box="1,-2,13,9"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="52,7,10,10">
+        <entry box="1,2,8,6"/>
+       </state_glyph>
+      </state>
+      <state name="CL0">
+       <entry brief="l_col = r_col+1;\r_col += 4"/>
+       <tran trig="CL_CLK" target="../../1">
+        <action brief="publish 3 pixels;\save last 4 bits"/>
+        <tran_glyph conn="61,21,3,2,-3,-4">
+         <action box="-10,-1,10,6"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="61,18,12,10">
+        <entry box="1,2,10,6"/>
+       </state_glyph>
+      </state>
+      <state name="CL2">
+       <entry brief="l_col = r_col+1;\r_col += 3"/>
+       <tran trig="CL_CLK" target="../../2">
+        <action brief="\compose 4 pixels from saved and new;\publish 4 pixels"/>
+        <tran_glyph conn="83,18,2,1,3,-10">
+         <action box="-8,1,12,10"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="77,7,10,11">
+        <entry box="1,2,9,6"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="50,4,38,25"/>
+     </state>
+     <state_glyph node="30,1,59,29"/>
+    </state>
+    <state name="INIT">
+     <tran trig="app_rdy_dd" target="../../1">
+      <tran_glyph conn="7,8,0,3,-4,4">
+       <action box="-4,-6,9,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,8,6,6"/>
+    </state>
+    <state_diagram size="92,32"/>
+   </statechart>
+  </class>
+  <class name="Patch" superclass="qpn::QHsm">
+   <attribute name="sum" type="" visibility="0x01" properties="0x00"/>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="3,3,4,3,2,4">
+      <action box="2,-1,7,4"/>
+     </initial_glyph>
+    </initial>
+    <state name="WAITING">
+     <entry brief="sum = 0; n_row = 0"/>
+     <exit brief="^sum"/>
+     <tran trig="partial_sum_valid(partial_sum)">
+      <action brief="n_row++; sum += partial_sum"/>
+      <tran_glyph conn="40,7,1,-1,-2">
+       <action box="-23,-1,20,4"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="n_row == PATCH_SIZE">
+      <tran_glyph conn="40,5,1,-1,5,3">
+       <action box="1,-2,15,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="7,2,33,9">
+      <entry box="1,2,19,2"/>
+      <exit box="1,4,9,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="91,28"/>
+   </statechart>
+  </class>
+  <class name="PatchRowSummer" superclass="qpn::QHsm">
+   <attribute name="owner" type="Patch" visibility="0x02" properties="0x00"/>
+   <statechart>
+    <state name="WAIT">
+     <entry brief="n_pixel = 0;"/>
+     <tran trig="col == start_col" target="../../1">
+      <tran_glyph conn="19,10,1,3,8">
+       <action box="1,-4,8,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,7,15,6">
+      <entry box="1,2,13,2"/>
+     </state_glyph>
+    </state>
+    <state name="WORKING">
+     <entry brief="partial_sum = 0;"/>
+     <exit brief="partial_sum_valid"/>
+     <tran trig="PIXEL_AVAIL">
+      <action brief="linear transform for all pixels"/>
+      <tran_glyph conn="56,11,1,-1,-4">
+       <action box="-28,1,28,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="27,6,29,8">
+      <entry box="1,2,24,2"/>
+      <exit box="1,4,17,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="89,36"/>
+   </statechart>
+  </class>
+  <class name="m2t" superclass="qpn::QHsm">
+   <statechart>
+    <state_diagram size="92,35"/>
+   </statechart>
+  </class>
+  <class name="PatchRowMatcher" superclass="qpn::QHsm">
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="4,5,4,0,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="UNUSED">
+     <tran trig="INIT" target="../../2">
+      <tran_glyph conn="8,8,0,3,-2,4">
+       <action box="1,-4,5,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,8,8,6"/>
+    </state>
+    <state name="WAIT">
+     <entry brief="bTop = bTop_in; start_col = start_col_in; n_toSend = PSF_SIZE;"/>
+     <tran trig="right_col &gt;= start_col" target="../../3">
+      <action brief="Insert (right_col - start_col + 1) pixels into FIFO;\remaining -= (right_col - start_col + 1);"/>
+      <tran_glyph conn="29,6,1,3,18">
+       <action box="1,-2,17,10"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="12,5,17,10">
+      <entry box="1,2,16,6"/>
+     </state_glyph>
+    </state>
+    <state name="SENDING">
+     <tran trig="cl_clk">
+      <choice>
+       <guard brief="else">guard1</guard>
+       <action brief="toSend = MIN(start_col + PATCH_SIZE - left_col, 4);\Insert toSend pixels into FIFO;\remaining -= toSend;"/>
+       <choice_glyph conn="53,9,5,-1,4">
+        <action box="5,-1,22,8"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../../1">
+       <guard brief="(right_col - left_col + 1) &gt;= remaining">guard2</guard>
+       <action brief="Insert remaining pixels into FIFO"/>
+       <choice_glyph conn="53,9,4,2,9,-47,-4">
+        <action box="-25,7,25,4"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="47,9,3,-1,6">
+       <action box="0,-2,5,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="47,5,34,10"/>
+    </state>
+    <state_diagram size="83,22"/>
+   </statechart>
+  </class>
  </package>
 </model>

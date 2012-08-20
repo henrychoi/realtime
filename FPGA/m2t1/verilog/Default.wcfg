@@ -10,15 +10,10 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="8" />
+   <WVObjectSize size="15" />
    <wvobject fp_name="/simmain/main/app/heartbeat" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">heartbeat</obj_property>
       <obj_property name="ObjectShortName">heartbeat</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/app/state" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">state[1:0]</obj_property>
-      <obj_property name="ObjectShortName">state[1:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/app/wr_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">wr_data[31:0]</obj_property>
@@ -32,6 +27,7 @@
    <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
       <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/pc_msg_ack" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">pc_msg_ack</obj_property>
@@ -44,5 +40,42 @@
    <wvobject fp_name="/simmain/main/app/fpga_msg" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">fpga_msg[63:0]</obj_property>
       <obj_property name="ObjectShortName">fpga_msg[63:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/cl_fval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_fval</obj_property>
+      <obj_property name="ObjectShortName">cl_fval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/cl_lval" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_lval</obj_property>
+      <obj_property name="ObjectShortName">cl_lval</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/cl_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/l_col" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">l_col[11:0]</obj_property>
+      <obj_property name="ObjectShortName">l_col[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/r_col" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">r_col[11:0]</obj_property>
+      <obj_property name="ObjectShortName">r_col[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/pixel012_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pixel012_valid</obj_property>
+      <obj_property name="ObjectShortName">pixel012_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/pixel3_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pixel3_valid</obj_property>
+      <obj_property name="ObjectShortName">pixel3_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/capture_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 </wave_config>

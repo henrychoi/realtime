@@ -733,7 +733,7 @@ module main #(parameter SIMULATION = 0,
   
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
-      .clk(clk), .reset(rst)
+      .dram_clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)
       , .app_rdy(app_rdy), .app_en(app_en), .app_cmd(app_cmd), .app_addr(app_addr)
       , .app_wdf_wren(app_wdf_wren)
