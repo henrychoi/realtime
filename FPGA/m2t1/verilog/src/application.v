@@ -1,3 +1,4 @@
+`timescale 1ps/1ps
 module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
 (input reset, dram_clk, output reg error, heartbeat, app_done
 , input app_rdy, output reg app_en, output[2:0] app_cmd
@@ -38,17 +39,79 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
   wire[7:0] cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e
           , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
   reg fval_d, lval_d;
-  reg[11:0] pixel_top[3:0], pixel_btm[3:0], matched_pixel[N_MATCHER-1:0];
-  wire pixel012_valid, pixel3_valid, matched_pixel_pending[N_MATCHER-1:0];
-  reg matched_pixel_ack[N_MATCHER-1:0]
+  reg[47:0] pixel_top, pixel_btm;
+  wire pixel012_valid, pixel3_valid;
+  wire[11:0] matched_pixel[N_MATCHER-1:0];
+  reg[N_COL_SIZE-1:0] macher_start_col[N_MATCHER-1:0];
+  reg[N_MATCHER-1:0] matched_pixel_ack, matcher_init, matcher_top;
+  wire[N_MATCHER-1:0] matched_pixel_pending, matched_pixel_valid
+    , matched_pixel_bit00, matched_pixel_bit01, matched_pixel_bit02
+    , matched_pixel_bit03, matched_pixel_bit04, matched_pixel_bit05
+    , matched_pixel_bit06, matched_pixel_bit07, matched_pixel_bit08
+    , matched_pixel_bit09, matched_pixel_bit10, matched_pixel_bit11
+    , matcher_start_col_b00, matcher_start_col_b01, matcher_start_col_b02
+    , matcher_start_col_b03, matcher_start_col_b04, matcher_start_col_b05
+    , matcher_start_col_b06, matcher_start_col_b07, matcher_start_col_b08
+    , matcher_start_col_b09, matcher_start_col_b10, matcher_start_col_b11
+    ;
   
   PatchRowMatcher#(.N_COL_SIZE(N_COL_SIZE))
     matcher[N_MATCHER-1:0](.cl_clk(clk_85), .reset(reset)
-    , .l_col(l_col), .r_col(r_col);
+    , .init_en(matcher_init), .bTop_in(matcher_top)
+    , .start_col_b00(matcher_start_col_b00)
+    , .start_col_b01(matcher_start_col_b01)
+    , .start_col_b02(matcher_start_col_b02)
+    , .start_col_b03(matcher_start_col_b03)
+    , .start_col_b04(matcher_start_col_b04)
+    , .start_col_b05(matcher_start_col_b05)
+    , .start_col_b06(matcher_start_col_b06)
+    , .start_col_b07(matcher_start_col_b07)
+    , .start_col_b08(matcher_start_col_b08)
+    , .start_col_b09(matcher_start_col_b09)
+    , .start_col_b10(matcher_start_col_b10)
+    , .start_col_b11(matcher_start_col_b11)
+    , .l_col(l_col), .r_col(r_col)
     , .pixel012_valid(pixel012_valid), .pixel3_valid(pixel3_valid)
     , .pixel_top(pixel_top), .pixel_btm(pixel_btm)
     , .rd_clk(dram_clk), .pixel_ack(matched_pixel_ack)
-    , .pixel_pending(matched_pixel_pending), .pixel(matched_pixel));
+    , .somepixel_pending(matched_pixel_pending)
+    , .matched_pixel_valid(matched_pixel_valid)
+    , .matched_pixel_b00(matched_pixel_bit00)//What a pain:
+    , .matched_pixel_b01(matched_pixel_bit01)//All because the Verilog module
+    , .matched_pixel_b02(matched_pixel_bit02)//array instantiation syntax
+    , .matched_pixel_b03(matched_pixel_bit03)//can't carry an array of bus, I
+    , .matched_pixel_b04(matched_pixel_bit04)//have to break up an array of
+    , .matched_pixel_b05(matched_pixel_bit05)//bus as simple buses, and then
+    , .matched_pixel_b06(matched_pixel_bit06)//do the plumbing in a generate
+    , .matched_pixel_b07(matched_pixel_bit07)//statement (see below).
+    , .matched_pixel_b08(matched_pixel_bit08)
+    , .matched_pixel_b09(matched_pixel_bit09)
+    , .matched_pixel_b10(matched_pixel_bit10)
+    , .matched_pixel_b11(matched_pixel_bit11));
+    
+  genvar i;
+  generate for(i = 0; i < N_MATCHER; i = i + 1) begin: assign_bus_to_array
+      assign matched_pixel[i] = {
+          matched_pixel_bit11[i], matched_pixel_bit10[i]
+        , matched_pixel_bit09[i], matched_pixel_bit08[i]
+        , matched_pixel_bit07[i], matched_pixel_bit06[i]
+        , matched_pixel_bit05[i], matched_pixel_bit04[i]
+        , matched_pixel_bit03[i], matched_pixel_bit02[i]
+        , matched_pixel_bit01[i], matched_pixel_bit00[i]};
+      assign matcher_start_col_b11[i] = macher_start_col[i][11];
+      assign matcher_start_col_b10[i] = macher_start_col[i][10];
+      assign matcher_start_col_b09[i] = macher_start_col[i][9];
+      assign matcher_start_col_b08[i] = macher_start_col[i][8];
+      assign matcher_start_col_b07[i] = macher_start_col[i][7];
+      assign matcher_start_col_b06[i] = macher_start_col[i][6];
+      assign matcher_start_col_b05[i] = macher_start_col[i][5];
+      assign matcher_start_col_b04[i] = macher_start_col[i][4];
+      assign matcher_start_col_b03[i] = macher_start_col[i][3];
+      assign matcher_start_col_b02[i] = macher_start_col[i][2];
+      assign matcher_start_col_b01[i] = macher_start_col[i][1];
+      assign matcher_start_col_b00[i] = macher_start_col[i][0];
+    end
+  endgenerate
 
   clsim cl(.reset(reset), .cl_fval(cl_fval)
     , .cl_z_lval(cl_lval), .cl_z_pclk(clk_85)
@@ -57,13 +120,33 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
     , .cl_port_f(cl_port_f), .cl_port_g(cl_port_g), .cl_port_h(cl_port_h)
     , .cl_port_i(cl_port_i), .cl_port_j(cl_port_j));
 
+  // Corss from camera link clock tp PCIe bus clock
+  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(cl_clk)//, .rst(reset)
+    , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
+    , .rd_en(xb_rd_rden), .dout(xb_rd_data)
+    , .full(fpga_msg_full), .empty(xb_rd_empty));
+
+  initial begin // for simulation
+    macher_start_col[0] <= 1; matcher_top[0] <= `TRUE;
+    matched_pixel_ack[0] <= `TRUE;
+    matcher_init[0] <= `FALSE;
+    macher_start_col[1] <= 2; matcher_top[1] <= `FALSE;
+    matched_pixel_ack[1] <= `TRUE;
+    matcher_init[1] <= `FALSE;
+
+    #200000 matcher_init[0] <= `TRUE;
+            matcher_init[1] <= `TRUE;
+    #300000 matcher_init[0] <= `FALSE;
+            matcher_init[1] <= `FALSE;
+  end
+  
   assign pixel012_valid = cl_state != CL_INTERLINE;
   assign pixel3_valid = cl_state == CL_0;
   
   always @(posedge reset, posedge clk_85)
     if(reset) begin
       fval_d <= 0; lval_d <= 0;
-      l_col <= 0; r_col <= 0;
+      l_col <= ~0; r_col <= 0;
       cl_state <= CL_INTERLINE;
     end else begin
       fval_d <= cl_fval; lval_d <= cl_lval;
@@ -71,44 +154,36 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
       if(cl_lval)
         case(cl_state)
           CL_INTERLINE, CL_0: begin
-            pixel_top[0] <= {cl_port_a, cl_port_b[7:4]};
-            pixel_top[1] <= {cl_port_b[3:0], cl_port_c};
-            pixel_top[2] <= {cl_port_d, cl_port_e[7:4]};
+            pixel_top <= {cl_port_a, cl_port_b, cl_port_c, cl_port_d
+              , cl_port_e[7:4], 12'b0};
             cl_buffer_top[3:0] <= cl_port_e[3:0];
-            pixel_btm[0] <= {cl_port_f, cl_port_g[7:4]};
-            pixel_btm[1] <= {cl_port_g[3:0], cl_port_h};
-            pixel_btm[2] <= {cl_port_i, cl_port_j[7:4]};
+            pixel_btm <= {cl_port_f, cl_port_g, cl_port_h, cl_port_i
+              , cl_port_j[7:4], 12'b0};
             cl_buffer_btm[3:0] <= cl_port_j[3:0];
-            l_col <= r_col; r_col <= r_col + 2'd3;
+            l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
             cl_state <= CL_1;
           end
           CL_1: begin
-            pixel_top[0] <= {cl_buffer_top[3:0], cl_port_a};
-            pixel_top[1] <= {cl_port_b, cl_port_c[7:4]};
-            pixel_top[2] <= {cl_port_c[3:0], cl_port_d};
+            pixel_top <= {cl_buffer_top[3:0]
+              , cl_port_a, cl_port_b, cl_port_c, cl_port_d, 12'b0};
             cl_buffer_top[7:0] <= cl_port_e;
-            pixel_btm[0] <= {cl_buffer_btm[3:0], cl_port_f};
-            pixel_btm[1] <= {cl_port_g, cl_port_h[7:4]};
-            pixel_btm[2] <= {cl_port_h[3:0], cl_port_i};
+            pixel_btm <= {cl_buffer_btm[3:0]
+              , cl_port_f, cl_port_g, cl_port_h, cl_port_i, 12'b0};
             cl_buffer_btm[7:0] <= cl_port_j;
-            l_col <= r_col; r_col <= r_col + 2'd3;
+            l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
             cl_state <= CL_2;
           end
           CL_2: begin
-            pixel_top[0] <= {cl_buffer_top, cl_port_a[7:4]};
-            pixel_top[1] <= {cl_port_a[3:0], cl_port_b};
-            pixel_top[2] <= {cl_port_c, cl_port_d[7:4]};
-            pixel_top[3] <= {cl_port_d[3:0], cl_port_e};
-            pixel_btm[0] <= {cl_buffer_btm, cl_port_f[7:4]};
-            pixel_btm[1] <= {cl_port_f[3:0], cl_port_g};
-            pixel_btm[2] <= {cl_port_h, cl_port_i[7:4]};
-            pixel_btm[3] <= {cl_port_i[3:0], cl_port_j};
-            l_col <= r_col; r_col <= r_col + 3'd4;
+            pixel_top <= {cl_buffer_top
+              , cl_port_a, cl_port_b, cl_port_c, cl_port_d, cl_port_e};
+            pixel_btm <= {cl_buffer_btm
+              , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j};
+            l_col <= r_col + 1'b1; r_col <= r_col + 3'd4;
             cl_state <= CL_0;
           end
         endcase
-      else begin
-        l_col <= 0; r_col <= 0;
+      else begin // !LVAL
+        l_col <= ~0; r_col <= ~0;
         cl_state <= CL_INTERLINE;
       end
     end//cl_85

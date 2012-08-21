@@ -724,7 +724,7 @@ module main #(parameter SIMULATION = 0,
   endgenerate
 
   // Corss from camera link clock tp PCIe bus clock
-  xb_rd_fifo xb_rd_fifo(.wr_clk(bus_clk), .rd_clk(cl_clk)//, .rst(reset)
+  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(cl_clk)//, .rst(reset)
     , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
     , .rd_en(xb_rd_rden), .dout(xb_rd_data)
     , .full(fpga_msg_full), .empty(xb_rd_empty));
