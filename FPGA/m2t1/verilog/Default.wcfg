@@ -10,11 +10,16 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="3" />
+   <WVObjectSize size="2" />
    <wvobject fp_name="group23" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/dram_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dram_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">dram_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/heartbeat" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">heartbeat</obj_property>
          <obj_property name="ObjectShortName">heartbeat</obj_property>
@@ -92,99 +97,66 @@
          <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/matched_pixel" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">matched_pixel[3:0,11:0]</obj_property>
-         <obj_property name="ObjectShortName">matched_pixel[3:0,11:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
    </wvobject>
-   <wvobject fp_name="group18" type="group">
-      <obj_property name="label">matcher[0]</obj_property>
+   <wvobject fp_name="group45" type="group">
+      <obj_property name="label">reducer0</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /r_minus_start" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">r_minus_start[1:0]</obj_property>
-         <obj_property name="ObjectShortName">r_minus_start[1:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/cl_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /state" type="array" db_ref_id="1">
+      <wvobject fp_name="/simmain/main/app/reducer00/state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">state[1:0]</obj_property>
          <obj_property name="ObjectShortName">state[1:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /init_en" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">init_en</obj_property>
-         <obj_property name="ObjectShortName">init_en</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/matched_pixel" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">matched_pixel[11:0]</obj_property>
+         <obj_property name="ObjectShortName">matched_pixel[11:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /pixels_remaining" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pixels_remaining[2:0]</obj_property>
-         <obj_property name="ObjectShortName">pixels_remaining[2:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /n_valid_pixels" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">n_valid_pixels[2:0]</obj_property>
-         <obj_property name="ObjectShortName">n_valid_pixels[2:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="vbus30" type="vbus" db_ref_id="1">
-         <obj_property name="label">pixel_valid</obj_property>
-         <obj_property name="DisplayName">label</obj_property>
-         <wvobject fp_name="/simmain/main/app/\matcher[0] /p0_valid" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">p0_valid</obj_property>
-            <obj_property name="ObjectShortName">p0_valid</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/\matcher[0] /p1_valid" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">p1_valid</obj_property>
-            <obj_property name="ObjectShortName">p1_valid</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/\matcher[0] /p2_valid" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">p2_valid</obj_property>
-            <obj_property name="ObjectShortName">p2_valid</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/\matcher[0] /p3_valid" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">p3_valid</obj_property>
-            <obj_property name="ObjectShortName">p3_valid</obj_property>
-         </wvobject>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /matched_pixel_valid" type="logic" db_ref_id="1">
+      <wvobject fp_name="/simmain/main/app/reducer00/matched_pixel_valid" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">matched_pixel_valid</obj_property>
          <obj_property name="ObjectShortName">matched_pixel_valid</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[0] /somepixel_pending" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">somepixel_pending</obj_property>
-         <obj_property name="ObjectShortName">somepixel_pending</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/pixels_received" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pixels_received[2:0]</obj_property>
+         <obj_property name="ObjectShortName">pixels_received[2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject fp_name="group33" type="group">
-      <obj_property name="label">matcher[1]</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /r_minus_start" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">r_minus_start[1:0]</obj_property>
-         <obj_property name="ObjectShortName">r_minus_start[1:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/dark" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dark[5:0,11:0]</obj_property>
+         <obj_property name="ObjectShortName">dark[5:0,11:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">state[1:0]</obj_property>
-         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/weight" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weight[5:0,15:0]</obj_property>
+         <obj_property name="ObjectShortName">weight[5:0,15:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /pixels_remaining" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pixels_remaining[2:0]</obj_property>
-         <obj_property name="ObjectShortName">pixels_remaining[2:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/dark_subtracted" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dark_subtracted[11:0]</obj_property>
+         <obj_property name="ObjectShortName">dark_subtracted[11:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /fromWAITtoSENDING" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">fromWAITtoSENDING</obj_property>
-         <obj_property name="ObjectShortName">fromWAITtoSENDING</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/weighted_pixel" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_pixel[28:0]</obj_property>
+         <obj_property name="ObjectShortName">weighted_pixel[28:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /n_valid_pixels" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">n_valid_pixels[2:0]</obj_property>
-         <obj_property name="ObjectShortName">n_valid_pixels[2:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/bTop_d" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">bTop_d</obj_property>
+         <obj_property name="ObjectShortName">bTop_d</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /matched_pixel_valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">matched_pixel_valid</obj_property>
-         <obj_property name="ObjectShortName">matched_pixel_valid</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/start_col_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">start_col_d[11:0]</obj_property>
+         <obj_property name="ObjectShortName">start_col_d[11:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/\matcher[1] /somepixel_pending" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">somepixel_pending</obj_property>
-         <obj_property name="ObjectShortName">somepixel_pending</obj_property>
+      <wvobject fp_name="/simmain/main/app/reducer00/sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum[30:0]</obj_property>
+         <obj_property name="ObjectShortName">sum[30:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

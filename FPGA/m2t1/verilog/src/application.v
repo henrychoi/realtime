@@ -1,5 +1,6 @@
 `timescale 1ps/1ps
-module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
+module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
+, PIXEL_SIZE=12, N_MATCHER=4)
 (input reset, dram_clk, output reg error, heartbeat, app_done
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
@@ -41,78 +42,21 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
   reg fval_d, lval_d;
   reg[47:0] pixel_top, pixel_btm;
   wire pixel012_valid, pixel3_valid;
-  wire[11:0] matched_pixel[N_MATCHER-1:0];
-  reg[N_COL_SIZE-1:0] macher_start_col[N_MATCHER-1:0];
-  reg[N_MATCHER-1:0] matched_pixel_ack, matcher_init, matcher_top;
-  wire[N_MATCHER-1:0] matched_pixel_pending, matched_pixel_valid
-    , matched_pixel_bit00, matched_pixel_bit01, matched_pixel_bit02
-    , matched_pixel_bit03, matched_pixel_bit04, matched_pixel_bit05
-    , matched_pixel_bit06, matched_pixel_bit07, matched_pixel_bit08
-    , matched_pixel_bit09, matched_pixel_bit10, matched_pixel_bit11
-    , matcher_start_col_b00, matcher_start_col_b01, matcher_start_col_b02
-    , matcher_start_col_b03, matcher_start_col_b04, matcher_start_col_b05
-    , matcher_start_col_b06, matcher_start_col_b07, matcher_start_col_b08
-    , matcher_start_col_b09, matcher_start_col_b10, matcher_start_col_b11
-    ;
+  reg[N_MATCHER-1:0] reducer_init, sum_ack;
+  wire[N_MATCHER-1:0] sum_rdy;
+  localparam PATCH_SIZE = 6, WEIGHT_SIZE=16; 
+  wire[log2(PATCH_SIZE)-1 + PIXEL_SIZE+WEIGHT_SIZE:0] rowsum[N_MATCHER-1:0];
+  reg[APP_DATA_WIDTH-1:0] dram_data;
   
-  PatchRowMatcher#(.N_COL_SIZE(N_COL_SIZE))
-    matcher[N_MATCHER-1:0](.cl_clk(clk_85), .reset(reset)
-    , .init_en(matcher_init), .bTop_in(matcher_top)
-    , .start_col_b00(matcher_start_col_b00)
-    , .start_col_b01(matcher_start_col_b01)
-    , .start_col_b02(matcher_start_col_b02)
-    , .start_col_b03(matcher_start_col_b03)
-    , .start_col_b04(matcher_start_col_b04)
-    , .start_col_b05(matcher_start_col_b05)
-    , .start_col_b06(matcher_start_col_b06)
-    , .start_col_b07(matcher_start_col_b07)
-    , .start_col_b08(matcher_start_col_b08)
-    , .start_col_b09(matcher_start_col_b09)
-    , .start_col_b10(matcher_start_col_b10)
-    , .start_col_b11(matcher_start_col_b11)
-    , .l_col(l_col), .r_col(r_col)
+  PatchRowReducer#(.APP_DATA_WIDTH(APP_DATA_WIDTH), .N_COL_SIZE(N_COL_SIZE)
+    , .PATCH_SIZE(PATCH_SIZE))
+    reducer00(.cl_clk(clk_85), .l_col(l_col), .r_col(r_col)
     , .pixel012_valid(pixel012_valid), .pixel3_valid(pixel3_valid)
     , .pixel_top(pixel_top), .pixel_btm(pixel_btm)
-    , .rd_clk(dram_clk), .pixel_ack(matched_pixel_ack)
-    , .somepixel_pending(matched_pixel_pending)
-    , .matched_pixel_valid(matched_pixel_valid)
-    , .matched_pixel_b00(matched_pixel_bit00)//What a pain:
-    , .matched_pixel_b01(matched_pixel_bit01)//All because the Verilog module
-    , .matched_pixel_b02(matched_pixel_bit02)//array instantiation syntax
-    , .matched_pixel_b03(matched_pixel_bit03)//can't carry an array of bus, I
-    , .matched_pixel_b04(matched_pixel_bit04)//have to break up an array of
-    , .matched_pixel_b05(matched_pixel_bit05)//bus as simple buses, and then
-    , .matched_pixel_b06(matched_pixel_bit06)//do the plumbing in a generate
-    , .matched_pixel_b07(matched_pixel_bit07)//statement (see below).
-    , .matched_pixel_b08(matched_pixel_bit08)
-    , .matched_pixel_b09(matched_pixel_bit09)
-    , .matched_pixel_b10(matched_pixel_bit10)
-    , .matched_pixel_b11(matched_pixel_bit11));
+    , .dram_clk(dram_clk), .reset(reset), .init(reducer_init[0])
+    , .sum_ack(sum_ack[0]), .sum_rdy(sum_rdy[0]), .config_data(dram_data)
+    , .sum(rowsum[0]));
     
-  genvar i;
-  generate for(i = 0; i < N_MATCHER; i = i + 1) begin: assign_bus_to_array
-      assign matched_pixel[i] = {
-          matched_pixel_bit11[i], matched_pixel_bit10[i]
-        , matched_pixel_bit09[i], matched_pixel_bit08[i]
-        , matched_pixel_bit07[i], matched_pixel_bit06[i]
-        , matched_pixel_bit05[i], matched_pixel_bit04[i]
-        , matched_pixel_bit03[i], matched_pixel_bit02[i]
-        , matched_pixel_bit01[i], matched_pixel_bit00[i]};
-      assign matcher_start_col_b11[i] = macher_start_col[i][11];
-      assign matcher_start_col_b10[i] = macher_start_col[i][10];
-      assign matcher_start_col_b09[i] = macher_start_col[i][9];
-      assign matcher_start_col_b08[i] = macher_start_col[i][8];
-      assign matcher_start_col_b07[i] = macher_start_col[i][7];
-      assign matcher_start_col_b06[i] = macher_start_col[i][6];
-      assign matcher_start_col_b05[i] = macher_start_col[i][5];
-      assign matcher_start_col_b04[i] = macher_start_col[i][4];
-      assign matcher_start_col_b03[i] = macher_start_col[i][3];
-      assign matcher_start_col_b02[i] = macher_start_col[i][2];
-      assign matcher_start_col_b01[i] = macher_start_col[i][1];
-      assign matcher_start_col_b00[i] = macher_start_col[i][0];
-    end
-  endgenerate
-
   clsim cl(.reset(reset), .cl_fval(cl_fval)
     , .cl_z_lval(cl_lval), .cl_z_pclk(clk_85)
     , .cl_port_a(cl_port_a), .cl_port_b(cl_port_b), .cl_port_c(cl_port_c)
@@ -121,23 +65,26 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1, N_MATCHER=4)
     , .cl_port_i(cl_port_i), .cl_port_j(cl_port_j));
 
   // Corss from camera link clock tp PCIe bus clock
-  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(cl_clk)//, .rst(reset)
+  xb_rd_fifo xb_rd_fifo(.wr_clk(dram_clk), .rd_clk(bus_clk)//, .rst(reset)
     , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
     , .rd_en(xb_rd_rden), .dout(xb_rd_data)
     , .full(fpga_msg_full), .empty(xb_rd_empty));
 
   initial begin // for simulation
-    macher_start_col[0] <= 1; matcher_top[0] <= `TRUE;
-    matched_pixel_ack[0] <= `TRUE;
-    matcher_init[0] <= `FALSE;
-    macher_start_col[1] <= 2; matcher_top[1] <= `FALSE;
-    matched_pixel_ack[1] <= `TRUE;
-    matcher_init[1] <= `FALSE;
+    dram_data <= 0;
+    reducer_init[0] <= `FALSE;
 
-    #200000 matcher_init[0] <= `TRUE;
-            matcher_init[1] <= `TRUE;
-    #300000 matcher_init[0] <= `FALSE;
-            matcher_init[1] <= `FALSE;
+#350000 reducer_init[0] <= `TRUE;
+        dram_data <= {
+            12'h15, 16'h15 //dark[5],weight[5]
+          , 12'h14, 16'h14 //dark[4],weight[4]
+          , 12'h13, 16'h13 //dark[3],weight[3]
+          , 12'h12, 16'h12 //dark[2],weight[2]
+          , 12'h11, 16'h11 //dark[1],weight[1]
+          , 12'h10, 16'h10 //dark[0],weight[0]
+          , 12'd1, `TRUE   //start_col_d, bTop_d
+          };
+#  5000 reducer_init[0] <= `FALSE;
   end
   
   assign pixel012_valid = cl_state != CL_INTERLINE;
