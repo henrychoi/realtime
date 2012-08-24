@@ -1,6 +1,6 @@
 module PatchReducer#(parameter PATCH_SIZE=6, ROW_SUM_SIZE=1, PATCH_SUM_SIZE=1)
 (input reset, dram_clk, init, sum_ack
-, input[ROW_SUM_SIZE-1:0] partial_sum, input partial_sum_valid
+, input[ROW_SUM_SIZE-1:0] partial_sum, input[1:0] partial_sum_valid
 , output sum_rdy, output reg[PATCH_SUM_SIZE-1:0] sum
 );
 `include "function.v"
@@ -25,7 +25,7 @@ module PatchReducer#(parameter PATCH_SIZE=6, ROW_SUM_SIZE=1, PATCH_SUM_SIZE=1)
         DATA_WAIT:
           if(partial_sum_valid) begin
             n_row <= n_row + 1;
-            sum <= sum + partial_sum;
+            sum <= sum + partial_sum_valid;
             if(n_row == (PATCH_SIZE - 1)) begin
               n_row <= 0;//reset to avoid accessing bogus row
               state <= SUM_RDY;

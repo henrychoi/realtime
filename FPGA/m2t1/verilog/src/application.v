@@ -48,8 +48,9 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
     , ROW_SUM_SIZE = log2(PATCH_SIZE) + PIXEL_SIZE + WEIGHT_SIZE
     , PATCH_SUM_SIZE=log2(PATCH_SIZE**PATCH_SIZE) + PIXEL_SIZE + WEIGHT_SIZE
     , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 6, N_PATCH = 81742;
-  reg[N_ROW_REDUCER-1:0] row_init, row_sum_ack;
-  wire[N_ROW_REDUCER-1:0] row_sum_rdy;
+  reg[N_ROW_REDUCER-1:0] xrow_sum_ack;
+  wire[1:0] row_sum_rdy[N_ROW_REDUCER-1:0];
+  reg[1:0] row_init[N_ROW_REDUCER-1:0];
   wire[ROW_SUM_SIZE-1:0] row_sum[N_ROW_REDUCER-1:0];
   // This index bridges the row reducer to the patch reducer
   wire[log2(N_PATCH_REDUCER)-1:0] owner_reducer[N_ROW_REDUCER-1:0];
@@ -72,7 +73,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
       PatchReducer#(.PATCH_SIZE(PATCH_SIZE), .N_PATCH(N_PATCH)
         , .ROW_SUM_SIZE(ROW_SUM_SIZE), .PATCH_SUM_SIZE(PATCH_SUM_SIZE))
         patch_reducer(.reset(reset), .dram_clk(dram_clk)
-        , .init(patch_init[i]), .patch_id(patch_id[i])
+        , .init(patch_init[i])
         , .partial_sum(partial_sum[i]), .partial_sum_valid(partial_sum_valid[i])
         , .sum_ack(patch_sum_ack[i]), .sum_rdy(patch_sum_rdy[i])
         , .sum(patch_sum[i]));
@@ -107,16 +108,12 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
 
   initial begin // for simulation
 #     0 dram_data <= 0;
-#     0 row_init[0] <= `FALSE;
-#350000 row_init[0] <= `TRUE;
+#     0 row_init[0] <= {`FALSE, `FALSE};
+#350000 row_init[0] <= {`TRUE, `TRUE};
         dram_data <= {
-            12'h15, 16'h15 //dark[5],weight[5]
-          , 12'h14, 16'h14 //dark[4],weight[4]
-          , 12'h13, 16'h13 //dark[3],weight[3]
-          , 12'h12, 16'h12 //dark[2],weight[2]
-          , 12'h11, 16'h11 //dark[1],weight[1]
-          , 12'h10, 16'h10 //dark[0],weight[0]
-          , 12'd1, `TRUE   //start_col_d, bTop_d; bits [22:10]
+            16'h15, 16'h14, 16'h13, 16'h12, 16'h11, 16'h10//weight_top
+          , 16'h0, 16'h04, 16'h03, 16'h02, 16'h01, 16'h00//weight_btm
+          , 12'd1 //start_col_d: bits[21:10]
           , 10'd0 //owner_reducer ID, NOT the patch_id.
                   //Has to be size log2(N_PATCH_REDUCER).
           };

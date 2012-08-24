@@ -99,64 +99,34 @@
       </wvobject>
    </wvobject>
    <wvobject fp_name="group45" type="group">
-      <obj_property name="label">reducer0</obj_property>
+      <obj_property name="label">row_reducer0</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/app/reducer00/cl_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
-         <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/state" type="array" db_ref_id="1">
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">state[1:0]</obj_property>
          <obj_property name="ObjectShortName">state[1:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/matched_pixel" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">matched_pixel[11:0]</obj_property>
-         <obj_property name="ObjectShortName">matched_pixel[11:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /matched_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">matched_valid</obj_property>
+         <obj_property name="ObjectShortName">matched_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /weighted_btm" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_btm[28:0]</obj_property>
+         <obj_property name="ObjectShortName">weighted_btm[28:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/matched_pixel_valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">matched_pixel_valid</obj_property>
-         <obj_property name="ObjectShortName">matched_pixel_valid</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/pixels_received" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pixels_received[2:0]</obj_property>
-         <obj_property name="ObjectShortName">pixels_received[2:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /weighted_top" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_top[28:0]</obj_property>
+         <obj_property name="ObjectShortName">weighted_top[28:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/dark" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">dark[5:0,11:0]</obj_property>
-         <obj_property name="ObjectShortName">dark[5:0,11:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /sum_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum_rdy[1:0]</obj_property>
+         <obj_property name="ObjectShortName">sum_rdy[1:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/weight" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">weight[5:0,15:0]</obj_property>
-         <obj_property name="ObjectShortName">weight[5:0,15:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/dark_subtracted" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">dark_subtracted[11:0]</obj_property>
-         <obj_property name="ObjectShortName">dark_subtracted[11:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/weighted_pixel" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">weighted_pixel[28:0]</obj_property>
-         <obj_property name="ObjectShortName">weighted_pixel[28:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/bTop_d" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">bTop_d</obj_property>
-         <obj_property name="ObjectShortName">bTop_d</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/start_col_d" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">start_col_d[11:0]</obj_property>
-         <obj_property name="ObjectShortName">start_col_d[11:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/reducer00/sum" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">sum[30:0]</obj_property>
-         <obj_property name="ObjectShortName">sum[30:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /topbtm_mask" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">topbtm_mask[1:0]</obj_property>
+         <obj_property name="ObjectShortName">topbtm_mask[1:0]</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
