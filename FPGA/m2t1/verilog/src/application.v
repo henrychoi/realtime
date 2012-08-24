@@ -1,6 +1,6 @@
 `timescale 1ps/1ps
 module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
-, PIXEL_SIZE=12, N_MATCHER=4)
+, PIXEL_SIZE=12)
 (input reset, dram_clk, output reg error, heartbeat, app_done
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
@@ -42,21 +42,56 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
   reg fval_d, lval_d;
   reg[47:0] pixel_top, pixel_btm;
   wire pixel012_valid, pixel3_valid;
-  reg[N_MATCHER-1:0] reducer_init, sum_ack;
-  wire[N_MATCHER-1:0] sum_rdy;
-  localparam PATCH_SIZE = 6, WEIGHT_SIZE=16; 
-  wire[log2(PATCH_SIZE)-1 + PIXEL_SIZE+WEIGHT_SIZE:0] rowsum[N_MATCHER-1:0];
+
   reg[APP_DATA_WIDTH-1:0] dram_data;
+  localparam PATCH_SIZE = 6, WEIGHT_SIZE=16
+    , ROW_SUM_SIZE = log2(PATCH_SIZE) + PIXEL_SIZE + WEIGHT_SIZE
+    , PATCH_SUM_SIZE=log2(PATCH_SIZE**PATCH_SIZE) + PIXEL_SIZE + WEIGHT_SIZE
+    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 6, N_PATCH = 81742;
+  reg[N_ROW_REDUCER-1:0] row_init, row_sum_ack;
+  wire[N_ROW_REDUCER-1:0] row_sum_rdy;
+  wire[ROW_SUM_SIZE-1:0] row_sum[N_ROW_REDUCER-1:0];
+  // This index bridges the row reducer to the patch reducer
+  wire[log2(N_PATCH_REDUCER)-1:0] owner_reducer[N_ROW_REDUCER-1:0];
+  reg[N_PATCH_REDUCER-1:0] patch_init, patch_sum_ack;
+  wire[PATCH_SUM_SIZE-1:0] patch_sum[N_PATCH_REDUCER-1:0];
+  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy;
+  //Each patch reducer needs to remember what patch it is working for,
+  //because a patch reducer is recycled for another patch after the sum is
+  //calculated.
+  reg[log2(N_PATCH)-1:0] patch_id[N_PATCH_REDUCER-1:0];
+  //Use these registers to move the bits from PatchRowReducer to the
+  //corresponding PatchReducer after the PatchRowReducer produces the partial
+  //sum.
+  reg[ROW_SUM_SIZE-1:0] partial_sum[N_PATCH_REDUCER-1:0];
+  reg[N_PATCH_REDUCER-1:0] partial_sum_valid;
   
-  PatchRowReducer#(.APP_DATA_WIDTH(APP_DATA_WIDTH), .N_COL_SIZE(N_COL_SIZE)
-    , .PATCH_SIZE(PATCH_SIZE))
-    reducer00(.cl_clk(clk_85), .l_col(l_col), .r_col(r_col)
-    , .pixel012_valid(pixel012_valid), .pixel3_valid(pixel3_valid)
-    , .pixel_top(pixel_top), .pixel_btm(pixel_btm)
-    , .dram_clk(dram_clk), .reset(reset), .init(reducer_init[0])
-    , .sum_ack(sum_ack[0]), .sum_rdy(sum_rdy[0]), .config_data(dram_data)
-    , .sum(rowsum[0]));
+  genvar i;
+  generate
+    for(i = 0; i < N_PATCH_REDUCER; i = i + 1) begin
+      PatchReducer#(.PATCH_SIZE(PATCH_SIZE), .N_PATCH(N_PATCH)
+        , .ROW_SUM_SIZE(ROW_SUM_SIZE), .PATCH_SUM_SIZE(PATCH_SUM_SIZE))
+        patch_reducer(.reset(reset), .dram_clk(dram_clk)
+        , .init(patch_init[i]), .patch_id(patch_id[i])
+        , .partial_sum(partial_sum[i]), .partial_sum_valid(partial_sum_valid[i])
+        , .sum_ack(patch_sum_ack[i]), .sum_rdy(patch_sum_rdy[i])
+        , .sum(patch_sum[i]));
+    end
     
+    for(i = 0; i < N_ROW_REDUCER; i = i + 1) begin
+      PatchRowReducer#(.APP_DATA_WIDTH(APP_DATA_WIDTH)
+        , .N_COL_SIZE(N_COL_SIZE), .PATCH_SIZE(PATCH_SIZE)
+        , .ROW_SUM_SIZE(ROW_SUM_SIZE), .N_PATCH_REDUCER(N_PATCH_REDUCER))
+        row_reducer(.cl_clk(clk_85), .l_col(l_col), .r_col(r_col)
+        , .pixel012_valid(pixel012_valid), .pixel3_valid(pixel3_valid)
+        , .pixel_top(pixel_top), .pixel_btm(pixel_btm)
+        , .dram_clk(dram_clk), .reset(reset)
+        , .init(row_init[i]), .config_data(dram_data)
+        , .sum(row_sum[i]), .sum_ack(row_sum_ack[i]), .sum_rdy(row_sum_rdy[i])
+        , .owner_reducer(owner_reducer[i]));
+    end
+  endgenerate
+  
   clsim cl(.reset(reset), .cl_fval(cl_fval)
     , .cl_z_lval(cl_lval), .cl_z_pclk(clk_85)
     , .cl_port_a(cl_port_a), .cl_port_b(cl_port_b), .cl_port_c(cl_port_c)
@@ -71,10 +106,9 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
     , .full(fpga_msg_full), .empty(xb_rd_empty));
 
   initial begin // for simulation
-    dram_data <= 0;
-    reducer_init[0] <= `FALSE;
-
-#350000 reducer_init[0] <= `TRUE;
+#     0 dram_data <= 0;
+#     0 row_init[0] <= `FALSE;
+#350000 row_init[0] <= `TRUE;
         dram_data <= {
             12'h15, 16'h15 //dark[5],weight[5]
           , 12'h14, 16'h14 //dark[4],weight[4]
@@ -82,9 +116,11 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1
           , 12'h12, 16'h12 //dark[2],weight[2]
           , 12'h11, 16'h11 //dark[1],weight[1]
           , 12'h10, 16'h10 //dark[0],weight[0]
-          , 12'd1, `TRUE   //start_col_d, bTop_d
+          , 12'd1, `TRUE   //start_col_d, bTop_d; bits [22:10]
+          , 10'd0 //owner_reducer ID, NOT the patch_id.
+                  //Has to be size log2(N_PATCH_REDUCER).
           };
-#  5000 reducer_init[0] <= `FALSE;
+#  5000 row_init[0] <= `FALSE;
   end
   
   assign pixel012_valid = cl_state != CL_INTERLINE;

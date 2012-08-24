@@ -121,65 +121,59 @@
     <state_diagram size="92,32"/>
    </statechart>
   </class>
-  <class name="Patch" superclass="qpn::QHsm">
+  <class name="PatchReducer" superclass="qpn::QHsm">
    <attribute name="sum" type="" visibility="0x01" properties="0x00"/>
    <statechart>
-    <initial target="../1">
-     <initial_glyph conn="3,3,4,3,2,4">
+    <initial target="../2">
+     <initial_glyph conn="3,4,5,3,4">
       <action box="2,-1,7,4"/>
      </initial_glyph>
     </initial>
-    <state name="WAITING">
-     <entry brief="sum = 0; n_row = 0"/>
-     <exit brief="^sum"/>
+    <state name="DATA_WAIT">
+     <entry brief="sum = 0;\n_row = 0;"/>
      <tran trig="partial_sum_valid(partial_sum)">
       <action brief="n_row++; sum += partial_sum"/>
-      <tran_glyph conn="40,7,1,-1,-2">
-       <action box="-23,-1,20,4"/>
+      <choice target="../../../3">
+       <guard brief="n_row == PATCH_SIZE - 1">guard1</guard>
+       <choice_glyph conn="51,8,4,1,5,-20">
+        <action box="-18,3,18,2"/>
+       </choice_glyph>
+      </choice>
+      <choice>
+       <guard brief="else">guard2</guard>
+       <choice_glyph conn="51,8,5,-1,-5">
+        <action box="-5,-2,6,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="55,11,2,-1,-3,-4">
+       <action box="1,-5,20,4"/>
       </tran_glyph>
      </tran>
-     <tran trig="n_row == PATCH_SIZE">
-      <tran_glyph conn="40,5,1,-1,5,3">
-       <action box="1,-2,15,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="7,2,33,9">
-      <entry box="1,2,19,2"/>
-      <exit box="1,4,9,2"/>
+     <state_glyph node="35,3,41,8">
+      <entry box="1,2,10,4"/>
      </state_glyph>
     </state>
-    <state_diagram size="91,28"/>
-   </statechart>
-  </class>
-  <class name="PatchRowSummer" superclass="qpn::QHsm">
-   <attribute name="owner" type="Patch" visibility="0x02" properties="0x00"/>
-   <statechart>
-    <state name="WAIT">
-     <entry brief="n_pixel = 0;"/>
-     <tran trig="col == start_col" target="../../1">
-      <tran_glyph conn="19,10,1,3,8">
-       <action box="1,-4,8,4"/>
+    <state name="CONFIG_WAIT">
+     <entry brief="n_row = 0"/>
+     <tran trig="INIT(id)" target="../../1">
+      <action brief="this.id = id"/>
+      <tran_glyph conn="18,6,1,3,17">
+       <action box="2,-2,13,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="4,7,15,6">
-      <entry box="1,2,13,2"/>
+     <state_glyph node="7,3,11,8">
+      <entry box="1,2,8,4"/>
      </state_glyph>
     </state>
-    <state name="WORKING">
-     <entry brief="partial_sum = 0;"/>
-     <exit brief="partial_sum_valid"/>
-     <tran trig="PIXEL_AVAIL">
-      <action brief="linear transform for all pixels"/>
-      <tran_glyph conn="56,11,1,-1,-4">
-       <action box="-28,1,28,2"/>
+    <state name="SUM_RDY">
+     <tran trig="SUM_ACK" target="../../2">
+      <tran_glyph conn="22,13,3,2,-10,-2">
+       <action box="-7,-2,9,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="27,6,29,8">
-      <entry box="1,2,24,2"/>
-      <exit box="1,4,17,2"/>
-     </state_glyph>
+     <state_glyph node="22,8,9,6"/>
     </state>
-    <state_diagram size="83,22"/>
+    <state_diagram size="84,22"/>
    </statechart>
   </class>
   <class name="m2t" superclass="qpn::QHsm">
@@ -189,6 +183,7 @@
   </class>
   <class name="PatchRowReducer" superclass="qpn::QHsm">
    <attribute name="sum" type="" visibility="0x00" properties="0x00"/>
+   <attribute name="owner_reducer" type="" visibility="0x00" properties="0x00"/>
    <statechart>
     <initial target="../5">
      <initial_glyph conn="3,24,5,3,4">
@@ -201,6 +196,11 @@
      </initial_glyph>
     </initial>
     <state name="DONE">
+     <tran trig="logic_state == CONFIG_WAIT" target="../../6">
+      <tran_glyph conn="38,17,3,2,-31,-6">
+       <action box="-21,0,19,2"/>
+      </tran_glyph>
+     </tran>
      <state_glyph node="38,13,8,6"/>
     </state>
     <state name="WAIT">
@@ -241,7 +241,7 @@
      <tran trig="INIT(config_data)" target="../../7">
       <action brief="\break out config_data into each pixels;\cl_init_d &lt;= 1;\sum &lt;= 0;\pixels_received = 0;"/>
       <tran_glyph conn="17,24,1,3,23">
-       <action box="1,-2,21,13"/>
+       <action box="3,-2,15,11"/>
       </tran_glyph>
      </tran>
      <state_glyph node="7,23,10,6"/>
@@ -296,7 +296,7 @@
      <state_glyph node="40,23,41,14"/>
     </state>
     <state name="SUM_RDY">
-     <tran trig="DONE_ACK" target="../../5">
+     <tran trig="SUM_ACK" target="../../5">
       <tran_glyph conn="29,39,3,2,-17,-10">
        <action box="-9,-2,8,2"/>
       </tran_glyph>

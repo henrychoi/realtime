@@ -1,5 +1,6 @@
 module PatchRowReducer#(parameter APP_DATA_WIDTH=256
-, PATCH_SIZE=6, N_COL_SIZE=12, PIXEL_SIZE=12, WEIGHT_SIZE=16)
+, PATCH_SIZE=6, N_COL_SIZE=12, PIXEL_SIZE=12, WEIGHT_SIZE=16
+, N_PATCH_REDUCER=1, ROW_SUM_SIZE=1)
 (// camera link clock domain
 input cl_clk, pixel012_valid, pixel3_valid
 , input[N_COL_SIZE-1:0] l_col, r_col
@@ -7,10 +8,12 @@ input cl_clk, pixel012_valid, pixel3_valid
 // dram clock domain
 , input reset, dram_clk, init, sum_ack
 , input[APP_DATA_WIDTH-1:0] config_data
-, output sum_rdy
-, output reg[log2(PATCH_SIZE)-1 + PIXEL_SIZE+WEIGHT_SIZE:0] sum
+, output reg[log2(N_PATCH_REDUCER)-1:0] owner_reducer
+, output sum_rdy, output reg[ROW_SUM_SIZE-1:0] sum
 );
 `include "function.v"
+  localparam CONFIG_WAIT = 0, DATA_WAIT = 1, SUM_RDY = 2, N_LOGIC_STATE = 3;
+  reg[log2(N_LOGIC_STATE)-1:0] state;
   localparam CL_UNINITIALIZED = 0, CL_WAIT = 1, CL_MATCHED = 2, CL_DONE = 3
     , N_CL_STATE = 4;
   reg[log2(N_CL_STATE)-1:0] cl_state;
@@ -74,6 +77,7 @@ input cl_clk, pixel012_valid, pixel3_valid
           cl_pixels_remaining <= cl_pixels_remaining - n_valid_pixels;
           if(n_valid_pixels >= cl_pixels_remaining) cl_state <= CL_DONE;
         end
+        CL_DONE: if(state == CONFIG_WAIT) cl_state <= CL_UNINITIALIZED;
         default: begin
         end
       endcase
@@ -90,22 +94,20 @@ input cl_clk, pixel012_valid, pixel3_valid
     , .rd_en(matched_pixel_ack), .empty(fifo_empty)
     , .dout({matched_pixel_valid, matched_pixel}));
   
-  localparam CONFIG_WAIT = 0, DATA_WAIT = 1, SUM_RDY = 2, N_LOGIC_STATE = 3;
-  reg[log2(N_LOGIC_STATE)-1:0] state;
   reg[PIXEL_SIZE-1:0] dark[PATCH_SIZE-1:0];
   reg[WEIGHT_SIZE-1:0] weight[PATCH_SIZE-1:0];
   wire[PIXEL_SIZE+WEIGHT_SIZE:0] weighted_pixel;
   wire[PIXEL_SIZE-1:0] dark_subtracted;
-  reg[log2(PATCH_SIZE)-1:0] pixels_received;
+  reg[log2(PATCH_SIZE)-1:0] n_pixel;
 
-  assign dark_subtracted = matched_pixel - dark[pixels_received];
-  assign weighted_pixel = dark_subtracted * weight[pixels_received];
+  assign dark_subtracted = matched_pixel - dark[n_pixel];
+  assign weighted_pixel = dark_subtracted * weight[n_pixel];
   assign sum_rdy = state == SUM_RDY;
   
   always @(posedge reset, posedge dram_clk)
     if(reset) begin
       matched_pixel_ack <= `FALSE;
-      pixels_received <= 0;
+      n_pixel <= 0;
       state <= CONFIG_WAIT;
     end else begin
       matched_pixel_ack <= matched_pixel_pending;
@@ -114,21 +116,23 @@ input cl_clk, pixel012_valid, pixel3_valid
           if(init) begin
             {dark[5],weight[5], dark[4],weight[4], dark[3],weight[3]
             , dark[2],weight[2], dark[1],weight[1], dark[0],weight[0]
-            , start_col_d, bTop_d}
-              <= config_data[(PIXEL_SIZE+WEIGHT_SIZE) * 6 + N_COL_SIZE : 0];
-            //start_col_d <= config_data[N_COL_SIZE:1];
-            //bTop_d <= config_data[0];
+            , start_col_d, bTop_d
+            , owner_reducer
+            } <= config_data[(PIXEL_SIZE+WEIGHT_SIZE) * 6 //dark, weight
+                             + N_COL_SIZE //start_col_d, bTop_d
+                             + log2(N_PATCH_REDUCER) //owner_reducer
+                             : 0];
             cl_init_d <= `TRUE;
             sum <= 0;
-            pixels_received <= 0;
+            n_pixel <= 0;
             state <= DATA_WAIT;
           end
         DATA_WAIT:
           if(matched_pixel_valid) begin
-            pixels_received <= pixels_received + 1;
+            n_pixel <= n_pixel + 1;
             sum <= sum + weighted_pixel;
-            if(pixels_received == (PATCH_SIZE - 1)) begin
-              pixels_received <= 0;//reset to avoid accessing bogus weight
+            if(n_pixel == (PATCH_SIZE - 1)) begin
+              n_pixel <= 0;//reset to avoid accessing bogus weight
               state <= SUM_RDY;
             end
           end
