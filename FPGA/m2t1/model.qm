@@ -2,7 +2,7 @@
 <model version="2.2.00">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
-  <class name="CameraLink" superclass="qpn::QHsm">
+  <class name="Capturer" superclass="qpn::QHsm">
    <documentation>Test active object</documentation>
    <statechart>
     <initial target="../4">
@@ -46,14 +46,14 @@
       </tran_glyph>
      </tran>
      <tran trig="CL_FVAL">
-      <action brief="\if(stride == 0) cl_frame--;\else stride++"/>
+      <action brief="n_row = 0;\if(stride == 0) cl_frame--;\else stride++"/>
       <tran_glyph conn="30,5,3,-1,2">
-       <action box="3,-1,11,8"/>
+       <action box="3,-1,10,12"/>
       </tran_glyph>
      </tran>
      <state name="INTERLINE">
       <entry brief="l_col = -1;\r_col = 0"/>
-      <exit brief="publish 3 pixels;\save last 4 bits"/>
+      <exit brief="n_row++; publish 3 e;\save last 4 bits"/>
       <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../4/1">
        <tran_glyph conn="42,17,0,3,-5,10">
         <action box="0,-11,9,6"/>
@@ -73,7 +73,7 @@
       <state name="CL1">
        <entry brief="l_col = r_col + 1;\r_col += 3"/>
        <tran trig="CL_CLK" target="../../3">
-        <action brief="\compose 3 pixels from saved and new; publish 3 pixels; save last 8 bits to buffer"/>
+        <action brief="\compose 3 e from saved and new; publish 3 pixels; save last 8 bits to buffer"/>
         <tran_glyph conn="62,8,1,3,15">
          <action box="1,-2,13,9"/>
         </tran_glyph>
@@ -85,7 +85,7 @@
       <state name="CL0">
        <entry brief="l_col = r_col+1;\r_col += 4"/>
        <tran trig="CL_CLK" target="../../1">
-        <action brief="publish 3 pixels;\save last 4 bits"/>
+        <action brief="publish 3 e;\save last 4 bits"/>
         <tran_glyph conn="61,21,3,2,-3,-4">
          <action box="-10,-1,10,6"/>
         </tran_glyph>
@@ -97,7 +97,7 @@
       <state name="CL2">
        <entry brief="l_col = r_col+1;\r_col += 3"/>
        <tran trig="CL_CLK" target="../../2">
-        <action brief="\compose 4 pixels from saved and new;\publish 4 pixels"/>
+        <action brief="\compose 4 e from saved and new;\publish 4 pixels"/>
         <tran_glyph conn="83,18,2,1,3,-10">
          <action box="-8,1,12,10"/>
         </tran_glyph>
@@ -207,7 +207,7 @@
     <state name="WAIT">
      <entry brief="start_col = start_col_in;\n_toSend = PSF_SIZE;"/>
      <tran trig="right_col &gt;= start_col" target="../../4">
-      <action brief="Insert (right_col - start_col + 1) top AND bottom pixels into FIFO;\remaining -= (right_col - start_col + 1);"/>
+      <action brief="Insert (right_col - start_col + 1) top AND bottom e- into FIFO;\remaining -= (right_col - start_col + 1);"/>
       <tran_glyph conn="28,6,1,3,19">
        <action box="1,-2,18,10"/>
       </tran_glyph>
@@ -220,14 +220,14 @@
      <tran trig="cl_clk">
       <choice>
        <guard brief="else">guard1</guard>
-       <action brief="toSend = MIN(start_col + PATCH_SIZE - left_col, 4);\Insert toSend top AND bottom pixels into FIFO;\remaining -= toSend;"/>
+       <action brief="toSend = MIN(start_col + PATCH_SIZE - left_col, 4);\Insert toSend top AND bottom e- into FIFO;\remaining -= toSend;"/>
        <choice_glyph conn="53,9,5,-1,4">
         <action box="5,-2,23,9"/>
        </choice_glyph>
       </choice>
       <choice target="../../../2">
        <guard brief="(right_col - left_col + 1) &gt;= remaining">guard2</guard>
-       <action brief="Insert remaining pixels into FIFO"/>
+       <action brief="Insert remaining e- into FIFO"/>
        <choice_glyph conn="53,9,4,1,8,-11">
         <action box="-10,9,25,4"/>
        </choice_glyph>
@@ -240,7 +240,7 @@
     </state>
     <state name="CONFIG_WAIT">
      <tran trig="INIT(config_data)" target="../../7">
-      <action brief="\break out config_data into each pixels;\cl_init_d &lt;= 1;\sum &lt;= 0;\pixels_received = 0;"/>
+      <action brief="\break out config_data into each column of row;\cl_init_d &lt;= 1;\sum &lt;= 0;\e_received = 0;"/>
       <tran_glyph conn="17,24,1,3,23">
        <action box="3,-2,15,11"/>
       </tran_glyph>
@@ -260,7 +260,7 @@
       <action brief="matched_pixel_ack = 1"/>
       <choice>
        <guard brief="matched_pixel_valid">guard1</guard>
-       <action brief="sum += weight * (matched_pixel - dark[pixels_received]);\pixels_received++;"/>
+       <action brief="sum += weight * matched_e;\e_received++;"/>
        <choice>
         <guard brief="else">guard1</guard>
         <choice_glyph conn="72,30,5,-1,4">
@@ -269,7 +269,7 @@
        </choice>
        <choice target="../../../../8">
         <guard brief="pixels_received == PATCH_SIZE - 1">guard2</guard>
-        <action brief="pixels_received = 0"/>
+        <action brief="e_received = 0"/>
         <choice_glyph conn="72,30,4,1,9,-34">
          <action box="-24,7,23,4"/>
         </choice_glyph>
@@ -298,9 +298,9 @@
     </state>
     <state name="SUM_RDY">
      <entry brief="sum_rdy = topbtm_mask == 'b11 ? 2 : 1"/>
-     <tran trig="SUM_ACK" target="../../5">
+     <tran trig="clk" target="../../5">
       <tran_glyph conn="17,35,3,2,-5,-6">
-       <action box="-8,0,8,2"/>
+       <action box="-5,0,5,2"/>
       </tran_glyph>
      </tran>
      <state_glyph node="17,33,21,8">

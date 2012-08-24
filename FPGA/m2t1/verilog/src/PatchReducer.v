@@ -12,6 +12,7 @@ module PatchReducer#(parameter PATCH_SIZE=6, ROW_SUM_SIZE=1, PATCH_SUM_SIZE=1)
   
   always @(posedge reset, posedge dram_clk)
     if(reset) begin
+      sum <= 0;
       n_row <= 0;
       state <= CONFIG_WAIT;
     end else begin
@@ -24,8 +25,8 @@ module PatchReducer#(parameter PATCH_SIZE=6, ROW_SUM_SIZE=1, PATCH_SUM_SIZE=1)
           end
         DATA_WAIT:
           if(partial_sum_valid) begin
-            n_row <= n_row + 1;
-            sum <= sum + partial_sum_valid;
+            n_row <= n_row + partial_sum_valid;
+            sum <= sum + partial_sum;
             if(n_row == (PATCH_SIZE - 1)) begin
               n_row <= 0;//reset to avoid accessing bogus row
               state <= SUM_RDY;
