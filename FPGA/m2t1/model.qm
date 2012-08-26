@@ -54,7 +54,7 @@
      <state name="INTERLINE">
       <entry brief="l_col = -1;\r_col = 0"/>
       <exit brief="n_row++; publish 3 e;\save last 4 bits"/>
-      <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../4/1">
+      <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../4/2">
        <tran_glyph conn="42,17,0,3,-5,10">
         <action box="0,-11,9,6"/>
        </tran_glyph>
@@ -70,10 +70,15 @@
         <action box="-5,0,5,2"/>
        </tran_glyph>
       </tran>
+      <tran trig="pixel_coeff_fifo_empty" target="../../../5">
+       <tran_glyph conn="53,29,2,2,3,-29,-2">
+        <action box="-15,1,16,2"/>
+       </tran_glyph>
+      </tran>
       <state name="CL1">
        <entry brief="l_col = r_col + 1;\r_col += 3"/>
-       <tran trig="CL_CLK" target="../../3">
-        <action brief="\compose 3 e from saved and new; publish 3 pixels; save last 8 bits to buffer"/>
+       <tran trig="CL_CLK" target="../../4">
+        <action brief="\compose 3 e from saved and new; publish 3 e; save last 8 bits to buffer"/>
         <tran_glyph conn="62,8,1,3,15">
          <action box="1,-2,13,9"/>
         </tran_glyph>
@@ -84,7 +89,7 @@
       </state>
       <state name="CL0">
        <entry brief="l_col = r_col+1;\r_col += 4"/>
-       <tran trig="CL_CLK" target="../../1">
+       <tran trig="CL_CLK" target="../../2">
         <action brief="publish 3 e;\save last 4 bits"/>
         <tran_glyph conn="61,21,3,2,-3,-4">
          <action box="-10,-1,10,6"/>
@@ -96,8 +101,8 @@
       </state>
       <state name="CL2">
        <entry brief="l_col = r_col+1;\r_col += 3"/>
-       <tran trig="CL_CLK" target="../../2">
-        <action brief="\compose 4 e from saved and new;\publish 4 pixels"/>
+       <tran trig="CL_CLK" target="../../3">
+        <action brief="\compose 4 e from saved and new;\publish 4 e"/>
         <tran_glyph conn="83,18,2,1,3,-10">
          <action box="-8,1,12,10"/>
         </tran_glyph>
@@ -118,7 +123,10 @@
      </tran>
      <state_glyph node="2,8,6,6"/>
     </state>
-    <state_diagram size="92,32"/>
+    <state name="ERROR">
+     <state_glyph node="21,24,7,6"/>
+    </state>
+    <state_diagram size="90,33"/>
    </statechart>
   </class>
   <class name="PatchReducer" superclass="qpn::QHsm">
@@ -176,9 +184,92 @@
     <state_diagram size="84,22"/>
    </statechart>
   </class>
-  <class name="m2t" superclass="qpn::QHsm">
+  <class name="DramIfc" superclass="qpn::QHsm">
    <statechart>
-    <state_diagram size="92,35"/>
+    <initial target="../1">
+     <action brief="app_cmd = READ;\app_addr = 0"/>
+     <initial_glyph conn="20,13,5,3,6">
+      <action box="-13,-2,14,4"/>
+     </initial_glyph>
+    </initial>
+    <state name="READING">
+     <entry brief="app_en = 1"/>
+     <exit brief="app_en = 0"/>
+     <tran trig="COEFFRD_FULL" target="../../2">
+      <tran_glyph conn="59,4,1,3,16">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="app_rd_data_valid">
+      <choice target="../../../3">
+       <guard brief="FIFO full">guard1</guard>
+       <choice_glyph conn="42,10,5,3,19">
+        <action box="1,-2,6,2"/>
+       </choice_glyph>
+      </choice>
+      <choice>
+       <guard brief="else">guard2</guard>
+       <choice target="../../../../4">
+        <guard brief="app_rd_data[1:0] == COEFF_KIND_END">guard1</guard>
+        <choice_glyph conn="29,10,5,1,-17">
+         <action box="-16,-4,13,4"/>
+        </choice_glyph>
+       </choice>
+       <choice>
+        <guard brief="else">guard2</guard>
+        <action brief="write to dram_rd_fifo"/>
+        <choice_glyph conn="29,10,4,-1,3">
+         <action box="1,1,12,4"/>
+        </choice_glyph>
+       </choice>
+       <choice_glyph conn="42,10,5,-1,-13">
+        <action box="-5,-2,5,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="42,15,2,-1,-5">
+       <action box="1,-3,12,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="clk">
+      <action brief="\app_addr += 8;"/>
+      <tran_glyph conn="59,6,1,-1,-6">
+       <action box="-10,-1,10,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="26,3,33,12">
+      <entry box="1,2,12,2"/>
+      <exit box="1,4,12,2"/>
+     </state_glyph>
+    </state>
+    <state name="WAIT">
+     <tran trig="COEFFRD_BELOW_HIGH" target="../../1">
+      <tran_glyph conn="75,7,3,1,-16">
+       <action box="-16,-2,16,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="app_rd_data_valid">
+      <action brief="write to dram_rd_fifo"/>
+      <tran_glyph conn="90,7,1,-1,-7">
+       <action box="-14,1,14,5"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="75,3,15,11"/>
+    </state>
+    <state name="ERROR">
+     <entry brief="led = 1"/>
+     <state_glyph node="61,8,12,6">
+      <entry box="1,2,11,2"/>
+     </state_glyph>
+    </state>
+    <state name="INTER_FRAME">
+     <tran trig="!FVAL" target="../../1">
+      <tran_glyph conn="12,5,1,3,14">
+       <action box="4,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="1,3,11,8"/>
+    </state>
+    <state_diagram size="92,19"/>
    </statechart>
   </class>
   <class name="PatchRowReducer" superclass="qpn::QHsm">
@@ -308,6 +399,49 @@
      </state_glyph>
     </state>
     <state_diagram size="83,43"/>
+   </statechart>
+  </class>
+  <class name="CoeffReader" superclass="qpn::QHsm">
+   <statechart>
+    <initial target="../2/2">
+     <initial_glyph conn="3,9,4,3,0,4">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="FULL">
+     <tran trig="all message handlers not full" target="../../2/3">
+      <tran_glyph conn="57,11,3,1,-14">
+       <action box="-10,0,10,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="57,6,8,7"/>
+    </state>
+    <state name="NOT_FULL">
+     <tran trig="!dram_rd_fifo_empty">
+      <action brief="handle message"/>
+      <tran_glyph conn="5,14,3,-1,4">
+       <action box="5,-1,28,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="any message handler full" target="../../1">
+      <tran_glyph conn="46,8,1,3,11">
+       <action box="1,-4,9,4"/>
+      </tran_glyph>
+     </tran>
+     <state name="BELOW_HIGH">
+      <state_glyph node="7,6,12,6"/>
+     </state>
+     <state name="ABOVE_HIGH">
+      <tran trig="all message handler level below high" target="../../2">
+       <tran_glyph conn="31,7,3,1,-12">
+        <action box="-11,0,11,6"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="31,6,12,6"/>
+     </state>
+     <state_glyph node="5,3,41,13"/>
+    </state>
+    <state_diagram size="80,17"/>
    </statechart>
   </class>
  </package>

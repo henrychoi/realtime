@@ -54,10 +54,10 @@ input cl_clk, e012_valid, e3_valid
   always @(posedge reset, posedge cl_clk)
     if(reset) begin
       cl_state <= CL_UNINITIALIZED;
-      cl_init <= `FALSE;
+      //cl_init <= `FALSE;
     end else begin
       // Cross from DRAM clock domain to cl clock domain
-      cl_init <= cl_init;      
+      //cl_init <= init_d;
       case(cl_state)
         CL_UNINITIALIZED:
           if(cl_init) begin
@@ -143,6 +143,7 @@ input cl_clk, e012_valid, e3_valid
         SUM_RDY: begin
           n_col <= 0;
           topbtm <= 0;
+          owner_reducer <= PATCH_REDUCER_INVALID;
           state <= CONFIG_WAIT;
         end
         default: begin

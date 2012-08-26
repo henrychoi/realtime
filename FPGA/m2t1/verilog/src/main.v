@@ -57,7 +57,7 @@ module main #(parameter SIMULATION = 0,
                                        // # of DQS/DQS# bits.
    parameter ROW_WIDTH               = 13,
                                        // # of memory Row Address bits.
-   parameter BURST_MODE              = "4",
+   parameter BURST_MODE              = "8",
                                        // Burst Length (Mode Register 0).
                                        // # = "8", "4", "OTF".
    parameter BM_CNT_WIDTH            = 2,

@@ -12,18 +12,10 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 , input clk_85);
 `include "function.v"
   integer i;
-  localparam START_ADDR = 27'h000_0000, END_ADDR = 27'h3ff_fffc;
-  localparam DRAM_WRWAIT = 1, DRAM_WR = 2, DRAM_RD = 3, DRAM_ERROR = 0
-    , DRAM_N_STATE = 4;
-  localparam ADDR_INC = 7'h4;// Front and back of BL8 burst skips by 0x8
-  reg[log2(DRAM_N_STATE)-1:0] dram_state;
-  reg bread;
-  reg[/*APP_DATA_WIDTH-1*/31:0] expected_data, wr_data;
-
   localparam CAPTURE_INIT = 0, CAPTURE_STANDBY = 1, CAPTURE_ARMED = 2
     , CAPTURE_CAPTURING = 3, N_CAPTURE_STATE = 4;
-  localparam CL_0 = 2'h0, CL_1 = 2'h1, CL_2 = 2'h2, CL_INTERLINE = 2'h3
-    , N_CL_STATE = 4;
+  localparam CL_0 = 0, CL_1 = 1, CL_2 = 2, CL_INTERLINE = 3, CL_ERROR = 4
+    , N_CL_STATE = 5;
   reg[log2(N_CAPTURE_STATE)-1:0] capture_state;
 
   localparam N_FRAME_SIZE = 20, N_STRIDE_SIZE = 32 - N_FRAME_SIZE
@@ -41,11 +33,12 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
           , cl_port_f, cl_port_g, cl_port_h, cl_port_i, cl_port_j;
   reg fval_d, lval_d;
   
-  localparam e_SIZE = 12, PIXEL_SIZE = 12;
-  reg[e_SIZE-1:0] e_top[3:0], e_btm[3:0];
+  localparam DN_SIZE = 12, e_SIZE = DN_SIZE;
+  reg[DN_SIZE-1:0] dn_top[3:0], dn_btm[3:0];
+  wire[DN_SIZE-1:0] dark_top[3:0], dark_btm[3:0];
   wire e012_valid, e3_valid;
 
-  reg[APP_DATA_WIDTH-1:0] dram_data;
+  wire[APP_DATA_WIDTH-1:0] dram_data;
   localparam PATCH_SIZE = 6, WEIGHT_SIZE=16
     , ROW_SUM_SIZE = log2(PATCH_SIZE) + e_SIZE + WEIGHT_SIZE
                    + 1 // double because the seam patch could generate
@@ -74,10 +67,43 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   reg[ROW_SUM_SIZE-1:0] partial_sum[N_PATCH_REDUCER-1:0];
   reg[1:0] partial_sum_valid[N_PATCH_REDUCER-1:0];
   
+  localparam COEFF_KIND_END = 2'd0, COEFF_KIND_PIXEL = 2'd1
+    , COEFF_KIND_ROW_REDUCER = 2'd2, COEFF_KIND_PATCH_REDUCER = 2'd3;
+  wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
+  //reg pixel_coeff_fifo_ack;
+  wire dram_rd_fifo_full, dram_rd_fifo_empty;
+  reg dram_rd_fifo_ack;
+  localparam COEFFRD_BELOW_HIGH = 0, COEFFRD_ABOVE_HIGH = 1, COEFFRD_FULL = 2
+    , COEFFRD_N_STATE = 3;
+  wire[log2(COEFFRD_N_STATE)-1:0] coeffrd_state;
+
+  dram_rd_fifo dram_rd_fifo (.clk(dram_clk), .rst(reset)
+    , .din(app_rd_data), .full(dram_rd_fifo_full)
+    , .wr_en(//Note: always write into FIFO when there is DRAM data
+             app_rd_data_valid && app_rd_data[1:0] != COEFF_KIND_END)
+    , .rd_en(dram_rd_fifo_empty //Was there even any data to acknowledge?
+             && coeffrd_state != COEFFRD_FULL)
+    , .dout(dram_data), .empty(dram_rd_fifo_empty));
+  
+  pixel_coeff_fifo pixel_coeff_fifo(.wr_clk(dram_clk)
+    , .rd_clk(cl_clk)//Read clock has to be the same as write clock in PatchRowReducer
+    , .din(dram_data[193:2]) //bits 1,0 used as message kind
+    , .wr_en(!pixel_coeff_fifo_full
+             && dram_rd_fifo_empty
+             && dram_data[1:0] == COEFF_KIND_PIXEL)
+    , .rd_en(cl_lval)//Keep reading from FIFO for each cl_clk when LVAL, to keep
+                     //the coefficients flowing
+    , .dout({dark_top[3], dark_btm[3]
+           , dark_top[2], dark_btm[2]
+           , dark_top[1], dark_btm[1]
+           , dark_top[0], dark_btm[0]})
+    , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
+    , .empty(pixel_coeff_fifo_empty));
+  
   genvar geni;
   generate
     for(geni=0; geni < N_PATCH_REDUCER; geni=geni+1) begin
-      PatchReducer#(.PATCH_SIZE(PATCH_SIZE), .N_PATCH(N_PATCH)
+      PatchReducer#(.PATCH_SIZE(PATCH_SIZE)
         , .ROW_SUM_SIZE(ROW_SUM_SIZE), .PATCH_SUM_SIZE(PATCH_SUM_SIZE))
         patch_reducer(.reset(reset), .dram_clk(dram_clk)
         , .init(patch_init[geni])
@@ -95,8 +121,14 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         row_reducer(.cl_clk(clk_85)
         , .l_col(l_col), .r_col(r_col)
         , .e012_valid(e012_valid), .e3_valid(e3_valid)
-        , .e_top0(e_top[0]),.e_top1(e_top[1]),.e_top2(e_top[2]),.e_top3(e_top[3])
-        , .e_btm0(e_btm[0]),.e_btm1(e_btm[1]),.e_btm2(e_btm[2]),.e_btm3(e_btm[3])
+        , .e_top0(dn_top[0] - dark_top[0]) //dark DN loaded from pixel_coeff_fifo
+        , .e_top1(dn_top[1] - dark_top[1])
+        , .e_top2(dn_top[2] - dark_top[2])
+        , .e_top3(dn_top[3] - dark_top[3])
+        , .e_btm0(dn_btm[0] - dark_btm[0])
+        , .e_btm1(dn_btm[1] - dark_btm[1])
+        , .e_btm2(dn_btm[2] - dark_btm[2])
+        , .e_btm3(dn_btm[3] - dark_btm[3])
         , .dram_clk(dram_clk), .reset(reset)
         , .init(row_init[geni]), .config_data(dram_data)
         , .sum(row_sum[geni]), .sum_rdy(row_sum_rdy[geni])
@@ -117,6 +149,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     , .rd_en(xb_rd_rden), .dout(xb_rd_data)
     , .full(fpga_msg_full), .empty(xb_rd_empty));
 
+`ifdef FIXME
   initial begin // for simulation
 #     0 dram_data <= 0;
 #     0 row_init[0] <= {`FALSE, `FALSE};
@@ -134,9 +167,8 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         patch_init[0] <= `TRUE;
 #  5000 patch_init[0] <= `FALSE;
   end
+`endif
   
-  reg[PIXEL_SIZE-1:0] dark_top[3:0], dark_btm[3:0];
-
   assign e012_valid = cl_state != CL_INTERLINE;
   assign e3_valid = cl_state == CL_0;
   
@@ -144,62 +176,71 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     if(reset) begin
       fval_d <= 0; lval_d <= 0;
       l_col <= ~0; r_col <= 0;
-      dark_top[0] <= 0; dark_top[1] <= 0; dark_top[2] <= 0; dark_top[3] <= 0;
-      dark_btm[0] <= 0; dark_btm[1] <= 0; dark_btm[2] <= 0; dark_btm[3] <= 0;
+      /* Driven by FIFO; don't need to drive them myself any more
+      dark_top[0] <= 0; dark_top[1] <= 0;
+      dark_top[2] <= 0; dark_top[3] <= 0;
+      dark_btm[0] <= 0; dark_btm[1] <= 0;
+      dark_btm[2] <= 0; dark_btm[3] <= 0; */
       cl_state <= CL_INTERLINE;
     end else begin
       fval_d <= cl_fval; lval_d <= cl_lval;
+      if(cl_state != CL_ERROR) // ERROR state is a final state
+        if(cl_lval) begin
+          // Invariance to assert: if LVAL, but I don't have a valid pixel
+          // coefficient, there is a logical error somewhere
+          if(pixel_coeff_fifo_empty) cl_state <= CL_ERROR;
+          else begin //!pixel_coeff_fifo_empty
+            case(cl_state)
+              CL_INTERLINE, CL_0: begin
+                dn_top[0] <= {cl_port_a     , cl_port_b[7:4]};
+                dn_top[1] <= {cl_port_b[3:0], cl_port_c     };
+                dn_top[2] <= {cl_port_d     , cl_port_e[7:4]};
+                dn_top[3] <= {DN_SIZE{1'b0}};
+                cl_buffer_top[3:0] <= cl_port_e[3:0];
+                dn_btm[0] <= {cl_port_f     , cl_port_g[7:4]};
+                dn_btm[1] <= {cl_port_g[3:0], cl_port_h     };
+                dn_btm[2] <= {cl_port_i     , cl_port_j[7:4]};
+                dn_btm[3] <= {DN_SIZE{1'b0}};
+                cl_buffer_btm[3:0] <= cl_port_j[3:0];
 
-      if(cl_lval)
-        case(cl_state)
-          CL_INTERLINE, CL_0: begin
-            e_top[0] <= {cl_port_a     , cl_port_b[7:4]} - dark_top[0];
-            e_top[1] <= {cl_port_b[3:0], cl_port_c     } - dark_top[1];
-            e_top[2] <= {cl_port_d     , cl_port_e[7:4]} - dark_top[2];
-            e_top[3] <= {PIXEL_SIZE{1'b0}};
-            cl_buffer_top[3:0] <= cl_port_e[3:0];
-            e_btm[0] <= {cl_port_f     , cl_port_g[7:4]} - dark_btm[0];
-            e_btm[1] <= {cl_port_g[3:0], cl_port_h     } - dark_btm[1];
-            e_btm[2] <= {cl_port_i     , cl_port_j[7:4]} - dark_btm[2];
-            e_btm[3] <= {PIXEL_SIZE{1'b0}};
-            cl_buffer_btm[3:0] <= cl_port_j[3:0];
+                l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
+                cl_state <= CL_1;
+              end
+              CL_1: begin
+                dn_top[0] <= {cl_buffer_top[3:0], cl_port_a     };
+                dn_top[1] <= {cl_port_b         , cl_port_c[7:4]};
+                dn_top[2] <= {cl_port_c[3:0]    , cl_port_d     };
+                dn_top[3] <= {DN_SIZE{1'b0}};
+                cl_buffer_top[7:0] <= cl_port_e;
+                dn_btm[0] <= {cl_buffer_btm[3:0], cl_port_f     };
+                dn_btm[1] <= {cl_port_g         , cl_port_h[7:4]};
+                dn_btm[2] <= {cl_port_h[3:0]    , cl_port_i     };
+                dn_btm[3] <= {DN_SIZE{1'b0}};
+                cl_buffer_btm[7:0] <= cl_port_j;
 
-            l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
-            cl_state <= CL_1;
-          end
-          CL_1: begin
-            e_top[0] <= {cl_buffer_top[3:0], cl_port_a     } - dark_top[0];
-            e_top[1] <= {cl_port_b         , cl_port_c[7:4]} - dark_top[1];
-            e_top[2] <= {cl_port_c[3:0]    , cl_port_d     } - dark_top[2];
-            e_top[3] <= {PIXEL_SIZE{1'b0}};
-            cl_buffer_top[7:0] <= cl_port_e;
-            e_btm[0] <= {cl_buffer_btm[3:0], cl_port_f     } - dark_btm[0];
-            e_btm[1] <= {cl_port_g         , cl_port_h[7:4]} - dark_btm[1];
-            e_btm[2] <= {cl_port_h[3:0]    , cl_port_i     } - dark_btm[2];
-            e_btm[3] <= {PIXEL_SIZE{1'b0}};
-            cl_buffer_btm[7:0] <= cl_port_j;
+                l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
+                cl_state <= CL_2;
+              end
+              CL_2: begin
+                dn_top[0] <= {cl_buffer_top , cl_port_a[7:4]};
+                dn_top[1] <= {cl_port_a[3:0], cl_port_b     };
+                dn_top[2] <= {cl_port_c     , cl_port_d[7:4]};
+                dn_top[3] <= {cl_port_d[3:0], cl_port_e     };
+                dn_btm[0] <= {cl_buffer_btm , cl_port_f[7:4]};
+                dn_btm[1] <= {cl_port_f[3:0], cl_port_g     };
+                dn_btm[2] <= {cl_port_h     , cl_port_i[7:4]};
+                dn_btm[3] <= {cl_port_i[3:0], cl_port_j     };
 
-            l_col <= r_col + 1'b1; r_col <= r_col + 2'd3;
-            cl_state <= CL_2;
-          end
-          CL_2: begin
-            e_top[0] <= {cl_buffer_top , cl_port_a[7:4]} - dark_top[0];
-            e_top[1] <= {cl_port_a[3:0], cl_port_b     } - dark_top[1];
-            e_top[2] <= {cl_port_c     , cl_port_d[7:4]} - dark_top[2];
-            e_top[3] <= {cl_port_d[3:0], cl_port_e     } - dark_top[3];
-            e_btm[0] <= {cl_buffer_btm , cl_port_f[7:4]} - dark_btm[0];
-            e_btm[1] <= {cl_port_f[3:0], cl_port_g     } - dark_btm[1];
-            e_btm[2] <= {cl_port_h     , cl_port_i[7:4]} - dark_btm[2];
-            e_btm[3] <= {cl_port_i[3:0], cl_port_j     } - dark_btm[3];
+                l_col <= r_col + 1'b1; r_col <= r_col + 3'd4;
+                cl_state <= CL_0;
+              end
+            endcase
+          end //!pixel_coeff_fifo_empty
+        end else begin // !LVAL
+          l_col <= ~0; r_col <= ~0;
+          cl_state <= CL_INTERLINE;
+        end // if(cl_lval)
 
-            l_col <= r_col + 1'b1; r_col <= r_col + 3'd4;
-            cl_state <= CL_0;
-          end
-        endcase
-      else begin // !LVAL
-        l_col <= ~0; r_col <= ~0;
-        cl_state <= CL_INTERLINE;
-      end
     end//cl_85
 
   always @(posedge reset, posedge cl_fval)
@@ -254,84 +295,76 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     end//posedge clk
   end//always
 
+  localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
+    , ADDR_INC = 3'd8;// BL8
+  localparam DRAMIFC_ERROR = 0, DRAMIFC_READING = 1, DRAMIFC_WAIT = 2
+    , DRAMIFC_INTER_FRAME = 3, DRAMIFC_N_STATE = 4;
+  reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
+  reg bread;
+  reg[APP_DATA_WIDTH-1:0] wr_data;
+  
   assign app_cmd = {2'b00, bread};
-  assign app_wdf_data = {{(APP_DATA_WIDTH-32){1'b0}}, wr_data};
+  assign app_wdf_data = {APP_DATA_WIDTH{1'b0}};
+  assign coeffrd_state = pixel_coeff_fifo_full /* OR other FIFO full */
+    ? COEFFRD_FULL
+    : pixel_coeff_fifo_high /*OR other FIFO above high */
+      ? COEFFRD_ABOVE_HIGH : COEFFRD_BELOW_HIGH;
 
   always @(posedge dram_clk)
     if(reset) begin
-      expected_data <= 1;
       error <= `FALSE;
       heartbeat <= `FALSE;
+
   		app_addr <= START_ADDR;
       app_en <= `TRUE;
-      bread <= `FALSE;
+      bread <= `TRUE;
       app_wdf_wren <= `FALSE;
       wr_data <= 0;
-      dram_state <= DRAM_WRWAIT;
+      dramifc_state <= DRAMIFC_READING;
+
       pc_msg_ack <= `FALSE;
       fpga_msg_valid <= `FALSE;
       fpga_msg <= 0;
 
       for(i=0; i < N_PATCH_REDUCER; i=i+1) partial_sum_valid[i] <= 0;
-    end else begin
+      
+    end else begin // normal operation
+    
       for(i=0; i < N_ROW_REDUCER; i=i+1)
         if(owner_reducer[i] != PATCH_REDUCER_INVALID) begin
           partial_sum[owner_reducer[i]] <= row_sum[i];
           partial_sum_valid[owner_reducer[i]] <= row_sum_rdy[i];
         end
-      
-      if(app_rd_data_valid) begin
-        if(app_rd_data[31:0] != expected_data) begin
-          error <= `TRUE;
-          dram_state <= DRAM_ERROR;
-        end
-        expected_data <= expected_data + `TRUE;
-      end
-      
-      case(dram_state)
-        DRAM_WRWAIT: begin
-          if(app_rdy && app_wdf_rdy) begin
+            
+      case(dramifc_state)
+        DRAMIFC_ERROR: error <= `TRUE;
+        DRAMIFC_READING: begin
+          if(dram_rd_fifo_full) begin
             app_en <= `FALSE;
-            app_wdf_wren <= `TRUE;
-            dram_state <= DRAM_WR;
-            wr_data <= wr_data + `TRUE;
-          end
-        end
-        DRAM_WR: begin
-   			  app_wdf_wren <= `FALSE;
-			    if(app_addr == END_ADDR) begin
-			      app_addr <= START_ADDR;
-				    bread <= `TRUE;
-				    app_en <= `TRUE;
-			      dram_state <= DRAM_RD;
-			    end else begin
-			      app_addr <= app_addr + ADDR_INC;
-				    bread <= `FALSE;
-				    app_en <= `TRUE;
-				    dram_state <= DRAM_WRWAIT;
-			    end
-        end
-        DRAM_RD: begin
-          if(app_rdy) begin
-				    if(app_addr == END_ADDR) begin
-					    app_addr <= START_ADDR;
-              bread <= `FALSE;
-              app_en <= `TRUE;
-              heartbeat <= ~heartbeat;
-              dram_state <= DRAM_WRWAIT;
-            end else begin
-              app_addr <= app_addr + ADDR_INC;
-              app_en <= `TRUE;
-              dram_state <= DRAM_RD;
+            dramifc_state <= DRAMIFC_ERROR;
+          end else begin
+            app_addr <= app_addr + ADDR_INC; //Keep reading till I can't
+            if(app_rd_data_valid) begin
+              if(app_rd_data[1:0] == COEFF_KIND_END) begin
+                app_en <= `FALSE;
+                dramifc_state <= DRAMIFC_INTER_FRAME;
+              end else if(coeffrd_state == COEFFRD_FULL) begin
+                app_en <= `FALSE;//Note: the address is already incremented
+                dramifc_state <= DRAMIFC_WAIT;
+              end
             end
           end
         end
-        default: begin
-          app_en <= `FALSE;
-          bread <= `FALSE;
-          app_wdf_wren <= `FALSE;
-          error <= `TRUE;
-        end
+        DRAMIFC_WAIT:
+          if(coeffrd_state == COEFFRD_BELOW_HIGH) begin
+            app_en <= `TRUE;
+            dramifc_state <= DRAMIFC_READING;
+          end
+        DRAMIFC_INTER_FRAME:
+          if(!cl_fval && fval_d) begin //FIXME: get FVAL from cl domain to dram clock domain
+            app_en <= `TRUE;
+            dramifc_state <= DRAMIFC_READING;
+          end
       endcase
     end
 
