@@ -297,7 +297,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 3'd8;// BL8
-  localparam DRAMIFC_ERROR = 0, DRAMIFC_READING = 1, DRAMIFC_WAIT = 2
+  localparam DRAMIFC_ERROR = 0, DRAMIFC_READING = 1, DRAMIFC_THROTTLED = 2
     , DRAMIFC_INTER_FRAME = 3, DRAMIFC_N_STATE = 4;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg bread;
@@ -350,12 +350,12 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
                 dramifc_state <= DRAMIFC_INTER_FRAME;
               end else if(coeffrd_state == COEFFRD_FULL) begin
                 app_en <= `FALSE;//Note: the address is already incremented
-                dramifc_state <= DRAMIFC_WAIT;
+                dramifc_state <= DRAMIFC_THROTTLED;
               end
             end
           end
         end
-        DRAMIFC_WAIT:
+        DRAMIFC_THROTTLED:
           if(coeffrd_state == COEFFRD_BELOW_HIGH) begin
             app_en <= `TRUE;
             dramifc_state <= DRAMIFC_READING;
