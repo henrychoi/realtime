@@ -3,8 +3,8 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 (input reset, dram_clk, output reg error, heartbeat, app_done
 , input app_rdy, output reg app_en, output[2:0] app_cmd
 , output reg[ADDR_WIDTH-1:0] app_addr
-, input app_wdf_rdy, output reg app_wdf_wren
-, output[APP_DATA_WIDTH-1:0] app_wdf_data
+, input app_wdf_rdy, output reg app_wdf_wren, app_wdf_end
+, output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 , input bus_clk
 , input pc_msg_pending, output reg pc_msg_ack, input[31:0] pc_msg
@@ -67,7 +67,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   reg[ROW_SUM_SIZE-1:0] partial_sum[N_PATCH_REDUCER-1:0];
   reg[1:0] partial_sum_valid[N_PATCH_REDUCER-1:0];
   
-  localparam COEFF_KIND_END = 2'd0, COEFF_KIND_PIXEL = 2'd1
+  localparam COEFF_KIND_INVALID = 2'd0, COEFF_KIND_PIXEL = 2'd1
     , COEFF_KIND_ROW_REDUCER = 2'd2, COEFF_KIND_PATCH_REDUCER = 2'd3;
   wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
   //reg pixel_coeff_fifo_ack;
@@ -77,10 +77,10 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     , COEFFRD_N_STATE = 3;
   wire[log2(COEFFRD_N_STATE)-1:0] coeffrd_state;
 
-  dram_rd_fifo dram_rd_fifo (.clk(dram_clk), .rst(reset)
+  dram_rd_fifo dram_rd_fifo (.clk(dram_clk)//, .rst(reset)
     , .din(app_rd_data), .full(dram_rd_fifo_full)
     , .wr_en(//Note: always write into FIFO when there is DRAM data
-             app_rd_data_valid && app_rd_data[1:0] != COEFF_KIND_END)
+             app_rd_data_valid && app_rd_data[1:0] != COEFF_KIND_INVALID)
     , .rd_en(dram_rd_fifo_empty //Was there even any data to acknowledge?
              && coeffrd_state != COEFFRD_FULL)
     , .dout(dram_data), .empty(dram_rd_fifo_empty));
@@ -296,15 +296,18 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   end//always
 
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
-    , ADDR_INC = 3'd8;// BL8
-  localparam DRAMIFC_ERROR = 0, DRAMIFC_READING = 1, DRAMIFC_THROTTLED = 2
-    , DRAMIFC_INTER_FRAME = 3, DRAMIFC_N_STATE = 4;
+    , ADDR_INC = 4'd8;// BL8
+  localparam DRAMIFC_ERROR = 0
+    , DRAMIFC_WR1 = 1, DRAMIFC_WR2 = 2, DRAMIFC_MSG_WAIT = 3
+    , DRAMIFC_WR_WAIT = 4
+    , DRAMIFC_READING = 5, DRAMIFC_THROTTLED = 6, DRAMIFC_INTER_FRAME = 7
+    , DRAMIFC_N_STATE = 8;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg bread;
-  reg[APP_DATA_WIDTH-1:0] wr_data;
+  reg[APP_DATA_WIDTH*2-1:0] tmp_data;
+  reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
   
   assign app_cmd = {2'b00, bread};
-  assign app_wdf_data = {APP_DATA_WIDTH{1'b0}};
   assign coeffrd_state = pixel_coeff_fifo_full /* OR other FIFO full */
     ? COEFFRD_FULL
     : pixel_coeff_fifo_high /*OR other FIFO above high */
@@ -316,11 +319,12 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       heartbeat <= `FALSE;
 
   		app_addr <= START_ADDR;
-      app_en <= `TRUE;
-      bread <= `TRUE;
+      app_en <= `FALSE;
+      bread <= `FALSE;
       app_wdf_wren <= `FALSE;
-      wr_data <= 0;
-      dramifc_state <= DRAMIFC_READING;
+      app_wdf_end <= `TRUE;
+      tmp_data_offset <= 0;
+      dramifc_state <= DRAMIFC_MSG_WAIT;
 
       pc_msg_ack <= `FALSE;
       fpga_msg_valid <= `FALSE;
@@ -330,14 +334,59 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       
     end else begin // normal operation
     
-      for(i=0; i < N_ROW_REDUCER; i=i+1)
+      for(i=0; i < N_ROW_REDUCER; i=i+1) begin
         if(owner_reducer[i] != PATCH_REDUCER_INVALID) begin
           partial_sum[owner_reducer[i]] <= row_sum[i];
           partial_sum_valid[owner_reducer[i]] <= row_sum_rdy[i];
         end
-            
+      end
+
+      pc_msg_ack <= `FALSE;
+
       case(dramifc_state)
-        DRAMIFC_ERROR: error <= `TRUE;
+        DRAMIFC_ERROR: error <= `TRUE; // Note this is a final state
+        DRAMIFC_MSG_WAIT:
+          if(pc_msg_pending) begin
+            tmp_data[tmp_data_offset+:32] <= pc_msg;
+            tmp_data_offset <= tmp_data_offset + 6'd32;
+            pc_msg_ack <= `TRUE;
+            // Is this the last of the tmp_data I was waiting for?
+            if(tmp_data_offset == (APP_DATA_WIDTH*2 - 32)) begin
+              app_en <= `TRUE;
+              dramifc_state <= DRAMIFC_WR_WAIT;
+            end
+          end
+        DRAMIFC_WR_WAIT:
+          if(app_rdy && app_wdf_rdy) begin
+            app_addr <= app_addr + ADDR_INC; // for next write
+            app_en <= `FALSE;
+            app_wdf_data <= tmp_data[0+:APP_DATA_WIDTH];
+            app_wdf_wren <= `TRUE;
+            app_wdf_end <= `FALSE;
+            dramifc_state <= DRAMIFC_WR1;
+          end
+        DRAMIFC_WR1:
+          if(app_wdf_rdy) begin
+            app_wdf_end <= `TRUE;
+            app_wdf_data <= tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
+            dramifc_state <= DRAMIFC_WR2;
+          end
+        DRAMIFC_WR2: begin
+          app_en <= `FALSE;
+          app_wdf_wren <= `FALSE;
+          //tmp_data_offset <= 0;//Unnecessary due to wrapping
+          
+          if(app_wdf_rdy) begin
+            if(app_wdf_data[1:0] == COEFF_KIND_INVALID) begin
+              app_addr <= START_ADDR;
+              bread <= `FALSE;
+              app_en <= `TRUE;
+              dramifc_state <= DRAMIFC_READING;
+            end else dramifc_state <= DRAMIFC_MSG_WAIT;
+          end else begin //invariance assertion
+            dramifc_state <= DRAMIFC_ERROR;
+          end
+        end
         DRAMIFC_READING: begin
           if(dram_rd_fifo_full) begin
             app_en <= `FALSE;
@@ -345,7 +394,7 @@ module application#(parameter ADDR_WIDTH=1, APP_DATA_WIDTH=1)
           end else begin
             app_addr <= app_addr + ADDR_INC; //Keep reading till I can't
             if(app_rd_data_valid) begin
-              if(app_rd_data[1:0] == COEFF_KIND_END) begin
+              if(app_rd_data[1:0] == COEFF_KIND_INVALID) begin
                 app_en <= `FALSE;
                 dramifc_state <= DRAMIFC_INTER_FRAME;
               end else if(coeffrd_state == COEFFRD_FULL) begin

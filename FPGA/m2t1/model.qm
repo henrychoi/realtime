@@ -187,7 +187,7 @@
   <class name="DramIfc" superclass="qpn::QHsm">
    <statechart>
     <initial target="../2">
-     <initial_glyph conn="3,21,4,3,3,3">
+     <initial_glyph conn="2,20,4,3,2,2">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -209,16 +209,16 @@
      <state name="READING">
       <entry brief="app_en = 1"/>
       <exit brief="app_en = 0"/>
-      <tran trig="COEFFRD_FULL" target="../../3">
-       <tran_glyph conn="59,6,1,3,16">
-        <action box="0,-2,10,2"/>
+      <tran trig="COEFFRD FULL" target="../../3">
+       <tran_glyph conn="59,6,1,3,9">
+        <action box="1,0,7,4"/>
        </tran_glyph>
       </tran>
       <tran trig="app_rd_data_valid">
-       <choice target="../../../4">
-        <guard brief="FIFO full">guard1</guard>
-        <choice_glyph conn="42,12,5,3,19">
-         <action box="1,-2,6,2"/>
+       <choice target="../../../../3">
+        <guard brief="assert: FIFO full">guard1</guard>
+        <choice_glyph conn="42,12,5,3,14,4,27">
+         <action box="1,-2,13,2"/>
         </choice_glyph>
        </choice>
        <choice>
@@ -241,13 +241,13 @@
         </choice_glyph>
        </choice>
        <tran_glyph conn="42,17,2,-1,-5">
-        <action box="1,-3,12,2"/>
+        <action box="0,-3,12,2"/>
        </tran_glyph>
       </tran>
       <tran trig="clk">
-       <action brief="\app_addr += 8;"/>
+       <action brief="app_addr += 8;"/>
        <tran_glyph conn="59,8,1,-1,-6">
-        <action box="-10,-1,10,4"/>
+        <action box="-20,-1,14,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="26,5,33,12">
@@ -256,91 +256,115 @@
       </state_glyph>
      </state>
      <state name="THROTTLED">
-      <tran trig="COEFFRD_BELOW_HIGH" target="../../2">
-       <tran_glyph conn="75,9,3,1,-16">
-        <action box="-16,-2,16,2"/>
+      <tran trig="COEFFRD BELOW HIGH" target="../../2">
+       <tran_glyph conn="68,10,3,1,-9">
+        <action box="-7,0,7,6"/>
        </tran_glyph>
       </tran>
       <tran trig="app_rd_data_valid">
        <action brief="write to dram_rd_fifo"/>
-       <tran_glyph conn="87,9,1,-1,-4">
-        <action box="-12,0,12,6"/>
+       <tran_glyph conn="80,11,1,-1,-2">
+        <action box="-12,-4,12,6"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="75,5,12,11"/>
+      <state_glyph node="68,5,12,9"/>
      </state>
-     <state name="ERROR">
-      <entry brief="led = 1"/>
-      <state_glyph node="61,10,12,6">
-       <entry box="1,2,11,2"/>
-      </state_glyph>
-     </state>
-     <state_glyph node="2,2,86,16"/>
+     <state_glyph node="2,2,79,16"/>
     </state>
     <state name="SAVING">
      <initial target="../1">
       <action brief="app_cmd = WRITE;\app_addr = 0;\app_en = 0"/>
-      <initial_glyph conn="8,25,5,3,6">
-       <action box="0,1,6,13"/>
+      <initial_glyph conn="7,25,5,3,6">
+       <action box="-2,1,8,10"/>
       </initial_glyph>
      </initial>
      <state name="MSG_WAIT">
-      <entry brief="data_offset = 0;\app_wdf_wren = 0"/>
-      <tran trig="xb_rd_fifo_pending">
-       <action brief="xb_rd_fifo_ack = 1;\tmp_data1[data_offset + 31: data_offset] = xb_rd_fifo_dout;\data_offset += 32"/>
-       <tran_glyph conn="35,29,1,-1,-3">
-        <action box="-20,0,20,9"/>
+      <entry brief="tmp_data_offset = 0;\app_wdf_wren = 0"/>
+      <tran trig="pc_msg_pending">
+       <action brief="pc_msg_ack = 1;\tmp_data[tmp_data_offset+: 32] = pc_msg;\tmp_data_offset += 32"/>
+       <tran_glyph conn="32,30,1,-1,-4">
+        <action box="-18,0,18,9"/>
        </tran_glyph>
       </tran>
-      <tran trig="data_offset == (511 - 32) &amp;&amp; xr_rd_fifo_pending" target="../../2">
-       <tran_glyph conn="35,25,1,3,12">
-        <action box="0,0,12,7"/>
+      <tran trig="data_offset == (511 - 32) &amp;&amp; pc_msg_pending" target="../../2">
+       <tran_glyph conn="32,25,1,3,14">
+        <action box="1,0,12,6"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="14,23,21,15">
-       <entry box="1,2,19,4"/>
+      <state_glyph node="13,23,19,19">
+       <entry box="1,2,17,4"/>
       </state_glyph>
      </state>
      <state name="WR_WAIT">
       <entry brief="app_en = 1"/>
       <exit brief="app_addr += 8"/>
       <tran trig="app_rdy &amp;&amp; app_wdf_rdy" target="../../3">
-       <tran_glyph conn="61,25,1,3,10">
+       <tran_glyph conn="60,25,1,3,10">
         <action box="1,0,9,4"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="47,23,14,7">
+      <state_glyph node="46,23,14,7">
        <entry box="1,2,13,2"/>
        <exit box="1,4,13,2"/>
       </state_glyph>
      </state>
      <state name="WR1">
-      <entry brief="app_wdf_data = tmp_data[255:];\app_en = 0;\app_wdf_wren = 1;\app_wdf_end = 0;"/>
+      <entry brief="app_wdf_data = tmp_data[255:0];\app_en = 0;\app_wdf_wren = 1;\app_wdf_end = 0;"/>
       <tran trig="app_wdf_rdy" target="../../4">
-       <tran_glyph conn="74,36,2,1,2,-5">
-        <action box="-4,2,9,2"/>
+       <tran_glyph conn="73,34,2,1,3,-6">
+        <action box="0,0,9,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="71,23,16,13">
+      <state_glyph node="70,23,16,11">
        <entry box="1,2,14,7"/>
       </state_glyph>
      </state>
      <state name="WR2">
       <entry brief="app_wdf_data = tmp_data[511:256];\app_wdf_end = 1"/>
       <exit brief="app_wdf_end = 0; app_wdf_wren = 0;"/>
-      <tran trig="clk" target="../../1">
-       <tran_glyph conn="40,35,3,1,-5">
-        <action box="-4,-2,4,2"/>
+      <tran trig="clk">
+       <choice target="../../../../3">
+        <guard brief="else">guard1</guard>
+        <choice_glyph conn="43,42,4,2,4,46,-28">
+         <action box="0,1,4,2"/>
+        </choice_glyph>
+       </choice>
+       <choice>
+        <guard brief="app_wdf_rdy">guard2</guard>
+        <choice target="../../../../../1">
+         <guard brief="app_wdf_data[1:0] == COEFF KIND INVALID">guard1</guard>
+         <choice_glyph conn="43,35,4,2,-17">
+          <action box="-9,-4,15,4"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../../1">
+         <guard brief="else">guard2</guard>
+         <choice_glyph conn="43,35,5,1,-11">
+          <action box="-4,0,6,2"/>
+         </choice_glyph>
+        </choice>
+        <choice_glyph conn="43,42,4,-1,-7">
+         <action box="-10,-3,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="50,42,3,-1,-7">
+        <action box="-3,-2,4,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="40,31,29,9">
-       <entry box="1,2,27,4"/>
-       <exit box="1,6,28,2"/>
+      <state_glyph node="50,31,17,13">
+       <entry box="1,2,16,6"/>
+       <exit box="1,8,16,4"/>
       </state_glyph>
      </state>
-     <state_glyph node="6,20,82,21"/>
+     <state_glyph node="4,20,83,25"/>
     </state>
-    <state_diagram size="93,48"/>
+    <state name="ERROR">
+     <entry brief="led = 1"/>
+     <state_glyph node="83,9,8,9">
+      <entry box="1,2,6,4"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="92,53"/>
    </statechart>
   </class>
   <class name="PatchRowReducer" superclass="qpn::QHsm">

@@ -15,6 +15,29 @@
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset</obj_property>
+         <obj_property name="ObjectShortName">reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/dramifc_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dramifc_state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">dramifc_state[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/tmp_data_offset" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tmp_data_offset[8:0]</obj_property>
+         <obj_property name="ObjectShortName">tmp_data_offset[8:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/app_wdf_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/coeffrd_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">coeffrd_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">coeffrd_state[1:0]</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/dram_data" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">dram_data[255:0]</obj_property>
          <obj_property name="ObjectShortName">dram_data[255:0]</obj_property>
@@ -23,11 +46,6 @@
       <wvobject fp_name="/simmain/main/app/heartbeat" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">heartbeat</obj_property>
          <obj_property name="ObjectShortName">heartbeat</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/wr_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_data[31:0]</obj_property>
-         <obj_property name="ObjectShortName">wr_data[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/pc_msg_pending" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">pc_msg_pending</obj_property>
@@ -60,8 +78,8 @@
          <obj_property name="ObjectShortName">cl_lval</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/cl_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
-         <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
+         <obj_property name="ElementShortName">cl_state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">cl_state[2:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/l_col" type="array" db_ref_id="1">
@@ -152,8 +170,8 @@
          <obj_property name="ObjectShortName">sum_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /sum" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">sum[43:0]</obj_property>
-         <obj_property name="ObjectShortName">sum[43:0]</obj_property>
+         <obj_property name="ElementShortName">sum[33:0]</obj_property>
+         <obj_property name="ObjectShortName">sum[33:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /n_row" type="array" db_ref_id="1">

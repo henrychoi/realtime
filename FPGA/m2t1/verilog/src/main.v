@@ -174,14 +174,10 @@ module main #(parameter SIMULATION = 0,
   wire [3:0]                          app_ecc_multiple_err_i;
   wire [ADDR_WIDTH-1:0]               app_addr;
   wire [2:0]                          app_cmd;
-  wire                                app_en;
-  wire                                app_sz;
-  wire                                app_rdy;
   wire [APP_DATA_WIDTH-1:0]           app_rd_data;
-  wire                                app_rd_data_valid;
   wire [APP_DATA_WIDTH-1:0]           app_wdf_data;
-  wire                                app_wdf_rdy;
-  wire                                app_wdf_wren;
+  wire app_rd_data_valid, app_en, app_sz, app_rdy
+     , app_wdf_rdy, app_wdf_wren, app_wdf_end;
 
   wire [5*DQS_WIDTH-1:0]              dbg_cpt_first_edge_cnt;
   wire [5*DQS_WIDTH-1:0]              dbg_cpt_second_edge_cnt;
@@ -413,7 +409,7 @@ module main #(parameter SIMULATION = 0,
    .app_hi_pri                       (app_hi_pri),
    .app_sz                           (1'b1),
    .app_wdf_data                     (app_wdf_data),
-   .app_wdf_end                      (`TRUE),
+   .app_wdf_end                      (app_wdf_end),
    .app_wdf_mask                     (app_wdf_mask),
    .app_wdf_wren                     (app_wdf_wren),
    .app_correct_en                   (1'b1),
@@ -681,7 +677,40 @@ module main #(parameter SIMULATION = 0,
         bus_clk_r <= `FALSE;
         pc_msg_empty_r <= `TRUE;
         pc_msg_r <= 0;
-        #120000 pc_msg_r = 1;
+#350000 pc_msg_empty_r <= `FALSE;
+        pc_msg_r = {6'h12, 12'h01, 12'h11, 2'b01};
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = {6'h32, 12'h21, 12'h31, 2'b01};
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = {$random % 30, 2'b00};
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_r = $random;
+#005000 pc_msg_empty_r <= `TRUE;
       end
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
@@ -711,7 +740,7 @@ module main #(parameter SIMULATION = 0,
         , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
         );
 
-      xb_wr_fifo(.clk(bus_clk)
+      xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
         , .rd_en(pc_msg_ack), .dout(pc_msg)
         , .full(xb_wr_full), .empty(pc_msg_empty));
@@ -736,7 +765,7 @@ module main #(parameter SIMULATION = 0,
       .dram_clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)
       , .app_rdy(app_rdy), .app_en(app_en), .app_cmd(app_cmd), .app_addr(app_addr)
-      , .app_wdf_wren(app_wdf_wren)
+      , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
       //xillybus signals
