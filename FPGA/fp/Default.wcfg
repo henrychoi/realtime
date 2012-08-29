@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/fp/simmain_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simmain" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="10" />
+   <wvobject fp_name="/simmain/reduced0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">reduced0[19:0]</obj_property>
+      <obj_property name="ObjectShortName">reduced0[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/f32_1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">f32_1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">f32_1[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/f32_2" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">f32_2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">f32_2[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/f32_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">f32_0[31:0]</obj_property>
+      <obj_property name="ObjectShortName">f32_0[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/f20_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">f20_0[19:0]</obj_property>
+      <obj_property name="ObjectShortName">f20_0[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/top_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">top_0[11:0]</obj_property>
+      <obj_property name="ObjectShortName">top_0[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/ftop_0" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ftop_0[19:0]</obj_property>
+      <obj_property name="ObjectShortName">ftop_0[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/DNreduce_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">DNreduce_rdy</obj_property>
+      <obj_property name="ObjectShortName">DNreduce_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/mult_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">mult_rdy</obj_property>
+      <obj_property name="ObjectShortName">mult_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/f20_result" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">f20_result[19:0]</obj_property>
+      <obj_property name="ObjectShortName">f20_result[19:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
