@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/m2t1/verilog/simmain_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simmain" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="3" />
+   <wvobject fp_name="group23" type="group">
+      <obj_property name="label">app</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/reset" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset</obj_property>
+         <obj_property name="ObjectShortName">reset</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/dramifc_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dramifc_state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">dramifc_state[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/tmp_data_offset" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tmp_data_offset[8:0]</obj_property>
+         <obj_property name="ObjectShortName">tmp_data_offset[8:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/app_wdf_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">app_wdf_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/coeffrd_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">coeffrd_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">coeffrd_state[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/dram_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dram_data[255:0]</obj_property>
+         <obj_property name="ObjectShortName">dram_data[255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/heartbeat" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">heartbeat</obj_property>
+         <obj_property name="ObjectShortName">heartbeat</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pc_msg_pending" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_pending</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_pending</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg_ack" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_ack</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/fpga_msg_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/fpga_msg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg[63:0]</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg[63:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/cl_fval" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_fval</obj_property>
+         <obj_property name="ObjectShortName">cl_fval</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/cl_lval" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_lval</obj_property>
+         <obj_property name="ObjectShortName">cl_lval</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/cl_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">cl_state[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/l_col" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">l_col[11:0]</obj_property>
+         <obj_property name="ObjectShortName">l_col[11:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/r_col" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">r_col[11:0]</obj_property>
+         <obj_property name="ObjectShortName">r_col[11:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/capture_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">capture_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">capture_state[1:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/row_init[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,1:0]</obj_property>
+         <obj_property name="ObjectShortName">row_init[0,1:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group45" type="group">
+      <obj_property name="label">row_reducer0</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /topbtm" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">topbtm[1:0]</obj_property>
+         <obj_property name="ObjectShortName">topbtm[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /cl_start_col" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_start_col[11:0]</obj_property>
+         <obj_property name="ObjectShortName">cl_start_col[11:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /owner_reducer" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">owner_reducer[1:0]</obj_property>
+         <obj_property name="ObjectShortName">owner_reducer[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /cl_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cl_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">cl_state[1:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /matched_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">matched_valid</obj_property>
+         <obj_property name="ObjectShortName">matched_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /sum_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum_rdy[1:0]</obj_property>
+         <obj_property name="ObjectShortName">sum_rdy[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /n_col" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">n_col[2:0]</obj_property>
+         <obj_property name="ObjectShortName">n_col[2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /weight_top" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weight_top[5:0,15:0]</obj_property>
+         <obj_property name="ObjectShortName">weight_top[5:0,15:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /weighted_top" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_top[28:0]</obj_property>
+         <obj_property name="ObjectShortName">weighted_top[28:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].row_reducer /sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum[31:0]</obj_property>
+         <obj_property name="ObjectShortName">sum[31:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group300" type="group">
+      <obj_property name="label">patch0</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /sum_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sum_rdy</obj_property>
+         <obj_property name="ObjectShortName">sum_rdy</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum[33:0]</obj_property>
+         <obj_property name="ObjectShortName">sum[33:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].patch_reducer /n_row" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">n_row[2:0]</obj_property>
+         <obj_property name="ObjectShortName">n_row[2:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

@@ -1,12 +1,12 @@
 `timescale 100ps/1ps
 module simmain;
 `include "function.v"
-  reg clk, reset, standard2reduced_en, sub_en, standard_sub_en;
+  reg clk, reset;//, standard2reduced_en, sub_en, standard_sub_en;
   reg[31:0] f32_1, f32_2;
   reg[11:0] top_0;
   wire[31:0] f32_0;
   wire[19:0] reduced0, f20_0, f20_1, f20_2, ftop_0, f20_result;
-  wire DNreduce_rdy, mult_rdy;
+  wire DNreduce_rdy, mult_rdy, error;
   //, stadard2reduced_rdy, sub_rdy, f0_rdy, invalid_op
   //  , f32_0_rdy, stadard_sub_rdy;
 
@@ -27,22 +27,15 @@ module simmain;
     , .a(top_0), .result(ftop_0));
   mult mult20(.clk(clk), .rdy(mult_rdy), .a(ftop_0), .b(f20_0)
     , .result(f20_result));
+  main#(.N_MULT(10)) main(.clk(clk), .reset(reset), .error(error));
   
   initial begin
     reset = `FALSE;
     clk = `TRUE;
     
     // See http://gregstoll.dyndns.org/~gregstoll/floattohex/
-    //standard0 = 'h3f800000; //1.0
-    sub_en <= `FALSE;
-    standard_sub_en <= `FALSE;
-    standard2reduced_en <= `FALSE;
 #50 reset = `TRUE;
 #100 reset = `FALSE;
-#50 //standard_sub_en <= `TRUE;
-    standard2reduced_en <= `TRUE;
-    sub_en <= `TRUE;
-#50 standard_sub_en <= `FALSE;
   end
   always clk = #25 ~clk;
   always @(posedge reset, posedge clk) begin
