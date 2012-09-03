@@ -2,206 +2,336 @@
 <model version="2.2.00">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
-  <class name="Capturer" superclass="qpn::QHsm">
-   <documentation>Test active object</documentation>
+  <class name="PatchRowReducer" superclass="qpn::QHsm">
+   <attribute name="sum" type="" visibility="0x00" properties="0x00"/>
+   <attribute name="owner_reducer" type="" visibility="0x00" properties="0x00"/>
+   <attribute name="topbtm_mask" type="" visibility="0x00" properties="0x00"/>
    <statechart>
-    <initial target="../4">
-     <initial_glyph conn="4,5,4,0,3">
+    <initial target="../5">
+     <initial_glyph conn="4,24,5,3,3">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
-    <state name="standby">
-     <tran trig="PC_MSG(stride, n_frame)" target="../../2">
-      <action brief="\bus_frame = n_frame;\cl_stride = stride;"/>
-      <tran_glyph conn="12,8,2,0,9">
-       <action box="1,1,17,6"/>
+    <initial target="../6">
+     <initial_glyph conn="4,15,4,2,-4">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="DONE">
+     <tran trig="CONFIG_WAIT" target="../../6">
+      <tran_glyph conn="41,16,3,2,-30,-5">
+       <action box="-13,0,13,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="11,2,7,6"/>
+     <state_glyph node="41,13,8,6"/>
     </state>
-    <state name="armed">
-     <tran trig="cl_frame != 0 &amp;&amp; app_rdy" target="../../3">
-      <tran_glyph conn="20,22,1,3,10">
-       <action box="1,-4,9,5"/>
+    <state name="WAIT">
+     <entry brief="start_col = start_col_in;\n_toSend = PSF_SIZE;"/>
+     <tran trig="n_row == matcher_row &amp;&amp; right_col &gt;= start_col" target="../../4">
+      <action brief="remaining -= n_valid_ds"/>
+      <tran_glyph conn="32,6,1,3,15">
+       <action box="1,0,14,9"/>
       </tran_glyph>
      </tran>
-     <tran trig="CL_FVAL">
-      <action brief="cl_frame = bus_frame"/>
-      <tran_glyph conn="20,24,1,-1,-3">
-       <action box="-14,-3,13,4"/>
+     <state_glyph node="16,5,16,10">
+      <entry box="1,2,15,6"/>
+     </state_glyph>
+    </state>
+    <state name="MATCHED">
+     <tran trig="cl_clk">
+      <choice>
+       <guard brief="else">guard1</guard>
+       <action brief="remaining -= n_valid_ds"/>
+       <choice_glyph conn="53,9,5,-1,4">
+        <action box="5,-2,21,3"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../../2">
+       <guard brief="n_valid_ds &gt;= remaining">guard2</guard>
+       <action brief="Insert remaining e- into FIFO"/>
+       <choice_glyph conn="53,9,4,1,7,-4">
+        <action box="1,5,25,4"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="47,9,3,-1,6">
+       <action box="0,-2,5,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="2,17,18,8"/>
+     <state_glyph node="47,5,34,7"/>
+    </state>
+    <state name="CONFIG_WAIT">
+     <tran trig="INIT(n_row, config_data)" target="../../7">
+      <action brief="\break out config_data into each column of row;\sum &lt;= 0;n_ds = 0; n_sum = 0"/>
+      <tran_glyph conn="17,24,1,3,30">
+       <action box="1,0,29,6"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="7,23,10,6"/>
+    </state>
+    <state name="UNINITIALIZED">
+     <tran trig="INIT" target="../../3">
+      <tran_glyph conn="13,6,1,3,3">
+       <action box="0,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,5,11,6"/>
+    </state>
+    <state name="DATA_WAIT">
+     <tran trig="matched_pixel_pending">
+      <action brief="matched_pixel_ack = 1"/>
+      <choice>
+       <guard brief="matched_pixel_valid">guard1</guard>
+       <action brief="ds_received++;"/>
+       <choice>
+        <guard brief="else">guard1</guard>
+        <choice_glyph conn="72,30,5,-1,4">
+         <action box="1,1,6,2"/>
+        </choice_glyph>
+       </choice>
+       <choice target="../../../../9">
+        <guard brief="pixels_received == PATCH_SIZE - 1">guard2</guard>
+        <action brief="n_ds = 0"/>
+        <choice_glyph conn="72,30,4,1,9,-29">
+         <action box="-24,7,23,4"/>
+        </choice_glyph>
+       </choice>
+       <choice_glyph conn="51,30,5,-1,21">
+        <action box="2,0,16,4"/>
+       </choice_glyph>
+      </choice>
+      <choice>
+       <guard brief="else">guard2</guard>
+       <choice_glyph conn="51,30,4,-1,3">
+        <action box="-2,4,5,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="47,30,3,-1,4">
+       <action box="0,-5,16,4"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="clk">
+      <action brief="matched_pixel_ack = 0"/>
+      <tran_glyph conn="80,26,1,-1,-3">
+       <action box="-14,-1,14,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="47,23,33,13"/>
+    </state>
+    <state name="SUM_RDY">
+     <entry brief="sum_rdy = 1;"/>
+     <tran trig="clk" target="../../5">
+      <tran_glyph conn="12,32,0,2,-3">
+       <action box="-3,-2,4,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="7,32,11,8">
+      <entry box="1,2,9,4"/>
+     </state_glyph>
+    </state>
+    <state name="SUM_WAIT">
+     <tran trig="running_sum_rdy">
+      <action brief="n_sum++;\sum &lt;= running_sum"/>
+      <choice>
+       <guard brief="else">guard1</guard>
+       <choice_glyph conn="40,36,5,-1,-4">
+        <action box="-4,-3,5,2"/>
+       </choice_glyph>
+      </choice>
+      <choice target="../../../8">
+       <guard brief="n_sum == PATCH_SIZE - 1">guard2</guard>
+       <choice_glyph conn="40,36,4,2,6,-28,-2">
+        <action box="-17,4,20,2"/>
+       </choice_glyph>
+      </choice>
+      <tran_glyph conn="43,36,1,-1,-3">
+       <action box="-20,-2,15,6"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="22,31,21,9"/>
+    </state>
+    <state_diagram size="82,44"/>
+   </statechart>
+  </class>
+  <class name="Capturer" superclass="qpn::QHsm">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="5,2,4,0,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="STANDBY">
+     <tran trig="FVAL_d" target="../../2">
+      <tran_glyph conn="9,11,2,3,2,6">
+       <action box="0,2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,5,9,6"/>
     </state>
     <state name="CAPTURING">
-     <initial target="../3">
-      <initial_glyph conn="32,26,4,3,-2,2">
-       <action box="-3,-2,6,2"/>
-      </initial_glyph>
-     </initial>
-     <tran trig="cl_frame == 0" target="../../1">
-      <action brief="^EoF(CL_DONE)"/>
-      <tran_glyph conn="30,3,3,1,-12">
-       <action box="-11,0,10,5"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="CL_FVAL">
-      <action brief="n_row = 0;\if(stride == 0) cl_frame--;\else stride++"/>
-      <tran_glyph conn="30,5,3,-1,2">
-       <action box="3,-1,10,12"/>
-      </tran_glyph>
-     </tran>
-     <state name="INTERLINE">
-      <entry brief="l_col = -1;\r_col = 0"/>
-      <exit brief="n_row++; publish 3 e;\save last 4 bits"/>
-      <tran trig="LVAL &amp;&amp; !LVAL_d &amp;&amp; stride == 0" target="../../4/2">
-       <tran_glyph conn="42,17,0,3,-5,10">
-        <action box="0,-11,9,6"/>
+     <entry brief="n_frame = 0"/>
+     <state name="INTERFRAME">
+      <entry brief="n_frame++"/>
+      <tran trig="LVAL_d" target="../../1">
+       <tran_glyph conn="26,11,1,3,7">
+        <action box="0,-2,6,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="34,17,13,12">
-       <entry box="1,2,11,4"/>
-       <exit box="1,6,12,6"/>
+      <state_glyph node="16,6,10,8">
+       <entry box="1,2,9,4"/>
       </state_glyph>
      </state>
-     <state name="INTRALINE">
-      <tran trig="!LVAL" target="../../3">
-       <tran_glyph conn="50,14,3,0,-6,3">
-        <action box="-5,0,5,2"/>
-       </tran_glyph>
-      </tran>
-      <tran trig="pixel_coeff_fifo_empty" target="../../../5">
-       <tran_glyph conn="53,29,2,2,3,-29,-2">
-        <action box="-15,1,16,2"/>
-       </tran_glyph>
-      </tran>
-      <state name="CL1">
-       <entry brief="l_col = r_col + 1;\r_col += 3"/>
-       <tran trig="CL_CLK" target="../../4">
-        <action brief="\compose 3 e from saved and new; publish 3 e; save last 8 bits to buffer"/>
-        <tran_glyph conn="62,8,1,3,15">
-         <action box="1,-2,13,9"/>
+     <state name="INTRAFRAME">
+      <entry brief="n_row = 0"/>
+      <initial target="../2">
+       <initial_glyph conn="44,17,5,3,4">
+        <action box="-3,-2,6,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="INTERLINE">
+       <entry brief="n_row++"/>
+       <tran trig="LVAL_d" target="../../2">
+        <tran_glyph conn="42,13,1,3,6">
+         <action box="0,-2,6,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="52,7,10,10">
-        <entry box="1,2,8,6"/>
+       <state_glyph node="34,8,8,9">
+        <entry box="1,2,7,4"/>
        </state_glyph>
       </state>
-      <state name="CL0">
-       <entry brief="l_col = r_col+1;\r_col += 4"/>
-       <tran trig="CL_CLK" target="../../2">
-        <action brief="publish 3 e;\save last 4 bits"/>
-        <tran_glyph conn="61,21,3,2,-3,-4">
-         <action box="-10,-1,10,6"/>
+      <state name="INTRALINE">
+       <entry brief="n_col = 0"/>
+       <tran trig="pixel_coeff_fifo_empty" target="../../../../3">
+        <tran_glyph conn="78,10,1,2,11,-3">
+         <action box="0,0,15,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="61,18,12,10">
-        <entry box="1,2,10,6"/>
-       </state_glyph>
-      </state>
-      <state name="CL2">
-       <entry brief="l_col = r_col+1;\r_col += 3"/>
-       <tran trig="CL_CLK" target="../../3">
-        <action brief="\compose 4 e from saved and new;\publish 4 e"/>
-        <tran_glyph conn="83,18,2,1,3,-10">
-         <action box="-8,1,12,10"/>
+       <tran trig="clk">
+        <action brief="pixel_play_fifo_ack = 1;\dark_subtracted[i] = fpixel[i] - dark[i];\n_col++"/>
+        <choice>
+         <guard brief="else">guard1</guard>
+         <choice target="../../../../1">
+          <guard brief="else">guard1</guard>
+          <choice_glyph conn="35,20,4,2,-3">
+           <action box="1,-3,5,2"/>
+          </choice_glyph>
+         </choice>
+         <choice target="../../../../../0">
+          <guard brief="!FVAL_d">guard2</guard>
+          <choice_glyph conn="35,20,5,2,-14,-6">
+           <action box="-13,-3,8,2"/>
+          </choice_glyph>
+         </choice>
+         <choice_glyph conn="50,17,4,-1,3,-15">
+          <action box="-8,1,5,2"/>
+         </choice_glyph>
+        </choice>
+        <choice>
+         <guard brief="LVAL_d">guard2</guard>
+         <choice_glyph conn="50,17,4,-1,-3">
+          <action box="-2,-6,6,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="53,19,2,-1,-2,-3">
+         <action box="1,-7,23,6"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="77,7,10,11">
-        <entry box="1,2,9,6"/>
+       <state_glyph node="48,7,30,12">
+        <entry box="1,2,11,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="50,4,38,25"/>
+      <state_glyph node="33,4,48,17">
+       <entry box="1,2,13,2"/>
+      </state_glyph>
      </state>
-     <state_glyph node="30,1,59,29"/>
-    </state>
-    <state name="INIT">
-     <tran trig="app_rdy_dd" target="../../1">
-      <tran_glyph conn="7,8,0,3,-4,4">
-       <action box="-4,-6,9,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,8,6,6"/>
+     <state_glyph node="15,1,69,21">
+      <entry box="1,2,14,2"/>
+     </state_glyph>
     </state>
     <state name="ERROR">
-     <state_glyph node="21,24,7,6"/>
+     <state_glyph node="86,1,7,6"/>
     </state>
-    <state_diagram size="90,33"/>
+    <state_diagram size="95,23"/>
    </statechart>
   </class>
   <class name="PatchReducer" superclass="qpn::QHsm">
    <attribute name="sum" type="" visibility="0x01" properties="0x00"/>
    <statechart>
     <initial target="../2">
-     <initial_glyph conn="3,4,5,3,4">
+     <initial_glyph conn="9,14,4,2,-3">
       <action box="2,-1,7,4"/>
      </initial_glyph>
     </initial>
     <state name="DATA_WAIT">
-     <entry brief="sum = 0;\n_row = 0;"/>
-     <tran trig="partial_sum_valid(\partial_sum_count, partial_sum)">
-      <action brief="\n_row += partial_sum_count;\sum += partial_sum"/>
+     <entry brief="sum = 0;\n_row = 0;\n_sum = 0"/>
+     <tran trig="running_sum_valid(partial_sum)">
+      <action brief="n_row++;\current_row++"/>
       <choice target="../../../3">
        <guard brief="n_row == PATCH_SIZE - 1">guard1</guard>
-       <choice_glyph conn="51,8,4,1,5,-20">
-        <action box="-18,3,18,2"/>
+       <choice_glyph conn="64,8,4,1,3,-28">
+        <action box="-15,3,18,2"/>
        </choice_glyph>
       </choice>
       <choice>
        <guard brief="else">guard2</guard>
-       <choice_glyph conn="51,8,5,-1,-5">
+       <choice_glyph conn="64,8,5,-1,-5">
         <action box="-5,-2,6,2"/>
        </choice_glyph>
       </choice>
-      <tran_glyph conn="54,14,2,-1,-6,-3">
-       <action box="1,-9,21,8"/>
+      <tran_glyph conn="67,13,2,-1,-5,-3">
+       <action box="1,-6,21,6"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="35,3,41,11">
-      <entry box="1,2,10,4"/>
+     <state_glyph node="48,3,41,10">
+      <entry box="1,2,10,6"/>
      </state_glyph>
     </state>
     <state name="CONFIG_WAIT">
      <entry brief="n_row = 0"/>
-     <tran trig="INIT(id)" target="../../1">
-      <action brief="this.id = id"/>
-      <tran_glyph conn="18,6,1,3,17">
-       <action box="2,-2,13,2"/>
+     <tran trig="INIT(id, start_row)" target="../../1">
+      <action brief="\this.id = id;\current_row = start_row;"/>
+      <tran_glyph conn="17,4,1,3,31">
+       <action box="1,-2,17,6"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="7,3,11,8">
+     <state_glyph node="7,3,10,8">
       <entry box="1,2,8,4"/>
      </state_glyph>
     </state>
     <state name="SUM_RDY">
      <tran trig="SUM_ACK" target="../../2">
-      <tran_glyph conn="22,13,3,2,-10,-2">
-       <action box="-7,-2,9,2"/>
+      <tran_glyph conn="28,13,3,2,-16,-2">
+       <action box="-7,0,7,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="22,8,9,6"/>
+     <state_glyph node="28,8,8,7"/>
     </state>
-    <state_diagram size="84,22"/>
+    <state_diagram size="91,21"/>
    </statechart>
   </class>
   <class name="DramIfc" superclass="qpn::QHsm">
    <statechart>
     <initial target="../2">
-     <initial_glyph conn="2,20,4,3,2,2">
+     <initial_glyph conn="7,20,4,0,3">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
     <state name="PLAY_BACK">
-     <initial target="../2">
+     <initial target="../3">
       <action brief="app_cmd = READ;\app_addr = 0"/>
       <initial_glyph conn="20,15,5,3,6">
        <action box="-13,-1,13,4"/>
       </initial_glyph>
      </initial>
+     <tran trig="pc_msg[1:0] != COEFF_KIND_INVALID" target="../../2">
+      <tran_glyph conn="48,18,2,0,5">
+       <action box="1,1,25,2"/>
+      </tran_glyph>
+     </tran>
      <state name="INTER_FRAME">
-      <tran trig="!FVAL" target="../../2">
-       <tran_glyph conn="12,7,1,3,14">
-        <action box="4,-2,6,2"/>
+      <tran trig="capture_state == INTER_FRAME" target="../../3">
+       <tran_glyph conn="12,8,1,3,14">
+        <action box="2,-4,12,4"/>
        </tran_glyph>
       </tran>
       <state_glyph node="3,5,9,8"/>
@@ -209,7 +339,7 @@
      <state name="READING">
       <entry brief="app_en = 1"/>
       <exit brief="app_en = 0"/>
-      <tran trig="COEFFRD FULL" target="../../3">
+      <tran trig="COEFFRD FULL" target="../../4">
        <tran_glyph conn="59,6,1,3,9">
         <action box="1,0,7,4"/>
        </tran_glyph>
@@ -223,10 +353,10 @@
        </choice>
        <choice>
         <guard brief="else">guard2</guard>
-        <choice target="../../../../1">
-         <guard brief="app_rd_data[1:0] == COEFF_KIND_END">guard1</guard>
+        <choice target="../../../../2">
+         <guard brief="app_addr == end_addr">guard1</guard>
          <choice_glyph conn="29,12,5,1,-17">
-          <action box="-16,-4,13,4"/>
+          <action box="-12,-4,9,4"/>
          </choice_glyph>
         </choice>
         <choice>
@@ -256,7 +386,7 @@
       </state_glyph>
      </state>
      <state name="THROTTLED">
-      <tran trig="COEFFRD BELOW HIGH" target="../../2">
+      <tran trig="COEFFRD BELOW HIGH" target="../../3">
        <tran_glyph conn="68,10,3,1,-9">
         <action box="-7,0,7,6"/>
        </tran_glyph>
@@ -273,37 +403,44 @@
     </state>
     <state name="SAVING">
      <initial target="../1">
-      <action brief="app_cmd = WRITE;\app_addr = 0;\app_en = 0"/>
-      <initial_glyph conn="7,25,5,3,6">
-       <action box="-2,1,8,10"/>
+      <action brief="app_cmd = WRITE;\app_addr = 0;\app_en = 0;\end_addr = ADDR_INC;"/>
+      <initial_glyph conn="4,28,5,3,8">
+       <action box="-1,1,9,12"/>
       </initial_glyph>
      </initial>
      <state name="MSG_WAIT">
-      <entry brief="tmp_data_offset = 0;\app_wdf_wren = 0"/>
+      <entry brief="tmp_data_offset = 256-32;\app_wdf_wren = 0"/>
+      <exit brief="end_addr += ADDR_INC"/>
       <tran trig="pc_msg_pending">
-       <action brief="pc_msg_ack = 1;\tmp_data[tmp_data_offset+: 32] = pc_msg;\tmp_data_offset += 32"/>
-       <tran_glyph conn="32,30,1,-1,-4">
-        <action box="-18,0,18,9"/>
+       <action brief="pc_msg_ack = 1;\tmp_data[tmp_data_offset+: 32] = pc_msg;\tmp_data_offset -= 32"/>
+       <tran_glyph conn="32,39,1,-1,-4">
+        <action box="-19,-2,18,9"/>
        </tran_glyph>
       </tran>
       <tran trig="data_offset == (511 - 32) &amp;&amp; pc_msg_pending" target="../../2">
-       <tran_glyph conn="32,25,1,3,14">
+       <tran_glyph conn="32,28,1,3,14">
         <action box="1,0,12,6"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="13,23,19,19">
-       <entry box="1,2,17,4"/>
+      <tran trig="tmp_data_offset == 256-32 &amp;&amp; pc_msg[31-:2] == COEFF_KIND_INVALID" target="../../../1">
+       <tran_glyph conn="15,26,0,2,-8">
+        <action box="1,-8,27,4"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="12,26,20,20">
+       <entry box="1,2,18,6"/>
+       <exit box="1,8,18,3"/>
       </state_glyph>
      </state>
      <state name="WR_WAIT">
       <entry brief="app_en = 1"/>
       <exit brief="app_addr += 8"/>
       <tran trig="app_rdy &amp;&amp; app_wdf_rdy" target="../../3">
-       <tran_glyph conn="60,25,1,3,10">
+       <tran_glyph conn="60,28,1,3,10">
         <action box="1,0,9,4"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="46,23,14,7">
+      <state_glyph node="46,26,14,7">
        <entry box="1,2,13,2"/>
        <exit box="1,4,13,2"/>
       </state_glyph>
@@ -311,11 +448,11 @@
      <state name="WR1">
       <entry brief="app_wdf_data = tmp_data[255:0];\app_en = 0;\app_wdf_wren = 1;\app_wdf_end = 0;"/>
       <tran trig="app_wdf_rdy" target="../../4">
-       <tran_glyph conn="73,34,2,1,3,-6">
+       <tran_glyph conn="73,37,2,1,3,-6">
         <action box="0,0,9,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="70,23,16,11">
+      <state_glyph node="70,26,16,11">
        <entry box="1,2,14,7"/>
       </state_glyph>
      </state>
@@ -325,175 +462,34 @@
       <tran trig="clk">
        <choice target="../../../../3">
         <guard brief="else">guard1</guard>
-        <choice_glyph conn="43,42,4,2,4,46,-28">
+        <choice_glyph conn="43,38,4,2,10,46,-26">
          <action box="0,1,4,2"/>
         </choice_glyph>
        </choice>
-       <choice>
+       <choice target="../../../1">
         <guard brief="app_wdf_rdy">guard2</guard>
-        <choice target="../../../../../1">
-         <guard brief="app_wdf_data[1:0] == COEFF KIND INVALID">guard1</guard>
-         <choice_glyph conn="43,35,4,2,-17">
-          <action box="-9,-4,15,4"/>
-         </choice_glyph>
-        </choice>
-        <choice target="../../../../1">
-         <guard brief="else">guard2</guard>
-         <choice_glyph conn="43,35,5,1,-11">
-          <action box="-4,0,6,2"/>
-         </choice_glyph>
-        </choice>
-        <choice_glyph conn="43,42,4,-1,-7">
-         <action box="-10,-3,10,2"/>
+        <choice_glyph conn="43,38,5,1,-11">
+         <action box="-10,0,10,2"/>
         </choice_glyph>
        </choice>
-       <tran_glyph conn="50,42,3,-1,-7">
+       <tran_glyph conn="50,38,3,-1,-7">
         <action box="-3,-2,4,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="50,31,17,13">
+      <state_glyph node="50,34,17,12">
        <entry box="1,2,16,6"/>
        <exit box="1,8,16,4"/>
       </state_glyph>
      </state>
-     <state_glyph node="4,20,83,25"/>
+     <state_glyph node="2,23,85,24"/>
     </state>
     <state name="ERROR">
      <entry brief="led = 1"/>
-     <state_glyph node="83,9,8,9">
+     <state_glyph node="83,13,8,9">
       <entry box="1,2,6,4"/>
      </state_glyph>
     </state>
     <state_diagram size="92,53"/>
-   </statechart>
-  </class>
-  <class name="PatchRowReducer" superclass="qpn::QHsm">
-   <attribute name="sum" type="" visibility="0x00" properties="0x00"/>
-   <attribute name="owner_reducer" type="" visibility="0x00" properties="0x00"/>
-   <attribute name="topbtm_mask" type="" visibility="0x00" properties="0x00"/>
-   <statechart>
-    <initial target="../5">
-     <initial_glyph conn="3,24,5,3,4">
-      <action box="0,-2,6,2"/>
-     </initial_glyph>
-    </initial>
-    <initial target="../6">
-     <initial_glyph conn="4,15,4,2,-4">
-      <action box="0,-2,6,2"/>
-     </initial_glyph>
-    </initial>
-    <state name="DONE">
-     <tran trig="logic_state == CONFIG_WAIT" target="../../6">
-      <tran_glyph conn="34,19,3,2,-27,-8">
-       <action box="-21,0,19,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="34,16,8,6"/>
-    </state>
-    <state name="WAIT">
-     <entry brief="start_col = start_col_in;\n_toSend = PSF_SIZE;"/>
-     <tran trig="right_col &gt;= start_col" target="../../4">
-      <action brief="Insert (right_col - start_col + 1) top AND bottom e- into FIFO;\remaining -= (right_col - start_col + 1);"/>
-      <tran_glyph conn="28,6,1,3,19">
-       <action box="1,-2,18,10"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="16,5,12,11">
-      <entry box="1,2,11,7"/>
-     </state_glyph>
-    </state>
-    <state name="MATCHED">
-     <tran trig="cl_clk">
-      <choice>
-       <guard brief="else">guard1</guard>
-       <action brief="toSend = MIN(start_col + PATCH_SIZE - left_col, 4);\Insert toSend top AND bottom e- into FIFO;\remaining -= toSend;"/>
-       <choice_glyph conn="53,9,5,-1,4">
-        <action box="5,-2,23,9"/>
-       </choice_glyph>
-      </choice>
-      <choice target="../../../2">
-       <guard brief="(right_col - left_col + 1) &gt;= remaining">guard2</guard>
-       <action brief="Insert remaining e- into FIFO"/>
-       <choice_glyph conn="53,9,4,1,8,-11">
-        <action box="-10,9,25,4"/>
-       </choice_glyph>
-      </choice>
-      <tran_glyph conn="47,9,3,-1,6">
-       <action box="0,-2,5,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="47,5,34,11"/>
-    </state>
-    <state name="CONFIG_WAIT">
-     <tran trig="INIT(config_data)" target="../../7">
-      <action brief="\break out config_data into each column of row;\cl_init_d &lt;= 1;\sum &lt;= 0;\e_received = 0;"/>
-      <tran_glyph conn="17,24,1,3,23">
-       <action box="3,-2,15,11"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="7,23,10,6"/>
-    </state>
-    <state name="UNINITIALIZED">
-     <tran trig="cl_init" target="../../3">
-      <tran_glyph conn="13,6,1,3,3">
-       <action box="0,-2,6,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,5,11,6"/>
-    </state>
-    <state name="DATA_WAIT">
-     <tran trig="matched_pixel_pending">
-      <action brief="matched_pixel_ack = 1"/>
-      <choice>
-       <guard brief="matched_pixel_valid">guard1</guard>
-       <action brief="sum += weight * matched_e;\e_received++;"/>
-       <choice>
-        <guard brief="else">guard1</guard>
-        <choice_glyph conn="72,30,5,-1,4">
-         <action box="5,-1,6,2"/>
-        </choice_glyph>
-       </choice>
-       <choice target="../../../../8">
-        <guard brief="pixels_received == PATCH_SIZE - 1">guard2</guard>
-        <action brief="e_received = 0"/>
-        <choice_glyph conn="72,30,4,1,9,-34">
-         <action box="-24,7,23,4"/>
-        </choice_glyph>
-       </choice>
-       <choice_glyph conn="44,30,5,-1,28">
-        <action box="2,0,26,6"/>
-       </choice_glyph>
-      </choice>
-      <choice>
-       <guard brief="else">guard2</guard>
-       <choice_glyph conn="44,30,4,-1,3">
-        <action box="-2,4,5,2"/>
-       </choice_glyph>
-      </choice>
-      <tran_glyph conn="40,30,3,-1,4">
-       <action box="0,-5,16,4"/>
-      </tran_glyph>
-     </tran>
-     <tran trig="clk">
-      <action brief="matched_pixel_ack = 0"/>
-      <tran_glyph conn="81,26,1,-1,-4">
-       <action box="-14,-1,14,4"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="40,23,41,14"/>
-    </state>
-    <state name="SUM_RDY">
-     <entry brief="sum_rdy = topbtm_mask == 'b11 ? 2 : 1"/>
-     <tran trig="clk" target="../../5">
-      <tran_glyph conn="17,35,3,2,-5,-6">
-       <action box="-5,0,5,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="17,33,21,8">
-      <entry box="1,2,20,4"/>
-     </state_glyph>
-    </state>
-    <state_diagram size="83,43"/>
    </statechart>
   </class>
   <class name="CoeffReader" superclass="qpn::QHsm">

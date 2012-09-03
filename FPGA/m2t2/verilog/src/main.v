@@ -649,6 +649,7 @@ module main #(parameter SIMULATION = 0,
   wire app_done;
 
   // Xillybus signals
+  localparam XB_SIZE = 32;
   wire bus_clk, quiesce
    , xb_rd_rden         //xb_rd_fifo -> xillybus
    , xb_rd_empty        //xb_rd_fifo -> xillybus
@@ -663,7 +664,7 @@ module main #(parameter SIMULATION = 0,
    , xb_loop_rden       // xillybus -> xb_loop_fifo
    , xb_loop_empty      // xb_loop_fifo -> xillybus
    , xb_loop_full;      // xb_loop_fifo -> xillybus
-  wire[31:0] xb_rd_data //xb_rd_fifo -> xillybus
+  wire[XB_SIZE-1:0] xb_rd_data //xb_rd_fifo -> xillybus
    , xb_loop_data       // xb_loopback_fifo -> xillybus
    , xb_wr_data         // xillybus -> xb_wr_fifo
    , pc_msg
@@ -673,7 +674,7 @@ module main #(parameter SIMULATION = 0,
   generate
     if(SIMULATION == 1) begin: simulate_xb
       integer binf, rc;
-      reg[31:0] pc_msg_r;
+      reg[XB_SIZE-1:0] pc_msg_r;
       reg bus_clk_r, pc_msg_empty_r;
       initial begin
         binf = $fopen("M2T_coeff.bin", "rb");
@@ -727,7 +728,7 @@ module main #(parameter SIMULATION = 0,
         , .rd_en(pc_msg_ack), .dout(pc_msg)
         , .full(xb_wr_full), .empty(pc_msg_empty));
 
-      // Cross from camera link clock tp PCIe bus clock
+      // Data from dram lock clock domain to PCIe domain
       xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
         , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
         , .rd_en(xb_rd_rden), .dout(xb_rd_data)
@@ -743,7 +744,7 @@ module main #(parameter SIMULATION = 0,
   assign pc_msg_pending = !pc_msg_empty;
 //`ifdef ADD_APP_LOGIC
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
-    , .FP_SIZE(FP_SIZE))
+    , .FP_SIZE(FP_SIZE), .XB_SIZE(XB_SIZE))
     app(//dram signals
       .dram_clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)

@@ -62,6 +62,14 @@
          <obj_property name="ObjectShortName">f20_result[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/sub_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sub_rdy</obj_property>
+         <obj_property name="ObjectShortName">sub_rdy</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/sub_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sub_en</obj_property>
+         <obj_property name="ObjectShortName">sub_en</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="group13" type="group">
       <obj_property name="label">main</obj_property>
