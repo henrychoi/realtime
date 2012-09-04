@@ -34,7 +34,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
   localparam PATCH_SIZE = 6
-    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 100
+    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 1000
     , PATCH_REDUCER_INVALID = {log2(N_PATCH_REDUCER){1'b1}}
     , N_PATCH = 81742
     , ROW_REDUCER_CONFIG_SIZE_IN_DRAM
@@ -61,8 +61,9 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire[log2(N_PATCH_REDUCER)-1:0] new_patch_idx;
   reg[log2(N_PATCH_REDUCER)-1:0] new_patch_idx_r, owner_reducer[N_ROW_REDUCER-1:0];
   reg[N_PATCH_REDUCER-1:0] patch_init, patch_sum_ack;
-  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy, row_reducer_avail
-    , row_reducer_avail_1, n_row_reducer_avail;
+  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy;
+  wire[N_ROW_REDUCER-1:0] row_reducer_avail;
+  wire[log2(N_ROW_REDUCER)-1:0] n_row_reducer_avail;
   wire coeff_sink_full, coeff_sink_high;
   //Each patch reducer needs to remember what patch it is working for,
   //because a patch reducer is recycled for another patch after the sum is
@@ -118,8 +119,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
     , .empty(pixel_coeff_fifo_empty));
 
-  patch_coeff_fifo patch_coeff_fifo(
-    .wr_clk(dram_clk), .rd_clk(dram_clk)
+  patch_coeff_fifo patch_coeff_fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
     , .din(dram_data[0+:(4 * (1 + log2(N_PATCH) + log2(N_ROW_MAX)
                               + log2(N_PATCH_REDUCER)))])
     , .wr_en(!patch_coeff_fifo_full && dram_rd_fifo_pending
@@ -171,8 +171,20 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     && tmp_data_offset == (APP_DATA_WIDTH - XB_SIZE);
   assign {dn[0], fval, lval, dn[1]} = pc_msg[2*DN_SIZE+2-1:0];
   assign app_cmd = {2'b00, bread};
-  assign row_reducer_avail_1 = row_reducer_avail - 1'b1;
-  assign n_row_reducer_avail = row_reducer_avail & row_reducer_avail_1;
+  localparam N_ROW_REDUCER_ZERO = {log2(N_ROW_REDUCER){`FALSE}}
+    , N_ROW_REDUCER_ONE = {{(log2(N_ROW_REDUCER)-1){`FALSE}}, `TRUE};
+  assign n_row_reducer_avail =
+      (row_reducer_avail[0] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[1] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[2] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[3] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[4] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[5] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[6] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[7] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[8] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
+	 + (row_reducer_avail[9] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO);
+  
   assign coeff_sink_full =
     pixel_coeff_fifo_full || patch_coeff_fifo_full || !n_row_reducer_avail;
   assign coeff_sink_high =
