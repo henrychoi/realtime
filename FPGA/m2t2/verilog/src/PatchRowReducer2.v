@@ -1,13 +1,12 @@
-module PatchRowReducer#(parameter APP_DATA_WIDTH=1
-, PATCH_SIZE=1, N_COL_SIZE=1, N_ROW_SIZE=1, FP_SIZE=1
+module PatchRowReducer#(parameter PATCH_SIZE=1, N_COL_SIZE=1, N_ROW_SIZE=1, FP_SIZE=1
 , N_PATCH_REDUCER=1, PATCH_REDUCER_INVALID=1)
 (input[N_ROW_SIZE-1:0] n_row, input[N_COL_SIZE-1:0] l_col
 , input[FP_SIZE-1:0] ds0, ds1
 , input reset, dram_clk, init, ds_valid_in//, sum_ack
-, input[APP_DATA_WIDTH-1:0] config_data
-, output reg[log2(N_PATCH_REDUCER)-1:0] owner_reducer
+, input[N_COL_SIZE-1:0] thecol, input[N_ROW_SIZE-1:0] therow
+, input[PATCH_SIZE*FP_SIZE-1:0] theweights
 , output sum_rdy, output reg[FP_SIZE-1:0] sum
-);
+, output available);
 `include "function.v"
   integer i;
   localparam CONFIG_WAIT = 0, DATA_WAIT = 1, SUM_WAIT = 2, SUM_RDY = 3
@@ -42,7 +41,7 @@ module PatchRowReducer#(parameter APP_DATA_WIDTH=1
     || (matcher_state == MATCHER_MATCHED && matcher_ds_remaining);
   assign n_valid_ds = ds_valid == 2'b11
     ? 2'd2 : (ds_valid == 2'b00 ? 2'd0 : 2'd1);
-    
+
   // FIFO connects the camera clock and dram clock domain
   PatchRowMatcher_fifo fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
     , .din({ds0_valid, ds0, ds1_valid, ds1})
@@ -58,6 +57,7 @@ module PatchRowReducer#(parameter APP_DATA_WIDTH=1
     , .rdy(running_sum_valid));
     
   assign sum_rdy = state == SUM_RDY;
+  assign available = state == CONFIG_WAIT;
   
   always @(posedge reset, posedge dram_clk)
     if(reset) begin
@@ -94,13 +94,10 @@ module PatchRowReducer#(parameter APP_DATA_WIDTH=1
       case(state)
         CONFIG_WAIT:
           if(init) begin
-            matcher_row <= n_row;
-            {owner_reducer, start_col}
-              <= config_data[0+:log2(N_PATCH_REDUCER) //owner_reducer
-                                + N_COL_SIZE]; //start_col
+            start_col <= thecol;
+            matcher_row <= therow;
             for(i=0; i < PATCH_SIZE; i=i+1)
-              weight[i] <= config_data[(log2(N_PATCH_REDUCER) + N_COL_SIZE
-                                       + i*FP_SIZE)+: FP_SIZE];
+              weight[i] <= theweights[i*FP_SIZE+:FP_SIZE];
             n_sum <= 0;
             sum <= 0;
             n_ds <= 0;

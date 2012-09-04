@@ -34,9 +34,14 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
   localparam PATCH_SIZE = 6
-    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 1000
+    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 100
     , PATCH_REDUCER_INVALID = {log2(N_PATCH_REDUCER){1'b1}}
     , N_PATCH = 81742
+    , ROW_REDUCER_CONFIG_SIZE_IN_DRAM
+      = log2(N_PATCH_REDUCER) + log2(N_COL_MAX) + PATCH_SIZE*FP_SIZE
+    , ROW_REDUCER_CONFIG_SIZE = ROW_REDUCER_CONFIG_SIZE_IN_DRAM + log2(N_ROW_MAX)
+    , PATCH_REDUCER_IDX_INVALID = {log2(N_PATCH_REDUCER){`TRUE}}
+    , ROW_REDUCER_IDX_INVALID = {log2(N_ROW_REDUCER){`TRUE}}
     ;
   //reg[N_ROW_REDUCER-1:0] row_sum_ack;
   wire[N_ROW_REDUCER-1:0] row_sum_rdy;
@@ -44,50 +49,86 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire[FP_SIZE-1:0] row_sum[N_ROW_REDUCER-1:0]
     , patch_sum[N_PATCH_REDUCER-1:0];
   reg[FP_SIZE-1:0] partial_sum[N_PATCH_REDUCER-1:0];
-  wire[log2(N_ROW_MAX)-1:0] reducer_current_row[N_PATCH_REDUCER-1:0];
+  wire[log2(N_ROW_MAX)-1:0] reducer_current_row[N_PATCH_REDUCER-1:0]
+    , new_patch_top_row;
+  reg[log2(N_ROW_REDUCER)-1:0] new_row_reducer_idx_r;
+  reg[log2(N_ROW_MAX)-1:0] new_patch_start_row, row_reducer_init_row;
+  reg[log2(N_COL_MAX)-1:0] row_reducer_init_col;
+  reg[PATCH_SIZE*FP_SIZE-1:0] row_reducer_init_weights;
+
   // This index bridges the row reducer to the patch reducer
-  wire[log2(N_PATCH_REDUCER)-1:0] owner_reducer[N_ROW_REDUCER-1:0];
+
+  wire[log2(N_PATCH_REDUCER)-1:0] new_patch_idx;
+  reg[log2(N_PATCH_REDUCER)-1:0] new_patch_idx_r, owner_reducer[N_ROW_REDUCER-1:0];
   reg[N_PATCH_REDUCER-1:0] patch_init, patch_sum_ack;
-  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy;
+  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy, row_reducer_avail
+    , row_reducer_avail_1, n_row_reducer_avail;
+  wire coeff_sink_full, coeff_sink_high;
   //Each patch reducer needs to remember what patch it is working for,
   //because a patch reducer is recycled for another patch after the sum is
   //calculated.
   reg[log2(N_PATCH)-1:0] patch_id[N_PATCH_REDUCER-1:0];
+  wire[log2(N_PATCH)-1:0] new_patch_id;
   //Use these registers to move the bits from PatchRowReducer to the
   //corresponding PatchReducer after the PatchRowReducer produces the partial
   //sum.
   reg[1:0] partial_sum_valid[N_PATCH_REDUCER-1:0];
+  wire[N_PATCH_REDUCER-1:0] patch_reducer_avail;
+  wire new_patch_valid;
   
   localparam COEFF_KIND_INVALID = 2'd0, COEFF_KIND_PIXEL = 2'd1
     , COEFF_KIND_ROW_REDUCER = 2'd2, COEFF_KIND_PATCH_REDUCER = 2'd3;
-  wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
+  wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty
+    , patch_coeff_fifo_full, patch_coeff_fifo_high, patch_coeff_fifo_empty;
   //reg pixel_coeff_fifo_ack;
-  wire dram_rd_fifo_full, dram_rd_fifo_empty;
+  wire dram_rd_fifo_full, dram_rd_fifo_empty, dram_rd_fifo_pending;
+  wire[1:0] dram_rd_coeff_kind, pc_msg_coeff_kind;
   reg dram_rd_fifo_ack;
-  localparam COEFFRD_BELOW_HIGH = 0, COEFFRD_ABOVE_HIGH = 1, COEFFRD_FULL = 2
-    , COEFFRD_N_STATE = 3;
-  wire[log2(COEFFRD_N_STATE)-1:0] coeffrd_state;
+  localparam COEFFRD_ERROR = 0, COEFFRD_BELOW_HIGH = 1, COEFFRD_ABOVE_HIGH = 2
+    , COEFFRD_FULL = 3, COEFFRD_N_STATE = 4;
+  reg[log2(COEFFRD_N_STATE)-1:0] coeffrd_state;
   reg[ADDR_WIDTH-1:0] end_addr;
-  
+  localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
+    , ADDR_INC = 4'd8;// BL8
+  localparam DRAMIFC_ERROR = 0
+    , DRAMIFC_WR1 = 1, DRAMIFC_WR2 = 2, DRAMIFC_MSG_WAIT = 3
+    , DRAMIFC_WR_WAIT = 4
+    , DRAMIFC_READING = 5, DRAMIFC_THROTTLED = 6, DRAMIFC_INTERFRAME = 7
+    , DRAMIFC_N_STATE = 8;
+  reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
+  reg bread;
+  reg[APP_DATA_WIDTH*2-1:0] tmp_data;
+  reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
+    
   dram_rd_fifo dram_rd_fifo (.clk(dram_clk)//, .rst(reset)
     , .din(app_rd_data), .full(dram_rd_fifo_full)
     , .wr_en(//Note: always write into FIFO when there is valid DRAM data
              app_rd_data_valid //flow control done upstream by DRAMIfc
              && app_rd_data[(APP_DATA_WIDTH-2)+:2] != COEFF_KIND_INVALID)
-    , .rd_en(dram_rd_fifo_empty //Was there even any data to acknowledge?
+    , .rd_en(dram_rd_fifo_pending //Was there even any data to acknowledge?
              && coeffrd_state != COEFFRD_FULL)
     , .dout(dram_data), .empty(dram_rd_fifo_empty));
 
   pixel_coeff_fifo pixel_coeff_fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
     , .din(dram_data[0+:(N_PIXEL_PER_CLOCK * 4 * FP_SIZE)])
-    , .wr_en(!pixel_coeff_fifo_full
-             && dram_rd_fifo_empty
-             && dram_data[(APP_DATA_WIDTH-2)+:2] == COEFF_KIND_PIXEL)
+    , .wr_en(!pixel_coeff_fifo_full && dram_rd_fifo_pending
+             && dram_rd_coeff_kind == COEFF_KIND_PIXEL)
     , .rd_en(lval)//Keep reading from FIFO when LVAL
     , .dout({dark[0], dark[1]})
     , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
     , .empty(pixel_coeff_fifo_empty));
 
+  patch_coeff_fifo patch_coeff_fifo(
+    .wr_clk(dram_clk), .rd_clk(dram_clk)
+    , .din(dram_data[0+:(4 * (1 + log2(N_PATCH) + log2(N_ROW_MAX)
+                              + log2(N_PATCH_REDUCER)))])
+    , .wr_en(!patch_coeff_fifo_full && dram_rd_fifo_pending
+             && dram_rd_coeff_kind == COEFF_KIND_PATCH_REDUCER)
+    , .rd_en(|patch_reducer_avail)
+    , .dout({new_patch_valid, new_patch_id, new_patch_top_row, new_patch_idx})
+    , .prog_full(patch_coeff_fifo_high), .full(patch_coeff_fifo_full)
+    , .empty(patch_coeff_fifo_empty));
+  
   genvar geni;
   generate
     for(geni=0; geni < N_PIXEL_PER_CLOCK; geni=geni+1) begin
@@ -101,7 +142,8 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       PatchReducer#(.N_ROW_SIZE(log2(N_ROW_MAX)), .PATCH_SIZE(PATCH_SIZE)
         , .FP_SIZE(FP_SIZE))
         patch_reducer(.reset(reset), .dram_clk(dram_clk)
-        , .init(patch_init[geni]), .start_row()
+        , .init(patch_init[geni]), .start_row(new_patch_start_row)
+        , .available(patch_reducer_avail[geni])
         , .current_row(reducer_current_row[geni])
         , .partial_sum(partial_sum[geni])
         , .partial_sum_valid(partial_sum_valid[geni])
@@ -109,42 +151,33 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .sum(patch_sum[geni]));
 
     for(geni=0; geni < N_ROW_REDUCER; geni=geni+1)
-      PatchRowReducer#(.APP_DATA_WIDTH(APP_DATA_WIDTH), .FP_SIZE(FP_SIZE)
-        , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX))
-        , .N_PATCH_REDUCER(N_PATCH_REDUCER)
+      PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
+        , .N_ROW_SIZE(log2(N_ROW_MAX)), .N_PATCH_REDUCER(N_PATCH_REDUCER)
         , .PATCH_REDUCER_INVALID(PATCH_REDUCER_INVALID))
-        row_reducer(.n_row(cl_n_row), .l_col(cl_n_col)
-        , .ds_valid_in(dark_sub_rdy[0])
+        row_reducer(.dram_clk(dram_clk), .reset(reset)
+        , .init(row_init[geni]), .available(row_reducer_avail[geni])
+        , .therow(row_reducer_init_row), .thecol(row_reducer_init_col)
+        , .theweights(row_reducer_init_weights)
+        , .n_row(cl_n_row), .l_col(cl_n_col), .ds_valid_in(dark_sub_rdy[0])
         , .ds0(fdark_subtracted[0]), .ds1(fdark_subtracted[1])
-        , .dram_clk(dram_clk), .reset(reset)
-        , .init(row_init[geni]), .config_data(dram_data)
-        , .sum(row_sum[geni]), .sum_rdy(row_sum_rdy[geni])
-        , .owner_reducer(owner_reducer[geni]));
-
+        , .sum(row_sum[geni]), .sum_rdy(row_sum_rdy[geni]));
   endgenerate
 
-  localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
-    , ADDR_INC = 4'd8;// BL8
-  localparam DRAMIFC_ERROR = 0
-    , DRAMIFC_WR1 = 1, DRAMIFC_WR2 = 2, DRAMIFC_MSG_WAIT = 3
-    , DRAMIFC_WR_WAIT = 4
-    , DRAMIFC_READING = 5, DRAMIFC_THROTTLED = 6, DRAMIFC_INTERFRAME = 7
-    , DRAMIFC_N_STATE = 8;
-  reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
-  reg bread;
-  reg[APP_DATA_WIDTH*2-1:0] tmp_data;
-  reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
-  
+  assign dram_rd_coeff_kind = dram_data[(APP_DATA_WIDTH-2)+:2];
+  assign pc_msg_coeff_kind = pc_msg[(XB_SIZE-2)+:2];
+  assign dram_rd_fifo_pending = ~dram_rd_fifo_empty;
   assign pc_msg_is_dn = pc_msg_pending
-    && pc_msg[(XB_SIZE-2)+:2] == COEFF_KIND_INVALID
+    && pc_msg_coeff_kind == COEFF_KIND_INVALID
     && tmp_data_offset == (APP_DATA_WIDTH - XB_SIZE);
   assign {dn[0], fval, lval, dn[1]} = pc_msg[2*DN_SIZE+2-1:0];
   assign app_cmd = {2'b00, bread};
-  assign coeffrd_state = pixel_coeff_fifo_full /* OR other FIFO full */
-    ? COEFFRD_FULL
-    : pixel_coeff_fifo_high /*OR other FIFO above high */
-      ? COEFFRD_ABOVE_HIGH : COEFFRD_BELOW_HIGH;
-
+  assign row_reducer_avail_1 = row_reducer_avail - 1'b1;
+  assign n_row_reducer_avail = row_reducer_avail & row_reducer_avail_1;
+  assign coeff_sink_full =
+    pixel_coeff_fifo_full || patch_coeff_fifo_full || !n_row_reducer_avail;
+  assign coeff_sink_high =
+    pixel_coeff_fifo_high || patch_coeff_fifo_high || n_row_reducer_avail < 2;
+  
   always @(posedge dram_clk)
     if(reset) begin
       error <= `FALSE;
@@ -160,13 +193,21 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       dramifc_state <= DRAMIFC_MSG_WAIT;
       
       capture_state <= CAPTURE_STANDBY;
-
+      coeffrd_state <= COEFFRD_BELOW_HIGH;
+      
       pc_msg_ack <= `FALSE;
       fpga_msg_valid <= `FALSE;
       fpga_msg <= 0;
 
-      for(i=0; i < N_PATCH_REDUCER; i=i+1) partial_sum_valid[i] <= 0;
-      
+      for(i=0; i < N_PATCH_REDUCER; i=i+1) begin
+        patch_init[i] <= `FALSE;
+        partial_sum_valid[i] <= 0;
+      end
+      for(i=0; i < N_ROW_REDUCER; i=i+1) begin
+        row_init[i] <= `FALSE;
+      end
+      new_patch_idx_r <= PATCH_REDUCER_IDX_INVALID;
+      new_row_reducer_idx_r <= ROW_REDUCER_IDX_INVALID;
     end else begin // normal operation
       fval_d[0] <= pc_msg_is_dn && fval;
       lval_d[0] <= pc_msg_is_dn && lval;
@@ -191,6 +232,78 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
       pc_msg_ack <= `FALSE;
 
+      case(coeffrd_state)
+        COEFFRD_ERROR: error <= `TRUE;
+        default: begin
+          if(new_patch_idx_r != PATCH_REDUCER_IDX_INVALID)
+            patch_init[new_patch_idx_r] <= `FALSE;//clear init for next reuse
+
+          if(new_patch_valid) begin
+            if(!patch_reducer_avail[new_patch_idx]) coeffrd_state <= COEFFRD_ERROR;
+            else begin
+              new_patch_idx_r <= new_patch_idx; //remember for next clock
+              patch_id[new_patch_idx] <= new_patch_id;
+              patch_init[new_patch_idx] <= `TRUE;
+              new_patch_start_row <= new_patch_top_row;
+              coeffrd_state <= coeff_sink_full ? COEFFRD_FULL
+                 : (pixel_coeff_fifo_high || patch_coeff_fifo_high)
+                   ? COEFFRD_ABOVE_HIGH
+                   : COEFFRD_BELOW_HIGH;
+            end
+          end else begin
+            coeffrd_state <= coeff_sink_full ? COEFFRD_FULL
+               : (pixel_coeff_fifo_high || patch_coeff_fifo_high)
+                 ? COEFFRD_ABOVE_HIGH
+                 : COEFFRD_BELOW_HIGH;
+          end
+          
+          if(new_row_reducer_idx_r != ROW_REDUCER_IDX_INVALID)
+            row_init[new_row_reducer_idx_r] <= `FALSE;//clear init for next reuse
+
+          if(dram_rd_fifo_pending
+             && dram_rd_coeff_kind == COEFF_KIND_ROW_REDUCER) begin
+            // Look for the first available row reducer to reuse
+            if         (row_reducer_avail[0]) begin
+              owner_reducer[0] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 0; row_init[0] <= `TRUE;
+            end else if(row_reducer_avail[1]) begin
+              owner_reducer[1] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 1; row_init[1] <= `TRUE;
+            end else if(row_reducer_avail[2]) begin
+              owner_reducer[2] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 2; row_init[2] <= `TRUE;
+            end else if(row_reducer_avail[3]) begin
+              owner_reducer[3] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 3; row_init[3] <= `TRUE;
+            end else if(row_reducer_avail[4]) begin
+              owner_reducer[4] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 4; row_init[4] <= `TRUE;
+            end else if(row_reducer_avail[5]) begin
+              owner_reducer[5] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 5; row_init[5] <= `TRUE;
+            end else if(row_reducer_avail[6]) begin
+              owner_reducer[6] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 6; row_init[6] <= `TRUE;
+            end else if(row_reducer_avail[7]) begin
+              owner_reducer[7] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 7; row_init[7] <= `TRUE;
+            end else if(row_reducer_avail[8]) begin
+              owner_reducer[8] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 8; row_init[8] <= `TRUE;
+            end else if(row_reducer_avail[9]) begin
+              owner_reducer[9] <= dram_data[0+:log2(N_PATCH_REDUCER)];
+              new_row_reducer_idx_r <= 9; row_init[9] <= `TRUE;
+            end else coeffrd_state <= COEFFRD_ERROR;
+            
+            {row_reducer_init_weights, row_reducer_init_col}
+              <= dram_data[ROW_REDUCER_CONFIG_SIZE_IN_DRAM-1
+                          :log2(N_PATCH_REDUCER)];
+            row_reducer_init_row //Ask the owning patch the current row
+              <= reducer_current_row[dram_data[0+:log2(N_PATCH_REDUCER)]];
+          end
+        end
+      endcase
+    
       case(capture_state)
         CAPTURE_ERROR: error <= `TRUE;
         CAPTURE_STANDBY:
@@ -233,7 +346,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
             pc_msg_ack <= `TRUE;
 
             // Is this the beginning of the pixel data?
-            if(pc_msg[(XB_SIZE-2)+:2] == COEFF_KIND_INVALID) begin
+            if(pc_msg_coeff_kind == COEFF_KIND_INVALID) begin
               app_addr <= START_ADDR;
               bread <= `FALSE;
               app_en <= `TRUE;

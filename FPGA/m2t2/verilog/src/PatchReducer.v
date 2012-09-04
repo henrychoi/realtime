@@ -3,7 +3,7 @@ module PatchReducer#(parameter N_ROW_SIZE=1, PATCH_SIZE=1, FP_SIZE=1)
 , input[N_ROW_SIZE-1:0] start_row
 , input[FP_SIZE-1:0] partial_sum, input partial_sum_valid
 , output reg[N_ROW_SIZE-1:0] current_row
-, output sum_rdy, output reg[FP_SIZE-1:0] sum
+, output available, sum_rdy, output reg[FP_SIZE-1:0] sum
 );
 `include "function.v"
   localparam CONFIG_WAIT = 0, DATA_WAIT = 1, SUM_RDY = 2, N_STATE = 3;
@@ -17,6 +17,7 @@ module PatchReducer#(parameter N_ROW_SIZE=1, PATCH_SIZE=1, FP_SIZE=1)
     , .rdy(running_sum_valid));
 
   assign sum_rdy = state == SUM_RDY;
+  assign available = state == CONFIG_WAIT;
   
   always @(posedge reset, posedge dram_clk)
     if(reset) begin
