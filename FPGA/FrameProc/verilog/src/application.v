@@ -34,16 +34,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire[3:0] dark_lsb[N_PIXEL_PER_CLOCK-1:0];
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
-  localparam PATCH_SIZE = 6
-    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 1200
-    , PATCH_REDUCER_INVALID = {log2(N_PATCH_REDUCER){1'b1}}
-    , N_PATCH = 177241//81742
-    , ROW_REDUCER_CONFIG_SIZE_IN_DRAM
-      = log2(N_PATCH_REDUCER) + log2(N_COL_MAX) + PATCH_SIZE*FP_SIZE
-    , ROW_REDUCER_CONFIG_SIZE = ROW_REDUCER_CONFIG_SIZE_IN_DRAM + log2(N_ROW_MAX)
-    , PATCH_REDUCER_IDX_INVALID = {log2(N_PATCH_REDUCER){`TRUE}}
-    , ROW_REDUCER_IDX_INVALID = {log2(N_ROW_REDUCER){`TRUE}}
-    ;
+
   wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
   //reg pixel_coeff_fifo_ack;
   //reg dram_rd_fifo_ack;

@@ -673,7 +673,7 @@ module main #(parameter SIMULATION = 0,
   localparam FP_SIZE = 20;
   generate
     if(SIMULATION == 1) begin: simulate_xb
-      integer binf, idx;
+      integer binf, idx, rc;
       reg[XB_SIZE-1:0] pc_msg_r;
       reg[7:0] coeff_byte;
       reg bus_clk_r, pc_msg_empty_r, initialized;
@@ -689,13 +689,19 @@ module main #(parameter SIMULATION = 0,
       assign bus_clk = bus_clk_r;
       assign pc_msg = pc_msg_r;
       assign pc_msg_empty = pc_msg_empty_r;
+      
       always @(posedge clk) begin
         if(!$feof(binf) && (!initialized && !rst) || pc_msg_ack) begin
-          $display("%d ps, reading coeff file", $time);
           for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-            $fread(coeff_byte, binf);
+            rc = $fread(coeff_byte, binf);
+            //rc = $fscanf(binf, "%h", coeff_byte);
+            $display("%d ps, fread %d %x", $time, rc, coeff_byte);
             pc_msg_r[idx+:8] <= coeff_byte;
           end
+          //rc = $fscanf(binf, "%h", pc_msg_r);
+          //rc = $fscanf(binf, "%h%h%h%h"
+          //  , pc_msg_r[31:24], pc_msg_r[23:16], pc_msg_r[15:8], pc_msg_r[7:0]);
+          //$display("%d ps, %d %x", $time, rc, pc_msg_r);
           pc_msg_empty_r <= `FALSE;
           initialized <= `TRUE;
         end else pc_msg_empty_r <= `TRUE;

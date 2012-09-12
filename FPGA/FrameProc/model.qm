@@ -207,12 +207,12 @@
       <entry brief="tmp_data_offset = 256-32;\app_wdf_wren = 0"/>
       <exit brief="end_addr += ADDR_INC"/>
       <tran trig="pc_msg_pending">
-       <action brief="pc_msg_ack = 1;\tmp_data[tmp_data_offset+: 32] = pc_msg;\tmp_data_offset -= 32"/>
+       <action brief="pc_msg_ack = 1;\tmp_data[tmp_data_offset+: 32] = pc_msg;\tmp_data_offset += 32"/>
        <tran_glyph conn="32,39,1,-1,-4">
         <action box="-19,-2,18,9"/>
        </tran_glyph>
       </tran>
-      <tran trig="data_offset == 0 &amp;&amp; pc_msg_pending" target="../../2">
+      <tran trig="data_offset == 2*256-32 &amp;&amp; pc_msg_pending" target="../../2">
        <tran_glyph conn="32,28,1,3,14">
         <action box="1,0,12,6"/>
        </tran_glyph>
