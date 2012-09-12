@@ -31,6 +31,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire[DN_SIZE-1:0] dn[N_PIXEL_PER_CLOCK-1:0];
   wire[FP_SIZE-1:0] fdn[N_PIXEL_PER_CLOCK-1:0], dark[N_PIXEL_PER_CLOCK-1:0]
     , fdark_subtracted[N_PIXEL_PER_CLOCK-1:0];
+  wire[3:0] dark_lsb[N_PIXEL_PER_CLOCK-1:0];
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
   localparam PATCH_SIZE = 6
@@ -62,12 +63,12 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
   
   pixel_coeff_fifo pixel_coeff_fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
-    , .din(app_rd_data[0+:(N_PIXEL_PER_CLOCK * 4 * FP_SIZE)])
+    , .din(app_rd_data[64+:(8 * (FP_SIZE + 4))])
     , .wr_en(//Note: always write into FIFO when there is valid DRAM data
              app_rd_data_valid //flow control done upstream by DRAMIfc
 				 )
     , .rd_en(lval)//Keep reading from FIFO when LVAL
-    , .dout({dark[0] /*, dark[1]*/})
+    , .dout({dark[0], dark_lsb[0]})
     , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
     , .empty(pixel_coeff_fifo_empty));
 
@@ -81,9 +82,9 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     end
   endgenerate
 
-  assign pc_msg_is_dn = pc_msg_pending && pc_msg[XB_SIZE-1]
-    && tmp_data_offset == (APP_DATA_WIDTH - XB_SIZE); //Ignore if in the middle of coeff
-  assign {fval, lval, dn[0]} = pc_msg[0+:2+DN_SIZE];
+  assign pc_msg_is_dn = pc_msg_pending && !pc_msg[0]
+    && tmp_data_offset == 0; //Ignore if in the middle of coeff
+  assign {fval, lval, dn[0]} = pc_msg[4+:(2+DN_SIZE)];
   //assign dn[0] = pc_msg[16+:DN_SIZE];
   assign error = capture_state == CAPTURE_ERROR
     || dramifc_state == DRAMIFC_ERROR
@@ -99,7 +100,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       dram_read <= `FALSE;
       app_wdf_wren <= `FALSE;
       app_wdf_end <= `TRUE;
-      tmp_data_offset <= APP_DATA_WIDTH - XB_SIZE;
+      tmp_data_offset <= 0; //APP_DATA_WIDTH - XB_SIZE;
       dramifc_state <= DRAMIFC_MSG_WAIT;
       
       capture_state <= CAPTURE_STANDBY;
@@ -162,25 +163,30 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       case(dramifc_state)
         DRAMIFC_ERROR: begin
         end
-        DRAMIFC_MSG_WAIT:
+        DRAMIFC_MSG_WAIT: begin
+          //$display("%d ps, pending = %d, offset = %x, ack = %d"
+          //  , $time, pc_msg_pending, tmp_data_offset, pc_msg_ack);
           if(pc_msg_pending) begin
-            tmp_data[tmp_data_offset+:32] <= pc_msg;            
+            tmp_data[tmp_data_offset+:XB_SIZE] <= pc_msg;            
             pc_msg_ack <= `TRUE;
 
             // Is this the beginning of the pixel data?
-            if(!pc_msg[XB_SIZE-1]) begin
+            if(pc_msg_is_dn) begin
               app_addr <= START_ADDR;
               dram_read <= `FALSE;
               app_en <= `TRUE;
               dramifc_state <= DRAMIFC_READING;
+            end else begin
+              // Is this the last of the tmp_data I was waiting for?
+              if(tmp_data_offset == (2*APP_DATA_WIDTH - XB_SIZE)) begin
+                app_en <= `TRUE;
+                end_addr <= end_addr + ADDR_INC;
+                dramifc_state <= DRAMIFC_WR_WAIT;
+              end
+              tmp_data_offset <= tmp_data_offset + XB_SIZE;
             end
-            // Is this the last of the tmp_data I was waiting for?
-            else if(tmp_data_offset == 0) begin
-              app_en <= `TRUE;
-              end_addr <= end_addr + ADDR_INC;
-              dramifc_state <= DRAMIFC_WR_WAIT;
-            end else tmp_data_offset <= tmp_data_offset - XB_SIZE;
           end
+        end
         DRAMIFC_WR_WAIT:
           if(app_rdy && app_wdf_rdy) begin
             app_addr <= app_addr + ADDR_INC; // for next write
@@ -199,7 +205,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         DRAMIFC_WR2: begin
           app_en <= `FALSE;
           app_wdf_wren <= `FALSE;
-          tmp_data_offset <= APP_DATA_WIDTH - XB_SIZE;          
+          //tmp_data_offset <= 0;//APP_DATA_WIDTH - XB_SIZE;          
           dramifc_state <= app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;
         end
         DRAMIFC_READING: begin

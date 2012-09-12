@@ -677,7 +677,7 @@ module main #(parameter SIMULATION = 0,
       reg[XB_SIZE-1:0] pc_msg_r;
       reg bus_clk_r, pc_msg_empty_r;
       initial begin
-        binf = $fopen("M2T_coeff.bin", "rb");
+        binf = $fopen("c:\data\SanityTest\pixel_coeff_0.bin", "rb");
         bus_clk_r <= `FALSE;
         pc_msg_empty_r <= `TRUE;
         pc_msg_r <= 0;

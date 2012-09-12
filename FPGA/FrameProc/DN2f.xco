@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Tue Sep 04 15:29:53 2012
+# Date: Tue Sep 11 15:58:11 2012
 #
 ##############################################################
 #
@@ -58,7 +58,7 @@ CSET c_mult_usage=No_Usage
 CSET c_optimization=Speed_Optimized
 CSET c_rate=1
 CSET c_result_exponent_width=8
-CSET c_result_fraction_width=11
+CSET c_result_fraction_width=12
 CSET c_speed=Maximum_speed
 CSET component_name=DN2f
 CSET maximum_latency=true
@@ -69,4 +69,4 @@ CSET result_precision_type=Custom
 MISC pkg_timestamp=2011-10-13T13:13:05Z
 # END Extra information
 GENERATE
-# CRC: 115ee123
+# CRC: baa52796

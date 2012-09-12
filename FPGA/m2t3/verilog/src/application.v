@@ -20,9 +20,9 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   localparam N_FRAME_SIZE = 20
     , FRAME_HEIGHT = 7, N_ROW_MAX = 2048
     , FRAME_WIDTH = 6, N_COL_MAX = 2048;
-  //reg[N_FRAME_SIZE-1:0] cl_n_frame;
-  //reg[log2(N_ROW_MAX)-1:0] cl_n_row;
-  //reg[log2(N_COL_MAX)-1:0] cl_n_col;
+  reg[N_FRAME_SIZE-1:0] cl_n_frame;
+  reg[log2(N_ROW_MAX)-1:0] cl_n_row;
+  reg[log2(N_COL_MAX)-1:0] cl_n_col;
   
   wire pc_msg_is_ds, fval, lval;
   wire[FP_SIZE-1:0] ds;

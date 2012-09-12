@@ -212,12 +212,12 @@
         <action box="-19,-2,18,9"/>
        </tran_glyph>
       </tran>
-      <tran trig="data_offset == (511 - 32) &amp;&amp; pc_msg_pending" target="../../2">
+      <tran trig="data_offset == 0 &amp;&amp; pc_msg_pending" target="../../2">
        <tran_glyph conn="32,28,1,3,14">
         <action box="1,0,12,6"/>
        </tran_glyph>
       </tran>
-      <tran trig="tmp_data_offset == 256-32 &amp;&amp; pc_msg[30+:1] == COEFF_KIND_INVALID" target="../../../1">
+      <tran trig="tmp_data_offset == 0 &amp;&amp; !pc_msg[0]" target="../../../1">
        <tran_glyph conn="15,26,0,2,-9">
         <action box="1,-8,27,4"/>
        </tran_glyph>

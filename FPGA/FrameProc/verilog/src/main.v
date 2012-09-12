@@ -670,35 +670,37 @@ module main #(parameter SIMULATION = 0,
    , pc_msg
    , fpga_msg;          //app -> xb_rd_fifo
 
-  localparam FP_SIZE = 19;
+  localparam FP_SIZE = 20;
   generate
     if(SIMULATION == 1) begin: simulate_xb
-      integer binf, rc;
+      integer binf, idx;
       reg[XB_SIZE-1:0] pc_msg_r;
-      reg bus_clk_r, pc_msg_empty_r;
+      reg[7:0] coeff_byte;
+      reg bus_clk_r, pc_msg_empty_r, initialized;
+      
       initial begin
-        binf = $fopen("M2T_coeff.bin", "rb");
+        initialized <= `FALSE;
+        binf = $fopen("/data/SanityTest/pixel_coeff_0.bin", "rb");
         bus_clk_r <= `FALSE;
         pc_msg_empty_r <= `TRUE;
-        pc_msg_r <= 0;
-        rc = $fread(pc_msg_r, binf);
-        $display("time %d ps fread %d, %X", $time, rc, pc_msg_r);
-#350000 pc_msg_empty_r <= `FALSE; // Coefficient data from PC starts
-        while(!$feof(binf)) begin
-          @(posedge clk)
-            if(pc_msg_ack) begin
-              rc = $fread(pc_msg_r, binf);
-              $display("time %d ps fread %d, %X", $time, rc, pc_msg_r);
-            end
-        end
-        $fclose(binf);
       end
-
-      //assign pc_msg_ack = `TRUE;
+      
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
       assign pc_msg = pc_msg_r;
       assign pc_msg_empty = pc_msg_empty_r;
+      always @(posedge clk) begin
+        if(!$feof(binf) && (!initialized && !rst) || pc_msg_ack) begin
+          $display("%d ps, reading coeff file", $time);
+          for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+            $fread(coeff_byte, binf);
+            pc_msg_r[idx+:8] <= coeff_byte;
+          end
+          pc_msg_empty_r <= `FALSE;
+          initialized <= `TRUE;
+        end else pc_msg_empty_r <= `TRUE;
+      end //always
+
     end else begin: instantiate_xb
         
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
@@ -723,18 +725,18 @@ module main #(parameter SIMULATION = 0,
         , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
         );
 
-      xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
+      xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(rst)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
         , .rd_en(pc_msg_ack), .dout(pc_msg)
         , .full(xb_wr_full), .empty(pc_msg_empty));
 
       // Data from dram lock clock domain to PCIe domain
-      xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
+      xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
         , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
         , .rd_en(xb_rd_rden), .dout(xb_rd_data)
         , .full(fpga_msg_full), .empty(xb_rd_empty));
 
-      xb_loopback_fifo(.clk(bus_clk)//, .rst(reset)
+      xb_loopback_fifo(.clk(bus_clk)//, .rst(rst)
         , .din(pc_msg), .wr_en(pc_msg_ack)
         , .rd_en(xb_loop_rden), .dout(xb_loop_data)
         , .full(xb_loop_full), .empty(xb_loop_empty));
