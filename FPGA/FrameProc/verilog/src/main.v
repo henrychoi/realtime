@@ -676,37 +676,58 @@ module main #(parameter SIMULATION = 0,
       integer binf, idx, rc;
       reg[XB_SIZE-1:0] pc_msg_r;
       reg[7:0] coeff_byte;
-      reg bus_clk_r, pc_msg_empty_r, initialized;
+      reg bus_clk_r, pc_msg_empty_r;
+      localparam SIM_UNINITIALIZED = 0, SIM_INITIALIZED = 1
+        , SIM_READ_DONE = 2, N_SIM_STATE = 3;
+      reg[1:0] sim_state;
       
+      //xb_wr_bram_fifo xb_wr_bram_fifo(.clk(clk)
+      //  //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
+      //  , .din(xb_wr_data), .wr_en(xb_wr_wren)
+      //  , .rd_en(pc_msg_ack), .dout(pc_msg)
+      //  , .full(xb_wr_full), .empty(pc_msg_empty));
+
       initial begin
-        initialized <= `FALSE;
         binf = $fopen("/data/SanityTest/pixel_coeff_0.bin", "rb");
         bus_clk_r <= `FALSE;
         pc_msg_empty_r <= `TRUE;
+        sim_state <= 0;
       end
       
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
       assign pc_msg = pc_msg_r;
       assign pc_msg_empty = pc_msg_empty_r;
+      //assign xb_wr_data = xb_wr_data_r;
+      //assign xb_wr_wren = xb_wr_wren_r;
       
       always @(posedge clk) begin
-        if(!$feof(binf) && (!initialized && !rst) || pc_msg_ack) begin
-          for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-            rc = $fread(coeff_byte, binf);
-            //rc = $fscanf(binf, "%h", coeff_byte);
-            $display("%d ps, fread %d %x", $time, rc, coeff_byte);
-            pc_msg_r[idx+:8] <= coeff_byte;
-          end
-          //rc = $fscanf(binf, "%h", pc_msg_r);
-          //rc = $fscanf(binf, "%h%h%h%h"
-          //  , pc_msg_r[31:24], pc_msg_r[23:16], pc_msg_r[15:8], pc_msg_r[7:0]);
-          //$display("%d ps, %d %x", $time, rc, pc_msg_r);
-          pc_msg_empty_r <= `FALSE;
-          initialized <= `TRUE;
-        end else pc_msg_empty_r <= `TRUE;
+        case(sim_state)
+          SIM_UNINITIALIZED:
+            if(!rst) begin
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                pc_msg_r[idx+:8] <= coeff_byte;
+              end
+              pc_msg_empty_r <= `FALSE;
+              sim_state <= SIM_INITIALIZED;
+            end
+          SIM_INITIALIZED:
+            if($feof(binf)) begin
+              pc_msg_empty_r <= `TRUE;
+              $fclose(binf);
+              sim_state <= SIM_READ_DONE;
+            end else if(pc_msg_ack) begin
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                pc_msg_r[idx+:8] <= coeff_byte;
+              end
+              pc_msg_empty_r <= `FALSE;
+            end
+          default: pc_msg_empty_r <= `TRUE;
+        endcase
       end //always
-
+      
     end else begin: instantiate_xb
         
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging

@@ -7,7 +7,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 , input bus_clk
-, input pc_msg_pending, output reg pc_msg_ack, input[XB_SIZE-1:0] pc_msg
+, input pc_msg_pending, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
 , input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
 //, input clk_85
 );
@@ -59,7 +59,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
              app_rd_data_valid //flow control done upstream by DRAMIfc
 				 )
     , .rd_en(lval)//Keep reading from FIFO when LVAL
-    , .dout({dark[0], dark_lsb[0]})
+    , .dout({dark[0], dark_lsb[0] /* just a bitbucket */})
     , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
     , .empty(pixel_coeff_fifo_empty));
 
@@ -80,7 +80,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign error = capture_state == CAPTURE_ERROR
     || dramifc_state == DRAMIFC_ERROR
     || pixel_coeff_fifo_full;
-  
+
+  assign pc_msg_ack = pc_msg_pending
+    && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
+         || dramifc_state == DRAMIFC_WR_WAIT);
+
   always @(posedge dram_clk)
     if(reset) begin
       heartbeat <= `FALSE;
@@ -96,7 +100,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       
       capture_state <= CAPTURE_STANDBY;
       
-      pc_msg_ack <= `FALSE;
+      //pc_msg_ack <= `FALSE;
       fpga_msg_valid <= `FALSE;
       fpga_msg <= 0;
     end else begin // normal operation
@@ -114,7 +118,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         cl_n_row_d[i] <= cl_n_row_d[i-1];
       end
 
-      pc_msg_ack <= `FALSE;
+      //pc_msg_ack <= `FALSE;
 
       case(capture_state)
         CAPTURE_ERROR: begin
@@ -159,12 +163,12 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           //  , $time, pc_msg_pending, tmp_data_offset, pc_msg_ack);
           if(pc_msg_pending) begin
             tmp_data[tmp_data_offset+:XB_SIZE] <= pc_msg;            
-            pc_msg_ack <= `TRUE;
+            //pc_msg_ack <= `TRUE;
 
             // Is this the beginning of the pixel data?
             if(pc_msg_is_dn) begin
               app_addr <= START_ADDR;
-              dram_read <= `FALSE;
+              dram_read <= `TRUE;
               app_en <= `TRUE;
               dramifc_state <= DRAMIFC_READING;
             end else begin
@@ -196,7 +200,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         DRAMIFC_WR2: begin
           app_en <= `FALSE;
           app_wdf_wren <= `FALSE;
-          //tmp_data_offset <= 0;//APP_DATA_WIDTH - XB_SIZE;          
+          tmp_data_offset <= 0;//APP_DATA_WIDTH - XB_SIZE;          
           dramifc_state <= app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;
         end
         DRAMIFC_READING: begin
