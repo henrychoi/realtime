@@ -18,7 +18,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(N_CAPTURE_STATE)-1:0] capture_state;
 
   localparam N_PIXEL_PER_CLOCK = 2'd1, N_FRAME_SIZE = 20
-    , FRAME_HEIGHT = 7, N_ROW_MAX = 2048
+    , FRAME_HEIGHT = 7, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
     , FRAME_WIDTH = 6, N_COL_MAX = 2048
     , N_FSUB_LATENCY = 8;
   reg[N_FRAME_SIZE-1:0] cl_n_frame;
@@ -26,8 +26,8 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(N_COL_MAX)-1:0] cl_n_col, cl_n_col_d[N_FSUB_LATENCY-1:0];
   
   localparam DN_SIZE = 12, N_DN2F_LATENCY = 6;
-  wire pc_msg_is_dn, fval, lval, dark_sub_rdy[N_PIXEL_PER_CLOCK-1:0];
-  reg[N_DN2F_LATENCY-1:0] fval_d, lval_d;
+  wire pc_msg_is_dn, fval, lval, dark_sub_valid[N_PIXEL_PER_CLOCK-1:0];
+  reg[N_DN2F_LATENCY+N_FSUB_LATENCY-1:0] fval_d, lval_d;
   wire[DN_SIZE-1:0] dn[N_PIXEL_PER_CLOCK-1:0];
   wire[FP_SIZE-1:0] fdn[N_PIXEL_PER_CLOCK-1:0], dark[N_PIXEL_PER_CLOCK-1:0]
     , fdark_subtracted[N_PIXEL_PER_CLOCK-1:0];
@@ -35,7 +35,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
 
-  wire pixel_coeff_fifo_full, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
+  wire pixel_coeff_fifo_overflow, pixel_coeff_fifo_high, pixel_coeff_fifo_empty;
   //reg pixel_coeff_fifo_ack;
   //reg dram_rd_fifo_ack;
   //localparam COEFFRD_BELOW_LOW = 0, COEFFRD_ABOVE_HIGH = 1, COEFFRD_FULL = 2
@@ -56,30 +56,31 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   pixel_coeff_fifo pixel_coeff_fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
     , .din(app_rd_data[64+:(8 * (FP_SIZE + 4))])
     , .wr_en(//Note: always write into FIFO when there is valid DRAM data
-             app_rd_data_valid //flow control done upstream by DRAMIfc
-				 )
-    , .rd_en(lval)//Keep reading from FIFO when LVAL
+             app_rd_data_valid)//flow control done upstream by DRAMIfc
+    // Note that I have to delay the ACK by N_DN2F_LATENCY to sync the output
+    // of DN2f with the stream of dark values
+    , .rd_en(lval_d[N_DN2F_LATENCY-1])//Keep reading from FIFO coeff when LVAL_d
     , .dout({dark[0], dark_lsb[0] /* just a bitbucket */})
-    , .prog_full(pixel_coeff_fifo_high), .full(pixel_coeff_fifo_full)
-    , .empty(pixel_coeff_fifo_empty));
+    , .prog_full(pixel_coeff_fifo_high), .full()
+    , .overflow(pixel_coeff_fifo_overflow), .empty(pixel_coeff_fifo_empty));
 
   genvar geni;
   generate
     for(geni=0; geni < N_PIXEL_PER_CLOCK; geni=geni+1) begin
       DN2f dn2f(.clk(dram_clk), .a(dn[geni]), .result(fdn[geni]));
       fsub fsub(.clk(dram_clk)
-        , .a(fdn[geni]), .b(dark[geni]), .operation_nd(fval_d[N_DN2F_LATENCY-1])
-        , .rdy(dark_sub_rdy[geni]), .result(fdark_subtracted[geni]));
+        , .a(fdn[geni]), .b(dark[geni]), .operation_nd(lval_d[N_DN2F_LATENCY-1])
+        , .rdy(dark_sub_valid[geni]), .result(fdark_subtracted[geni]));
     end
   endgenerate
 
   assign pc_msg_is_dn = pc_msg_pending && !pc_msg[0]
     && tmp_data_offset == 0; //Ignore if in the middle of coeff
-  assign {fval, lval, dn[0]} = pc_msg[4+:(2+DN_SIZE)];
-  //assign dn[0] = pc_msg[16+:DN_SIZE];
+  assign {fval, lval} = pc_msg[4+:2];
+  assign dn[0] = pc_msg[8+:DN_SIZE];//Note: throw away the 4 MSB
   assign error = capture_state == CAPTURE_ERROR
     || dramifc_state == DRAMIFC_ERROR
-    || pixel_coeff_fifo_full;
+    || pixel_coeff_fifo_overflow;
 
   assign pc_msg_ack = pc_msg_pending
     && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
@@ -106,7 +107,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     end else begin // normal operation
       fval_d[0] <= pc_msg_is_dn && fval;
       lval_d[0] <= pc_msg_is_dn && lval;
-      for(i=1; i < N_DN2F_LATENCY; i=i+1) begin
+      for(i=1; i < (N_DN2F_LATENCY + N_FSUB_LATENCY); i=i+1) begin
         fval_d[i] <= fval_d[i-1];
         lval_d[i] <= lval_d[i-1];
       end
@@ -204,7 +205,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           dramifc_state <= app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;
         end
         DRAMIFC_READING: begin
-          if(pixel_coeff_fifo_full) begin //invariance assertion
+          if(pixel_coeff_fifo_overflow) begin //invariance assertion
             app_en <= `FALSE;
             dramifc_state <= DRAMIFC_ERROR;
           end else begin
@@ -219,7 +220,9 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           end
         end
         DRAMIFC_THROTTLED:
-          if(!pixel_coeff_fifo_high) begin
+          if(pixel_coeff_fifo_overflow) begin //invariance assertion
+            dramifc_state <= DRAMIFC_ERROR;
+          end else if(!pixel_coeff_fifo_high) begin
             app_en <= `TRUE;
             dramifc_state <= DRAMIFC_READING;
           end

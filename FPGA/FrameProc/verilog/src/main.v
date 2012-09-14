@@ -676,10 +676,12 @@ module main #(parameter SIMULATION = 0,
       integer binf, idx, rc;
       reg[XB_SIZE-1:0] pc_msg_r;
       reg[7:0] coeff_byte;
+      localparam N_DN_SYNC_CYCLES = {5{`TRUE}};
+      reg[4:0] coeff_sync_ctr;
       reg bus_clk_r, pc_msg_empty_r;
-      localparam SIM_UNINITIALIZED = 0, SIM_INITIALIZED = 1
-        , SIM_READ_DONE = 2, N_SIM_STATE = 3;
-      reg[1:0] sim_state;
+      localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
+        , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
+      reg[log2(N_SIM_STATE)-1:0] sim_state;
       
       //xb_wr_bram_fifo xb_wr_bram_fifo(.clk(clk)
       //  //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
@@ -687,19 +689,19 @@ module main #(parameter SIMULATION = 0,
       //  , .rd_en(pc_msg_ack), .dout(pc_msg)
       //  , .full(xb_wr_full), .empty(pc_msg_empty));
 
-      initial begin
-        binf = $fopen("/data/SanityTest/pixel_coeff_0.bin", "rb");
-        bus_clk_r <= `FALSE;
-        pc_msg_empty_r <= `TRUE;
-        sim_state <= 0;
-      end
-      
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
       assign pc_msg = pc_msg_r;
       assign pc_msg_empty = pc_msg_empty_r;
       //assign xb_wr_data = xb_wr_data_r;
       //assign xb_wr_wren = xb_wr_wren_r;
+      
+      initial begin
+        binf = $fopen("pixel_coeff_0.bin", "rb");
+        bus_clk_r <= `FALSE;
+        pc_msg_empty_r <= `TRUE;
+        sim_state <= SIM_UNINITIALIZED;
+      end
       
       always @(posedge clk) begin
         case(sim_state)
@@ -710,13 +712,39 @@ module main #(parameter SIMULATION = 0,
                 pc_msg_r[idx+:8] <= coeff_byte;
               end
               pc_msg_empty_r <= `FALSE;
-              sim_state <= SIM_INITIALIZED;
+              sim_state <= SIM_READ_COEFF;
             end
-          SIM_INITIALIZED:
+          SIM_READ_COEFF:
             if($feof(binf)) begin
               pc_msg_empty_r <= `TRUE;
               $fclose(binf);
-              sim_state <= SIM_READ_DONE;
+
+              binf = $fopen("dn_0.bin", "rb");
+              // Read the first message which must be !FVAL
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                pc_msg_r[idx+:8] <= coeff_byte;
+              end
+              pc_msg_empty_r <= `FALSE;
+              coeff_sync_ctr <= 0;
+              sim_state <= SIM_DN_WAIT;
+            end else if(pc_msg_ack) begin
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                pc_msg_r[idx+:8] <= coeff_byte;
+              end
+              pc_msg_empty_r <= `FALSE;
+            end
+          SIM_DN_WAIT: begin
+            //Doesn't have to be exact; just sufficient
+            if(coeff_sync_ctr == N_DN_SYNC_CYCLES) sim_state <= SIM_DN_PLAY;
+            coeff_sync_ctr <= coeff_sync_ctr + `TRUE;
+          end
+          SIM_DN_PLAY:
+            if($feof(binf)) begin
+              pc_msg_empty_r <= `TRUE;
+              $fclose(binf);
+              sim_state <= SIM_DONE;
             end else if(pc_msg_ack) begin
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
