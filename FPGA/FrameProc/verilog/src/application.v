@@ -14,7 +14,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 );
 `include "function.v"
   integer i;
-  localparam HB_CTR_SIZE = 8;
+  localparam HB_CTR_SIZE = 16;
   reg[HB_CTR_SIZE-1:0] hb_ctr;
 
   reg[3:0] n_pc_dram_msg;// = 2 * 256/32
@@ -26,21 +26,27 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
 
   localparam N_FRAME_SIZE = 20
-    //, N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
+    , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
     , N_FSUB_LATENCY = 8;
-  //reg[N_FRAME_SIZE-1:0] cl_n_frame;
-  //reg[log2(N_ROW_MAX)-1:0] cl_n_row, cl_n_row_d[N_FSUB_LATENCY-1:0];
-  //reg[log2(N_COL_MAX)-1:0] cl_n_col, cl_n_col_d[N_FSUB_LATENCY-1:0];
+  localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
+    , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
+  reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
+  reg[N_FRAME_SIZE-1:0] n_frame;
+  reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FSUB_LATENCY-1:0];
+  reg[log2(N_COL_MAX)-1:0] n_col;//, n_col_d[N_FSUB_LATENCY-1:0];
   
   localparam DN_SIZE = 12, N_DN2F_LATENCY = 6;
   wire fval, lval, fdn_val, fds_val;
+  reg fds_val_d;
   //Data always flows (can't stop it); need to distinguish whether it is valid
   //pval (pixel valid) indicates whether this is a legitimate data received from
-  //the "camera"
-  reg[N_DN2F_LATENCY+N_FSUB_LATENCY-1:0] pval_d, fval_d, lval_d, val_d;
+  //the "camera".  Note one more delay to sync up with the sampled fds_val from
+  //the sequential logic
+  reg[N_DN2F_LATENCY+N_FSUB_LATENCY:0] pval_d, fval_d, lval_d, val_d;
   reg[1:0] p2d_fval, p2d_val; // to cross from pixel to dram clock domain
   wire[DN_SIZE-1:0] dn;
   wire[FP_SIZE-1:0] fdn, dark, fds;
+  reg[FP_SIZE-1:0] fds_d;
   wire[3:0] dark_lsb;//bit bucket
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
@@ -101,9 +107,10 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , .prog_full(pixel_coeff_fifo_high), .full()
     , .overflow(pixel_coeff_fifo_overflow), .empty(pixel_coeff_fifo_empty));
 
-  DN2f dn2f(.clk(pixel_clk)
-    , .a(dn), .operation_nd(!xb2pixel_empty && lval)
+  DN2f dn2f(.clk(pixel_clk), .a(dn)
+    , .operation_nd(!xb2pixel_empty && lval && pixel_state != PIXEL_STANDBY)
     , .rdy(fdn_val), .result(fdn));
+    
   fsub fsub(.clk(pixel_clk), .a(fdn), .b(dark)
     , .operation_nd(//for DS to be valid,
         fdn_val //converted DN should be valid AND
@@ -130,15 +137,56 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     end
 
   always @(posedge pixel_clk) begin
-    // Data always flows (fdn and fds is always available);
-    // it's just whether it is valid
-    pval_d[0] <= xb2pixel_ack;
-    fval_d[0] <= fval;
-    lval_d[0] <= lval;
-    for(i=1; i < (N_DN2F_LATENCY + N_FSUB_LATENCY); i=i+1) begin
-      pval_d[i] <= pval_d[i-1];
-      fval_d[i] <= fval_d[i-1];
-      lval_d[i] <= lval_d[i-1];
+    if(reset) begin
+      pixel_state <= PIXEL_STANDBY;
+    end else begin
+      // Data always flows (fdn and fds is always available);
+      // it's just whether it is valid
+      pval_d[0] <= xb2pixel_ack;
+      fval_d[0] <= fval;
+      lval_d[0] <= lval;
+      for(i=1; i <= (N_DN2F_LATENCY + N_FSUB_LATENCY); i=i+1) begin
+        pval_d[i] <= pval_d[i-1];
+        fval_d[i] <= fval_d[i-1];
+        lval_d[i] <= lval_d[i-1];
+      end
+      // A delay to sync up the floating point logic output with delayed pval
+      fds_val_d <= fds_val;
+      fds_d <= fds;
+
+     case(pixel_state)
+       PIXEL_STANDBY:
+         if(xb2pixel_ack && !fval) begin
+           n_row <= 0; n_col <= 0; n_frame <= 0;
+           pixel_state <= PIXEL_INTERFRAME;
+         end
+       PIXEL_INTRALINE:
+         if(pixel_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
+         else begin
+           if(lval) n_col <= n_col + `TRUE;
+           else begin
+             if(fval) begin
+               n_row <= n_row + 1'b1;
+               pixel_state <= PIXEL_INTERLINE;
+             end else begin
+               n_frame <= n_frame + 1'b1;
+               pixel_state <= PIXEL_INTERFRAME;
+             end
+           end
+         end
+       PIXEL_INTERLINE:
+         if(lval) begin
+            n_col <= 0;
+            pixel_state <= PIXEL_INTRALINE;
+          end
+        PIXEL_INTERFRAME:
+          if(lval) begin
+            n_row <= 0; n_col <= 0;
+            pixel_state <= PIXEL_INTRALINE;
+          end
+        default: begin
+        end
+      endcase
     end
   end //always @posedge(pixel_clk)
     

@@ -677,7 +677,7 @@ module main #(parameter SIMULATION = 0,
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] coeff_byte;
       
-      localparam COEFF_SYNC_SIZE = 3, N_COEFF_SYNC = 3'hF;
+      localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
       reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
       reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
       localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
@@ -728,7 +728,7 @@ module main #(parameter SIMULATION = 0,
               end
               xb_wr_wren_r <= `FALSE;
               coeff_sync_ctr <= 0;
-              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
+              sim_state <= SIM_DN_WAIT;
             end else
               if(xb_wr_full) xb_wr_wren_r <= `FALSE;
               else begin
@@ -767,7 +767,6 @@ module main #(parameter SIMULATION = 0,
         
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
         , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
-        , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
         , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
         , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
         , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
