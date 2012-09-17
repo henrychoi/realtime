@@ -52,8 +52,8 @@
     <!--                                                                                  -->
     <property xil_pn:name="PROP_DesignName" xil_pn:value="DN2f" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_DevFamilyPMName" xil_pn:value="virtex6" xil_pn:valueState="default"/>
-    <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2012-09-12T13:15:51" xil_pn:valueState="non-default"/>
-    <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="2BDE67B9DB7B450D9EFA3B57731DC541" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intProjectCreationTimestamp" xil_pn:value="2012-09-15T21:57:24" xil_pn:valueState="non-default"/>
+    <property xil_pn:name="PROP_intWbtProjectID" xil_pn:value="2C75F84E110A46CEB7AC68F4C76FB508" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWorkingDirLocWRTProjDir" xil_pn:value="Same" xil_pn:valueState="non-default"/>
     <property xil_pn:name="PROP_intWorkingDirUsed" xil_pn:value="No" xil_pn:valueState="non-default"/>
   </properties>

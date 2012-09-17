@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Fri Sep 14 20:46:09 2012
+# Date: Sat Sep 15 23:45:36 2012
 #
 ##############################################################
 #
@@ -41,7 +41,7 @@ SELECT Fifo_Generator xilinx.com:ip:fifo_generator:8.4
 # BEGIN Parameters
 CSET add_ngc_constraint_axi=false
 CSET almost_empty_flag=false
-CSET almost_full_flag=false
+CSET almost_full_flag=true
 CSET aruser_width=1
 CSET awuser_width=1
 CSET axi_address_width=32
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: e3004cd7
+# CRC: 89b64123

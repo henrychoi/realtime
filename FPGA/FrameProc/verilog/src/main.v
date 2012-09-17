@@ -676,8 +676,9 @@ module main #(parameter SIMULATION = 0,
       integer binf, idx, rc;
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] coeff_byte;
-      localparam N_DN_SYNC_CYCLES = {5{`TRUE}};
-      reg[4:0] coeff_sync_ctr;
+      
+      localparam COEFF_SYNC_SIZE = 3, N_COEFF_SYNC = 3'hF;
+      reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
       reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
       localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
         , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
@@ -687,7 +688,7 @@ module main #(parameter SIMULATION = 0,
         //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
         , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .full(xb_wr_full), .empty(pc_msg_empty));
+        , .almost_full(xb_wr_full), .empty(pc_msg_empty));
 
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
@@ -725,9 +726,9 @@ module main #(parameter SIMULATION = 0,
                 rc = $fread(coeff_byte, binf);
                 xb_wr_data_r[idx+:8] <= coeff_byte;
               end
-              xb_wr_wren_r <= `TRUE;
+              xb_wr_wren_r <= `FALSE;
               coeff_sync_ctr <= 0;
-              sim_state <= SIM_DN_WAIT;
+              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
             end else
               if(xb_wr_full) xb_wr_wren_r <= `FALSE;
               else begin
@@ -738,8 +739,10 @@ module main #(parameter SIMULATION = 0,
                 xb_wr_wren_r <= `TRUE;
               end
           SIM_DN_WAIT: begin
+            xb_wr_wren_r <= `FALSE;
             //Doesn't have to be exact; just sufficient
-            if(coeff_sync_ctr == N_DN_SYNC_CYCLES) sim_state <= SIM_DN_PLAY;
+            if(coeff_sync_ctr == N_COEFF_SYNC)
+              sim_state <= SIM_DN_PLAY;
             coeff_sync_ctr <= coeff_sync_ctr + `TRUE;
           end
           SIM_DN_PLAY:
