@@ -75,6 +75,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign dn = pixel_msg[8+:DN_SIZE];//Note: throw away the 4 MSB
   assign error = dramifc_state == DRAMIFC_ERROR
     || pixel_coeff_fifo_overflow;
+  // This works only if I ack the xb2pixel fifo as soon as it is !empty
   assign xb2pixel_ack = !pixel_coeff_fifo_empty && !xb2pixel_empty;
   assign xb2dram_ack = !xb2dram_empty
    && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
@@ -154,39 +155,40 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       fds_val_d <= fds_val;
       fds_d <= fds;
 
-     case(pixel_state)
-       PIXEL_STANDBY:
-         if(xb2pixel_ack && !fval) begin
-           n_row <= 0; n_col <= 0; n_frame <= 0;
-           pixel_state <= PIXEL_INTERFRAME;
-         end
-       PIXEL_INTRALINE:
-         if(pixel_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
-         else begin
-           if(lval) n_col <= n_col + `TRUE;
+     if(!xb2pixel_empty)
+       case(pixel_state)
+         PIXEL_STANDBY:
+           if(!fval) begin
+             n_row <= 0; n_col <= 0; n_frame <= 0;
+             pixel_state <= PIXEL_INTERFRAME;
+           end
+         PIXEL_INTRALINE:
+           if(pixel_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
            else begin
-             if(fval) begin
-               n_row <= n_row + 1'b1;
-               pixel_state <= PIXEL_INTERLINE;
-             end else begin
-               n_frame <= n_frame + 1'b1;
-               pixel_state <= PIXEL_INTERFRAME;
+             if(lval) n_col <= n_col + `TRUE;
+             else begin
+               if(fval) begin
+                 n_row <= n_row + 1'b1;
+                 pixel_state <= PIXEL_INTERLINE;
+               end else begin
+                 n_frame <= n_frame + 1'b1;
+                 pixel_state <= PIXEL_INTERFRAME;
+               end
              end
            end
-         end
-       PIXEL_INTERLINE:
-         if(lval) begin
-            n_col <= 0;
-            pixel_state <= PIXEL_INTRALINE;
+         PIXEL_INTERLINE:
+           if(lval) begin
+              n_col <= 0;
+              pixel_state <= PIXEL_INTRALINE;
+            end
+          PIXEL_INTERFRAME:
+            if(lval) begin
+              n_row <= 0; n_col <= 0;
+              pixel_state <= PIXEL_INTRALINE;
+            end
+          default: begin
           end
-        PIXEL_INTERFRAME:
-          if(lval) begin
-            n_row <= 0; n_col <= 0;
-            pixel_state <= PIXEL_INTRALINE;
-          end
-        default: begin
-        end
-      endcase
+        endcase
     end
   end //always @posedge(pixel_clk)
     

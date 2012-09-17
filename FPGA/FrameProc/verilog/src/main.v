@@ -728,7 +728,7 @@ module main #(parameter SIMULATION = 0,
               end
               xb_wr_wren_r <= `FALSE;
               coeff_sync_ctr <= 0;
-              sim_state <= SIM_DN_WAIT;
+              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
             end else
               if(xb_wr_full) xb_wr_wren_r <= `FALSE;
               else begin
