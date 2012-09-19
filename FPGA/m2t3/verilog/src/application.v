@@ -1,86 +1,66 @@
 `timescale 1ps/1ps
 module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=1)
-(input reset, dram_clk, app_rdy, output error
-, output reg heartbeat, dram_read, app_done, app_en
+(input reset, dram_clk, output error, output heartbeat
+, output reg app_done
+, input app_rdy, output reg app_en, output reg dram_read
 , output reg[ADDR_WIDTH-1:0] app_addr
 , input app_wdf_rdy, output reg app_wdf_wren, app_wdf_end
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
-, input bus_clk
-, input pc_msg_pending, output reg pc_msg_ack, input[XB_SIZE-1:0] pc_msg
+, input bus_clk, pixel_clk
+, input pc_msg_empty, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
 , input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
-//, input clk_85
 );
 `include "function.v"
   integer i;
-  localparam CAPTURE_STANDBY = 0, CAPTURE_INTRALINE = 1
-    , CAPTURE_INTERLINE = 2, CAPTURE_INTERFRAME = 3, N_CAPTURE_STATE = 4;
-  reg[log2(N_CAPTURE_STATE)-1:0] capture_state;
+  localparam HB_CTR_SIZE = 16;
+  reg[HB_CTR_SIZE-1:0] hb_ctr;
+
+  reg[3:0] n_pc_dram_msg;// = 2 * 256/32
+  
+  wire pc_msg_is_ds;
+  reg pc_msg_is_ds_d, pc_msg_pending_d;
+  wire[XB_SIZE-1:0] pixel_msg, dram_msg;
+  reg[XB_SIZE-1:0] pc_msg_d;
+  wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty
+    , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
+
+  localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
+    , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
+  reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
 
   localparam N_FRAME_SIZE = 20
-    , FRAME_HEIGHT = 7, N_ROW_MAX = 2048
-    , FRAME_WIDTH = 6, N_COL_MAX = 2048;
-  reg[N_FRAME_SIZE-1:0] cl_n_frame;
-  reg[log2(N_ROW_MAX)-1:0] cl_n_row;
-  reg[log2(N_COL_MAX)-1:0] cl_n_col;
+    , N_COL = 2048, N_ROW = 2064 //2k rows + 8 dark pixels top and btm
+    , PATCH_SIZE = 6, PATCH_SIZE_MAX = 16
+    , N_PATCH = 1024*1024; //let's handle up to 1M
+  reg[N_FRAME_SIZE-1:0] n_frame;
+  reg[log2(N_ROW)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
+  reg[log2(N_COL)-1:0] n_col;//, n_col_d[N_FADD_LATENCY-1:0];
+  wire[log2(N_PATCH)-1:0] patch_num;
+  wire[log2(N_ROW)-1:0] patch_top_row;
+  wire patch_val;
+  wire[log2(N_COL)-1:0] patch_left_col;
+  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + log2(PATCH_SIZE_MAX);
+  wire[ROW_REDUCER_CONFIG_SIZE-1:0] row_reducer_config;
   
-  wire pc_msg_is_ds, fval, lval;
-  wire[FP_SIZE-1:0] ds;
+  localparam N_FMULT_LATENCY = 8, N_FADD_LATENCY = 8;
+  wire fval, lval, fds_val;
+  reg fds_val_d;
+  //Data always flows (can't stop it); need to distinguish whether it is valid
+  //pval (pixel valid) indicates whether this is a legitimate data received from
+  //the "camera".  Note one more delay to sync up with the sampled fds_val from
+  //the sequential logic
+  reg[N_FADD_LATENCY:0] pval_d, fval_d, lval_d, val_d;
+  reg[1:0] p2d_fval, p2d_val; // to cross from pixel to dram clock domain
+  wire[FP_SIZE-1:0] fds;
+  reg[FP_SIZE-1:0] fds_d;
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
-  localparam PATCH_SIZE = 6
-    , N_ROW_REDUCER = 10, N_PATCH_REDUCER = 300
-    , PATCH_REDUCER_INVALID = {log2(N_PATCH_REDUCER){1'b1}}
-    , N_PATCH = 117241
-    , ROW_REDUCER_CONFIG_SIZE_IN_DRAM
-      = log2(N_PATCH_REDUCER) + log2(N_COL_MAX) + PATCH_SIZE*FP_SIZE
-    , ROW_REDUCER_CONFIG_SIZE = ROW_REDUCER_CONFIG_SIZE_IN_DRAM + log2(N_ROW_MAX)
-    , PATCH_REDUCER_IDX_INVALID = {log2(N_PATCH_REDUCER){`TRUE}}
-    , ROW_REDUCER_IDX_INVALID = {log2(N_ROW_REDUCER){`TRUE}}
-    ;
-  //reg[N_ROW_REDUCER-1:0] row_sum_ack;
-  wire[N_ROW_REDUCER-1:0] row_sum_rdy;
-  reg[N_ROW_REDUCER-1:0] row_init;
-  wire[FP_SIZE-1:0] row_sum[N_ROW_REDUCER-1:0]
-    , patch_sum[N_PATCH_REDUCER-1:0];
-  reg[FP_SIZE-1:0] partial_sum[N_PATCH_REDUCER-1:0];
-  wire[log2(N_ROW_MAX)-1:0] reducer_current_row[N_PATCH_REDUCER-1:0]
-    , new_patch_top_row;
-  reg[log2(N_ROW_REDUCER)-1:0] new_row_reducer_idx_r;
-  reg[log2(N_ROW_MAX)-1:0] new_patch_start_row, row_reducer_init_row;
-  reg[log2(N_COL_MAX)-1:0] row_reducer_init_col;
-  reg[PATCH_SIZE*FP_SIZE-1:0] row_reducer_init_weights;
 
-  // This index bridges the row reducer to the patch reducer
+  localparam PATCH_COEFF_SIZE = 43;
+  wire row_coeff_fifo_overflow, row_coeff_fifo_high, row_coeff_fifo_empty
+    , patch_coeff_fifo_overflow, patch_coeff_fifo_high, patch_coeff_fifo_empty;
 
-  wire[log2(N_PATCH_REDUCER)-1:0] new_patch_idx;
-  reg[log2(N_PATCH_REDUCER)-1:0] new_patch_idx_r, owner_reducer[N_ROW_REDUCER-1:0];
-  reg[N_PATCH_REDUCER-1:0] patch_init, patch_sum_ack;
-  wire[N_PATCH_REDUCER-1:0] patch_sum_rdy;
-  wire[N_ROW_REDUCER-1:0] row_reducer_avail;
-  wire[log2(N_ROW_REDUCER)-1:0] n_row_reducer_avail;
-  wire coeff_sink_full, coeff_sink_high;
-  //Each patch reducer needs to remember what patch it is working for,
-  //because a patch reducer is recycled for another patch after the sum is
-  //calculated.
-  reg[log2(N_PATCH)-1:0] patch_id[N_PATCH_REDUCER-1:0];
-  wire[log2(N_PATCH)-1:0] new_patch_id;
-  //Use these registers to move the bits from PatchRowReducer to the
-  //corresponding PatchReducer after the PatchRowReducer produces the partial
-  //sum.
-  reg[1:0] partial_sum_valid[N_PATCH_REDUCER-1:0];
-  wire[N_PATCH_REDUCER-1:0] patch_reducer_avail;
-  wire new_patch_valid;
-  
-  localparam COEFF_KIND_INVALID = 2'd0
-    , COEFF_KIND_ROW_REDUCER = 2'd2, COEFF_KIND_PATCH_REDUCER = 2'd3;
-  wire patch_coeff_fifo_full, patch_coeff_fifo_high, patch_coeff_fifo_empty;
-  wire dram_rd_fifo_full, dram_rd_fifo_empty, dram_rd_fifo_pending;
-  wire[1:0] dram_rd_coeff_kind, pc_msg_coeff_kind;
-  reg dram_rd_fifo_ack;
-  localparam COEFFRD_ERROR = 0, COEFFRD_BELOW_HIGH = 1, COEFFRD_ABOVE_HIGH = 2
-    , COEFFRD_FULL = 3, COEFFRD_N_STATE = 4;
-  reg[log2(COEFFRD_N_STATE)-1:0] coeffrd_state;
   reg[ADDR_WIDTH-1:0] end_addr;
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 4'd8;// BL8
@@ -92,285 +72,218 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
   reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
-    
-  dram_rd_fifo dram_rd_fifo (.clk(dram_clk)//, .rst(reset)
-    , .din(app_rd_data), .full(dram_rd_fifo_full)
-    , .wr_en(//Note: always write into FIFO when there is valid DRAM data
-             app_rd_data_valid //flow control done upstream by DRAMIfc
-             && app_rd_data[(APP_DATA_WIDTH-2)+:2] != COEFF_KIND_INVALID)
-    , .rd_en(dram_rd_fifo_pending //Was there even any data to acknowledge?
-             && coeffrd_state != COEFFRD_FULL)
-    , .dout(dram_data), .empty(dram_rd_fifo_empty));
-
-  patch_coeff_fifo patch_coeff_fifo(.wr_clk(dram_clk), .rd_clk(dram_clk)
-    , .din(dram_data[0+:(4 * (1 + log2(N_PATCH) + log2(N_ROW_MAX)
-                              + log2(N_PATCH_REDUCER)))])
-    , .wr_en(!patch_coeff_fifo_full && dram_rd_fifo_pending
-             && dram_rd_coeff_kind == COEFF_KIND_PATCH_REDUCER)
-    , .rd_en(|patch_reducer_avail)
-    , .dout({new_patch_valid, new_patch_id, new_patch_top_row, new_patch_idx})
-    , .prog_full(patch_coeff_fifo_high), .full(patch_coeff_fifo_full)
-    , .empty(patch_coeff_fifo_empty));
   
-  genvar geni;
-  generate
-    for(geni=0; geni < N_PATCH_REDUCER; geni=geni+1)
-      PatchReducer#(.N_ROW_SIZE(log2(N_ROW_MAX)), .PATCH_SIZE(PATCH_SIZE)
-        , .FP_SIZE(FP_SIZE))
-        patch_reducer(.reset(reset), .dram_clk(dram_clk)
-        , .init(patch_init[geni]), .start_row(new_patch_start_row)
-        , .available(patch_reducer_avail[geni])
-        , .current_row(reducer_current_row[geni])
-        , .partial_sum(partial_sum[geni])
-        , .partial_sum_valid(partial_sum_valid[geni])
-        , .sum_ack(patch_sum_ack[geni]), .sum_rdy(patch_sum_rdy[geni])
-        , .sum(patch_sum[geni]));
-
-    for(geni=0; geni < N_ROW_REDUCER; geni=geni+1)
-      PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
-        , .N_ROW_SIZE(log2(N_ROW_MAX)), .N_PATCH_REDUCER(N_PATCH_REDUCER)
-        , .PATCH_REDUCER_INVALID(PATCH_REDUCER_INVALID))
-        row_reducer(.dram_clk(dram_clk), .reset(reset)
-        , .init(row_init[geni]), .available(row_reducer_avail[geni])
-        , .therow(row_reducer_init_row), .thecol(row_reducer_init_col)
-        , .theweights(row_reducer_init_weights)
-        , .n_row(cl_n_row), .l_col(cl_n_col), .ds_valid_in(pc_msg_is_ds)
-        , .ds(ds), .sum(row_sum[geni]), .sum_rdy(row_sum_rdy[geni]));
-  endgenerate
-
-  assign dram_rd_coeff_kind = dram_data[(APP_DATA_WIDTH-2)+:2];
-  assign pc_msg_coeff_kind = pc_msg[(XB_SIZE-2)+:2];
-  assign dram_rd_fifo_pending = ~dram_rd_fifo_empty;
-  assign pc_msg_is_ds = pc_msg_pending
-    && pc_msg_coeff_kind == COEFF_KIND_INVALID
-    && tmp_data_offset == (APP_DATA_WIDTH - XB_SIZE); //Waiting for a new DRAM coeff
-  assign {fval, lval} = pc_msg[24+:2];
-  assign ds = pc_msg[0+:FP_SIZE];
-
-  localparam N_ROW_REDUCER_ZERO = {log2(N_ROW_REDUCER){`FALSE}}
-    , N_ROW_REDUCER_ONE = {{(log2(N_ROW_REDUCER)-1){`FALSE}}, `TRUE};
-  assign n_row_reducer_avail =
-     (row_reducer_avail[0] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[1] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[2] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[3] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[4] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[5] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[6] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[7] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[8] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO)
-	 + (row_reducer_avail[9] ? N_ROW_REDUCER_ONE : N_ROW_REDUCER_ZERO);
-  
-  assign coeff_sink_full = patch_coeff_fifo_full || !n_row_reducer_avail;
-  assign coeff_sink_high = patch_coeff_fifo_high || n_row_reducer_avail < 2;
-
+  assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
+  assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
+  assign {fval, lval} = pixel_msg[4+:2];
+  assign fds = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
   assign error = dramifc_state == DRAMIFC_ERROR
-    || coeffrd_state == COEFFRD_ERROR;
-  
+    || patch_coeff_fifo_overflow;
+  // This works only if I ack the xb2pixel fifo as soon as it is !empty
+  assign xb2pixel_ack = !patch_coeff_fifo_empty && !xb2pixel_empty;
+  assign xb2dram_ack = !xb2dram_empty
+   && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
+        || dramifc_state == DRAMIFC_WR_WAIT);
+  assign xb2pixel_wren = !xb2pixel_full && pc_msg_pending_d &&  pc_msg_is_ds_d;
+  assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
+  assign pc_msg_is_ds = pc_msg[1:0] != 0 && n_pc_dram_msg == 0;
+ 
+  xb2pixel xb2pixel(.wr_clk(bus_clk), .rd_clk(pixel_clk)//, .rst(rst)
+    , .din(pc_msg_d), .wr_en(xb2pixel_wren)
+    , .rd_en(xb2pixel_ack), .dout(pixel_msg)
+    , .almost_full(xb2pixel_full), .full(), .empty(xb2pixel_empty));
+
+  xb2dram xb2dram(.wr_clk(bus_clk), .rd_clk(dram_clk)//, .rst(rst)
+    , .din(pc_msg_d), .wr_en(xb2dram_wren)
+    , .rd_en(xb2dram_ack), .dout(dram_msg)
+    , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty));
+
+  patch_coeff_fifo patch_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+    , .din(app_rd_data[80+:(4 * (PATCH_COEFF_SIZE + 1))])
+    //Note: always write into FIFO when there is valid DRAM data because
+    //flow control done upstream by DRAMIfc
+    , .wr_en(app_rd_data_valid && !app_rd_data[0])
+    , .rd_en(`FALSE)//FIXME
+    , .dout({patch_num, patch_top_row, patch_val, patch_left_col})
+    , .prog_full(patch_coeff_fifo_high), .full()
+    , .overflow(patch_coeff_fifo_overflow), .empty(patch_coeff_fifo_empty));
+
+  row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+    , .din(app_rd_data[12+:ROW_REDUCER_CONFIG_SIZE])
+    //Note: always write into FIFO when there is valid DRAM data because
+    //flow control done upstream by DRAMIfc
+    , .wr_en(app_rd_data_valid && app_rd_data[0])
+    , .rd_en(`FALSE)//FIXME
+    , .dout(row_reducer_config)
+    , .prog_full(row_coeff_fifo_high), .full()
+    , .overflow(row_coeff_fifo_overflow), .empty(row_coeff_fifo_empty));
+
+  always @(posedge reset, posedge fds_val)
+    if(reset) hb_ctr <= 0;
+    else hb_ctr <= hb_ctr + `TRUE;
+
+  always @(posedge bus_clk)
+    if(reset) begin
+      n_pc_dram_msg <= 0;
+      pc_msg_pending_d <= `FALSE;
+    end else begin
+      pc_msg_pending_d <= ~pc_msg_empty;
+      // Note how the delay through a sequential logic syncs up with pc_msg_d
+      pc_msg_is_ds_d <= pc_msg_is_ds;
+      if(pc_msg_ack) begin// Was this a real message?
+        pc_msg_d <= pc_msg;// delay this to match up against pc_msg_is_ds_d
+        if(!pc_msg_is_ds) n_pc_dram_msg <= n_pc_dram_msg + `TRUE;
+      end
+    end
+
+  always @(posedge pixel_clk) begin
+    if(reset) begin
+      pixel_state <= PIXEL_STANDBY;
+    end else begin
+      // Data always flows (fdn and fds is always available);
+      // the question is whether it is valid
+      pval_d[0] <= xb2pixel_ack;
+      fval_d[0] <= fval;
+      lval_d[0] <= lval;
+      for(i=1; i <= (N_FADD_LATENCY); i=i+1) begin
+        pval_d[i] <= pval_d[i-1];
+        fval_d[i] <= fval_d[i-1];
+        lval_d[i] <= lval_d[i-1];
+      end
+      // A delay to sync up the floating point logic output with delayed pval
+      fds_val_d <= fds_val;
+      fds_d <= fds;
+
+     if(!xb2pixel_empty)
+       case(pixel_state)
+         PIXEL_STANDBY:
+           if(!fval) begin
+             n_row <= 0; n_col <= 0; n_frame <= 0;
+             pixel_state <= PIXEL_INTERFRAME;
+           end
+         PIXEL_INTRALINE:
+           if(patch_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
+           else begin
+             if(lval) n_col <= n_col + `TRUE;
+             else begin
+               if(fval) begin
+                 n_row <= n_row + 1'b1;
+                 pixel_state <= PIXEL_INTERLINE;
+               end else begin
+                 n_frame <= n_frame + 1'b1;
+                 pixel_state <= PIXEL_INTERFRAME;
+               end
+             end
+           end
+         PIXEL_INTERLINE:
+           if(lval) begin
+              n_col <= 0;
+              pixel_state <= PIXEL_INTRALINE;
+            end
+          PIXEL_INTERFRAME:
+            if(lval) begin
+              n_row <= 0; n_col <= 0;
+              pixel_state <= PIXEL_INTRALINE;
+            end
+          default: begin
+          end
+        endcase
+    end
+  end //always @posedge(pixel_clk)
+    
   always @(posedge dram_clk)
     if(reset) begin
-      heartbeat <= `FALSE;
-
   		app_addr <= START_ADDR;
-      end_addr <= START_ADDR + ADDR_INC;
+      end_addr <= START_ADDR;
       app_en <= `FALSE;
       dram_read <= `FALSE;
       app_wdf_wren <= `FALSE;
       app_wdf_end <= `TRUE;
-      tmp_data_offset <= APP_DATA_WIDTH - XB_SIZE;
+      tmp_data_offset <= 0; //APP_DATA_WIDTH - XB_SIZE;
       dramifc_state <= DRAMIFC_MSG_WAIT;
       
-      capture_state <= CAPTURE_STANDBY;
-      coeffrd_state <= COEFFRD_BELOW_HIGH;
-      
-      pc_msg_ack <= `FALSE;
       fpga_msg_valid <= `FALSE;
       fpga_msg <= 0;
-
-      for(i=0; i < N_PATCH_REDUCER; i=i+1) begin
-        patch_init[i] <= `FALSE;
-        partial_sum_valid[i] <= 0;
-      end
-      for(i=0; i < N_ROW_REDUCER; i=i+1) begin
-        row_init[i] <= `FALSE;
-      end
-      new_patch_idx_r <= PATCH_REDUCER_IDX_INVALID;
-      new_row_reducer_idx_r <= ROW_REDUCER_IDX_INVALID;
     end else begin // normal operation
-      for(i=0; i < N_ROW_REDUCER; i=i+1) begin
-        if(owner_reducer[i] != PATCH_REDUCER_INVALID) begin
-          partial_sum[owner_reducer[i]] <= row_sum[i];
-          partial_sum_valid[owner_reducer[i]] <= row_sum_rdy[i];
-        end
-      end
-
-      pc_msg_ack <= `FALSE;
-
-      if(coeffrd_state != COEFFRD_ERROR) begin
-        if(new_patch_idx_r != PATCH_REDUCER_IDX_INVALID)
-          patch_init[new_patch_idx_r] <= `FALSE;//clear init for next reuse
-
-        if(new_patch_valid) begin
-          if(!patch_reducer_avail[new_patch_idx]) coeffrd_state <= COEFFRD_ERROR;
-          else begin
-            new_patch_idx_r <= new_patch_idx; //remember for next clock
-            patch_id[new_patch_idx] <= new_patch_id;
-            patch_init[new_patch_idx] <= `TRUE;
-            new_patch_start_row <= new_patch_top_row;
-            coeffrd_state <= coeff_sink_full ? COEFFRD_FULL
-               : patch_coeff_fifo_high ? COEFFRD_ABOVE_HIGH : COEFFRD_BELOW_HIGH;
-          end
-        end else begin
-          coeffrd_state <= coeff_sink_full ? COEFFRD_FULL
-             : patch_coeff_fifo_high ? COEFFRD_ABOVE_HIGH : COEFFRD_BELOW_HIGH;
-        end//!new_patch_valid
-        
-        if(new_row_reducer_idx_r != ROW_REDUCER_IDX_INVALID)
-          row_init[new_row_reducer_idx_r] <= `FALSE;//clear init for next reuse
-
-        if(dram_rd_fifo_pending
-           && dram_rd_coeff_kind == COEFF_KIND_ROW_REDUCER) begin
-          // Look for the first available row reducer to reuse
-          if         (row_reducer_avail[0]) begin
-            owner_reducer[0] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 0; row_init[0] <= `TRUE;
-          end else if(row_reducer_avail[1]) begin
-            owner_reducer[1] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 1; row_init[1] <= `TRUE;
-          end else if(row_reducer_avail[2]) begin
-            owner_reducer[2] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 2; row_init[2] <= `TRUE;
-          end else if(row_reducer_avail[3]) begin
-            owner_reducer[3] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 3; row_init[3] <= `TRUE;
-          end else if(row_reducer_avail[4]) begin
-            owner_reducer[4] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 4; row_init[4] <= `TRUE;
-          end else if(row_reducer_avail[5]) begin
-            owner_reducer[5] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 5; row_init[5] <= `TRUE;
-          end else if(row_reducer_avail[6]) begin
-            owner_reducer[6] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 6; row_init[6] <= `TRUE;
-          end else if(row_reducer_avail[7]) begin
-            owner_reducer[7] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 7; row_init[7] <= `TRUE;
-          end else if(row_reducer_avail[8]) begin
-            owner_reducer[8] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 8; row_init[8] <= `TRUE;
-          end else if(row_reducer_avail[9]) begin
-            owner_reducer[9] <= dram_data[0+:log2(N_PATCH_REDUCER)];
-            new_row_reducer_idx_r <= 9; row_init[9] <= `TRUE;
-          end else coeffrd_state <= COEFFRD_ERROR;
-          
-          {row_reducer_init_weights, row_reducer_init_col}
-            <= dram_data[ROW_REDUCER_CONFIG_SIZE_IN_DRAM-1
-                        :log2(N_PATCH_REDUCER)];
-          row_reducer_init_row //Ask the owning patch the current row
-            <= reducer_current_row[dram_data[0+:log2(N_PATCH_REDUCER)]];
-        end
+      // Cross the pixel to DRAM clock domain with 2 registers
+      p2d_fval[1] <= p2d_fval[0]; p2d_fval[0] <= fval; 
+      p2d_val[1] <= p2d_val[0]; p2d_val[0] <= !xb2pixel_empty;
     
-        case(capture_state)
-          CAPTURE_STANDBY:
-            if(fval) begin
-              cl_n_row <= 0;
-              cl_n_col <= 0;
-              cl_n_frame <= 0;
-              capture_state <= CAPTURE_INTRALINE;
+      case(dramifc_state)
+        DRAMIFC_ERROR: begin
+        end
+        DRAMIFC_MSG_WAIT: begin
+          if(!xb2dram_empty) begin
+            tmp_data[tmp_data_offset+:XB_SIZE] <= dram_msg;
+            // Is this the last of the tmp_data I was waiting for?
+            if(tmp_data_offset == (2*APP_DATA_WIDTH - XB_SIZE)) begin
+              app_en <= `TRUE;
+              end_addr <= end_addr + ADDR_INC;
+              dramifc_state <= DRAMIFC_WR_WAIT;
             end
-          CAPTURE_INTRALINE:
-            if(lval) cl_n_col <= cl_n_col + 1'b1;
-            else
-              if(fval) begin
-                cl_n_row <= cl_n_row + 1'b1;
-                capture_state <= CAPTURE_INTERLINE;
-              end else begin
-                cl_n_frame <= cl_n_frame + 1'b1;
-                capture_state <= CAPTURE_INTERFRAME;
-              end
-          CAPTURE_INTERLINE:
-            if(lval) begin
-              cl_n_col <= 0;
-              capture_state <= CAPTURE_INTRALINE;
-            end
-          CAPTURE_INTERFRAME:
-            if(lval) begin
-              cl_n_row <= 0;
-              cl_n_col <= 0;
-              capture_state <= CAPTURE_INTRALINE;
-            end
-        endcase
-
-        case(dramifc_state)
-          DRAMIFC_ERROR: begin//This is a final state
+            tmp_data_offset <= tmp_data_offset + XB_SIZE;
           end
-          DRAMIFC_MSG_WAIT:
-            if(pc_msg_pending) begin
-              tmp_data[tmp_data_offset+:32] <= pc_msg;            
-              pc_msg_ack <= `TRUE;
-
-              // Is this the beginning of the pixel data?
-              if(pc_msg_coeff_kind == COEFF_KIND_INVALID) begin
-                app_addr <= START_ADDR;
-                dram_read <= `FALSE;
-                app_en <= `TRUE;
-                dramifc_state <= DRAMIFC_READING;
-              end
-              // Is this the last of the tmp_data I was waiting for?
-              else if(tmp_data_offset == 0) begin
-                app_en <= `TRUE;
-                end_addr <= end_addr + ADDR_INC;
-                dramifc_state <= DRAMIFC_WR_WAIT;
-              end else tmp_data_offset <= tmp_data_offset - XB_SIZE;
-            end
-          DRAMIFC_WR_WAIT:
-            if(app_rdy && app_wdf_rdy) begin
-              app_addr <= app_addr + ADDR_INC; // for next write
-              app_en <= `FALSE;
-              app_wdf_data <= tmp_data[0+:APP_DATA_WIDTH];
-              app_wdf_wren <= `TRUE;
-              app_wdf_end <= `FALSE;
-              dramifc_state <= DRAMIFC_WR1;
-            end
-          DRAMIFC_WR1:
-            if(app_wdf_rdy) begin
-              app_wdf_end <= `TRUE;
-              app_wdf_data <= tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
-              dramifc_state <= DRAMIFC_WR2;
-            end
-          DRAMIFC_WR2: begin
+        end
+        DRAMIFC_WR_WAIT:
+          if(app_rdy && app_wdf_rdy) begin
+            app_addr <= app_addr + ADDR_INC; // for next write
             app_en <= `FALSE;
-            app_wdf_wren <= `FALSE;
-            tmp_data_offset <= APP_DATA_WIDTH - XB_SIZE;          
+            app_wdf_data <= tmp_data[0+:APP_DATA_WIDTH];
+            app_wdf_wren <= `TRUE;
+            app_wdf_end <= `FALSE;
+            dramifc_state <= DRAMIFC_WR1;
+          end
+        DRAMIFC_WR1:
+          if(app_wdf_rdy) begin
+            app_wdf_end <= `TRUE;
+            app_wdf_data <= tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
+            dramifc_state <= DRAMIFC_WR2;
+          end
+        DRAMIFC_WR2: begin
+          app_en <= `FALSE;
+          app_wdf_wren <= `FALSE;
+          tmp_data_offset <= 0;//APP_DATA_WIDTH - XB_SIZE;
+          // Does the data I am writing mark the end of the coefficients?
+          if(dram_msg[1:0] == 2'b01) begin
+            app_addr <= START_ADDR;
+            dram_read <= `TRUE;
+            app_en <= `TRUE;
+            dramifc_state <= DRAMIFC_READING;
+          end else
             dramifc_state <= app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;
-          end
-          DRAMIFC_READING: begin
-            if(dram_rd_fifo_full) begin //invariance assertion
+        end
+        DRAMIFC_READING: begin
+          if(patch_coeff_fifo_overflow || row_coeff_fifo_overflow) begin
+            //invariance assertion
+            app_en <= `FALSE;
+            dramifc_state <= DRAMIFC_ERROR;
+          end else begin
+            if(app_rdy) app_addr <= app_addr + ADDR_INC;
+            if(app_addr == end_addr) begin
               app_en <= `FALSE;
-              dramifc_state <= DRAMIFC_ERROR;
-            end else begin
-              if(app_rd_data_valid) app_addr <= app_addr + ADDR_INC;
-              if(app_addr == end_addr) begin
-                app_en <= `FALSE;
-                dramifc_state <= DRAMIFC_INTERFRAME;
-              end else if(coeffrd_state == COEFFRD_FULL) begin
-                app_en <= `FALSE;//Note: the address is already incremented
-                dramifc_state <= DRAMIFC_THROTTLED;
-              end
+              dramifc_state <= DRAMIFC_INTERFRAME;
+            end else if(patch_coeff_fifo_high || row_coeff_fifo_high) begin
+              app_en <= `FALSE;//Note: the address is already incremented
+              dramifc_state <= DRAMIFC_THROTTLED;
             end
           end
-          DRAMIFC_THROTTLED:
-            if(coeffrd_state == COEFFRD_BELOW_HIGH) begin
-              app_en <= `TRUE;
-              dramifc_state <= DRAMIFC_READING;
-            end
-          DRAMIFC_INTERFRAME:
-            if(capture_state == CAPTURE_INTERFRAME) begin
-              app_en <= `TRUE;
-              dramifc_state <= DRAMIFC_READING;
-            end
-        endcase
-      end//!if(coeffrd_state != COEFFRD_ERROR)
-    end//!reset
+        end
+        DRAMIFC_THROTTLED:
+          if(app_rd_data_valid &&
+             (patch_coeff_fifo_overflow || row_coeff_fifo_overflow)) begin
+            //invariance assertion
+            dramifc_state <= DRAMIFC_ERROR;
+          end else if(!patch_coeff_fifo_high && !row_coeff_fifo_high) begin
+            app_en <= `TRUE;
+            dramifc_state <= DRAMIFC_READING;
+          end
+        DRAMIFC_INTERFRAME:
+          if(p2d_val[1] && !p2d_fval[1]) begin //Get ready for the next frame
+            app_addr <= START_ADDR;
+            app_en <= `TRUE;
+            dramifc_state <= DRAMIFC_READING;
+          end
+      endcase
+    end
 
 endmodule

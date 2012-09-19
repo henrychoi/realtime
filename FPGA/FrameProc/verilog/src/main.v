@@ -787,18 +787,18 @@ module main #(parameter SIMULATION = 0,
         , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
         );
 
-      xb_wr_fifo(.clk(bus_clk), .rst(rst)//.wr_clk(bus_clk), .rd_clk(clk)
+      xb_wr_fifo xb_wr_fifo(.clk(bus_clk), .rst(rst)//.wr_clk(bus_clk), .rd_clk(clk)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
         , .rd_en(pc_msg_ack), .dout(pc_msg)
         , .full(xb_wr_full), .empty(pc_msg_empty));
 
       // Data from dram lock clock domain to PCIe domain
-      xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
+      xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
         , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
         , .rd_en(xb_rd_rden), .dout(xb_rd_data)
         , .full(fpga_msg_full), .empty(xb_rd_empty));
 
-      xb_loopback_fifo(.clk(bus_clk)//, .rst(rst)
+      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk)//, .rst(rst)
         , .din(pc_msg), .wr_en(pc_msg_ack)
         , .rd_en(xb_loop_rden), .dout(xb_loop_data)
         , .full(xb_loop_full), .empty(xb_loop_empty));

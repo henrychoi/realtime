@@ -10,7 +10,6 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 , input bus_clk, pixel_clk
 , input pc_msg_empty, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
 , input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
-//, input clk_85
 );
 `include "function.v"
   integer i;

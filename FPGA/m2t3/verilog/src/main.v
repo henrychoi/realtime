@@ -656,7 +656,7 @@ module main #(parameter SIMULATION = 0,
    , xb_rd_open         //xillybus -> xb_rd_fifo
    , fpga_msg_valid     //app -> xb_rd_fifo
    , fpga_msg_full      //xb_rd_fifo -> app
-   , pc_msg_empty, pc_msg_pending //xb_wr_fifo -> app; NOT of empty
+   , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
    , xb_wr_full         // xb_wr_fifo -> xillybus
@@ -670,35 +670,99 @@ module main #(parameter SIMULATION = 0,
    , pc_msg
    , fpga_msg;          //app -> xb_rd_fifo
 
-  localparam FP_SIZE = 19;
+  localparam FP_SIZE = 20;
   generate
     if(SIMULATION == 1) begin: simulate_xb
-      integer binf, rc;
-      reg[XB_SIZE-1:0] pc_msg_r;
-      reg bus_clk_r, pc_msg_empty_r;
-      initial begin
-        binf = $fopen("c:\data\SanityTest\pixel_coeff_0.bin", "rb");
-        bus_clk_r <= `FALSE;
-        pc_msg_empty_r <= `TRUE;
-        pc_msg_r <= 0;
-        rc = $fread(pc_msg_r, binf);
-        $display("time %d ps fread %d, %X", $time, rc, pc_msg_r);
-#350000 pc_msg_empty_r <= `FALSE; // Coefficient data from PC starts
-        while(!$feof(binf)) begin
-          @(posedge clk)
-            if(pc_msg_ack) begin
-              rc = $fread(pc_msg_r, binf);
-              $display("time %d ps fread %d, %X", $time, rc, pc_msg_r);
-            end
-        end
-        $fclose(binf);
-      end
+      integer binf, idx, rc;
+      reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
+      reg[7:0] coeff_byte;
+      
+      localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
+      reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
+      reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
+      localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
+        , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
+      reg[log2(N_SIM_STATE)-1:0] sim_state;
+      
+      xb_wr_bram_fifo xb_wr_bram_fifo(.clk(bus_clk)
+        //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
+        , .din(xb_wr_data), .wr_en(xb_wr_wren)
+        , .rd_en(pc_msg_ack), .dout(pc_msg)
+        , .almost_full(xb_wr_full), .empty(pc_msg_empty));
 
-      //assign pc_msg_ack = `TRUE;
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
-      assign pc_msg = pc_msg_r;
-      assign pc_msg_empty = pc_msg_empty_r;
+      //assign pc_msg = pc_msg_r;
+      //assign pc_msg_empty = pc_msg_empty_r;
+      assign xb_wr_data = xb_wr_data_r;
+      assign xb_wr_wren = xb_wr_wren_r;
+      
+      initial begin
+        binf = $fopen("/data/SanityTest/patch_coeff_0.bin", "rb");
+        bus_clk_r <= `FALSE;
+        xb_wr_wren_r <= `FALSE;
+        sim_state <= SIM_UNINITIALIZED;
+      end
+      
+      always @(posedge bus_clk) begin
+        case(sim_state)
+          SIM_UNINITIALIZED:
+            if(rst) xb_wr_wren_r <= `FALSE;
+            else begin
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                xb_wr_data_r[idx+:8] <= coeff_byte;
+              end
+              xb_wr_wren_r <= `TRUE;
+              sim_state <= SIM_READ_COEFF;
+            end
+          SIM_READ_COEFF:
+            if($feof(binf)) begin
+              $fclose(binf);
+
+              binf = $fopen("/data/SanityTest/ds_0.bin", "rb");
+              // Read the first message which must be !FVAL
+              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                rc = $fread(coeff_byte, binf);
+                xb_wr_data_r[idx+:8] <= coeff_byte;
+              end
+              xb_wr_wren_r <= `FALSE;
+              coeff_sync_ctr <= 0;
+              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
+            end else
+              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
+              else begin
+                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                  rc = $fread(coeff_byte, binf);
+                  xb_wr_data_r[idx+:8] <= coeff_byte;
+                end
+                xb_wr_wren_r <= `TRUE;
+              end
+          SIM_DN_WAIT: begin
+            xb_wr_wren_r <= `FALSE;
+            //Doesn't have to be exact; just sufficient
+            if(coeff_sync_ctr == N_COEFF_SYNC)
+              sim_state <= SIM_DN_PLAY;
+            coeff_sync_ctr <= coeff_sync_ctr + `TRUE;
+          end
+          SIM_DN_PLAY:
+            if($feof(binf)) begin
+              xb_wr_wren_r <= `FALSE;
+              $fclose(binf);
+              sim_state <= SIM_DONE;
+            end else
+              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
+              else begin
+                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                  rc = $fread(coeff_byte, binf);
+                  xb_wr_data_r[idx+:8] <= coeff_byte;
+                end
+                xb_wr_wren_r <= `TRUE;
+              end
+          default: xb_wr_wren_r <= `FALSE;
+        endcase
+      end //always
+      
     end else begin: instantiate_xb
         
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
@@ -723,25 +787,24 @@ module main #(parameter SIMULATION = 0,
         , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
         );
 
-      xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
+      xb_wr_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
         , .rd_en(pc_msg_ack), .dout(pc_msg)
         , .full(xb_wr_full), .empty(pc_msg_empty));
 
       // Data from dram lock clock domain to PCIe domain
-      xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
+      xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
         , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
         , .rd_en(xb_rd_rden), .dout(xb_rd_data)
         , .full(fpga_msg_full), .empty(xb_rd_empty));
 
-      xb_loopback_fifo(.clk(bus_clk)//, .rst(reset)
+      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk)//, .rst(reset)
         , .din(pc_msg), .wr_en(pc_msg_ack)
         , .rd_en(xb_loop_rden), .dout(xb_loop_data)
         , .full(xb_loop_full), .empty(xb_loop_empty));
     end
   endgenerate
 
-  assign pc_msg_pending = !pc_msg_empty;
   assign app_cmd[2:1] = 2'b0;
   
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
@@ -753,9 +816,10 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
+      , .pixel_clk(clk_mem) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
-      , .pc_msg_pending(pc_msg_pending), .pc_msg_ack(pc_msg_ack)
+      , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)
       , .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
