@@ -32,17 +32,36 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   localparam N_FRAME_SIZE = 20
     , N_COL = 2048, N_ROW = 2064 //2k rows + 8 dark pixels top and btm
     , PATCH_SIZE = 6, PATCH_SIZE_MAX = 16
-    , N_PATCH = 1024*1024; //let's handle up to 1M
+    , N_PATCH = 1024*1024 //let's handle up to 1M
+    , N_ROW_REDUCER = 8;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
   reg[log2(N_COL)-1:0] n_col;//, n_col_d[N_FADD_LATENCY-1:0];
-  wire[log2(N_PATCH)-1:0] patch_num;
-  wire[log2(N_ROW)-1:0] patch_top_row;
-  wire patch_val;
-  wire[log2(N_COL)-1:0] patch_left_col;
-  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + log2(PATCH_SIZE_MAX);
-  wire[ROW_REDUCER_CONFIG_SIZE-1:0] row_reducer_config;
-  
+  wire[PATCH_SIZE-1:0]    reducer_needed;
+  wire[N_ROW_REDUCER-1:0] reducer_avail[PATCH_SIZE-1:0]
+                        , reducer_init[PATCH_SIZE-1:0]
+                        , reducer_sum_rdy[PATCH_SIZE-1:0];
+  wire[log2(N_ROW_REDUCER)-1:0] avail_reducer[PATCH_SIZE-1:0];
+  wire new_patch_val;
+  wire[FP_SIZE-1:0] interline_sum_in[PATCH_SIZE-1:1]
+                  , interline_sum_out[PATCH_SIZE-1:1]
+                  , reducer_sum[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
+  //reg[log2(N_PATCH)-1:0] reducer_config_num[PATCH_SIZE-1:0];
+  wire[log2(N_PATCH)-1:0] interline_num_in[PATCH_SIZE-1:1]
+                        , interline_num_out[PATCH_SIZE-1:0];
+  //reg[log2(N_ROW)-1:0] reducer_config_row[PATCH_SIZE-1:1];
+  wire[log2(N_ROW)-1:0] interline_row_in[PATCH_SIZE-1:1]
+                      , interline_row_out[PATCH_SIZE-1:0];
+  //reg[log2(N_COL)-1:0] reducer_config_col[PATCH_SIZE-1:1];
+  wire[log2(N_COL)-1:0] interline_col_in[PATCH_SIZE-1:1]
+                      , interline_col_out[PATCH_SIZE-1:0];
+  wire[PATCH_SIZE-1:0] interline_fifo_overflow, interline_fifo_high
+                     , interline_fifo_empty, interline_fifo_full
+    , row_coeff_fifo_overflow, row_coeff_fifo_high, row_coeff_fifo_empty;
+
+  // Config variables
+  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + log2(PATCH_SIZE);
+  wire[(PATCH_SIZE * FP_SIZE)-1:0] conf_weights[PATCH_SIZE-1:0];
   localparam N_FMULT_LATENCY = 8, N_FADD_LATENCY = 8;
   wire fval, lval, fds_val;
   reg fds_val_d;
@@ -56,11 +75,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[FP_SIZE-1:0] fds_d;
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
-
-  localparam PATCH_COEFF_SIZE = 43;
-  wire row_coeff_fifo_overflow, row_coeff_fifo_high, row_coeff_fifo_empty
-    , patch_coeff_fifo_overflow, patch_coeff_fifo_high, patch_coeff_fifo_empty;
-
+                     
   reg[ADDR_WIDTH-1:0] end_addr;
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 4'd8;// BL8
@@ -71,22 +86,27 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , DRAMIFC_N_STATE = 8;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
+  //Note: designed deliberately to wrap
   reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
   
+`ifdef REDUCER_HAS_TO_BE_ALWAYS_AVAILABLE
+  localparam COEFFRD_ERROR = 0, COEFFRD_OK = 1, N_COEFFRD_STATE = 2;
+  reg[log2(N_COEFFRD_STATE)-1:0] coeffrd_state[PATCH_SIZE-1:0];
+`endif  
   assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
   assign {fval, lval} = pixel_msg[4+:2];
   assign fds = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
   assign error = dramifc_state == DRAMIFC_ERROR
-    || patch_coeff_fifo_overflow;
+    || (|interline_fifo_overflow);
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
-  assign xb2pixel_ack = !patch_coeff_fifo_empty && !xb2pixel_empty;
+  assign xb2pixel_ack = !interline_fifo_empty && !xb2pixel_empty;
   assign xb2dram_ack = !xb2dram_empty
    && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
         || dramifc_state == DRAMIFC_WR_WAIT);
   assign xb2pixel_wren = !xb2pixel_full && pc_msg_pending_d &&  pc_msg_is_ds_d;
   assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
-  assign pc_msg_is_ds = pc_msg[1:0] != 0 && n_pc_dram_msg == 0;
+  assign pc_msg_is_ds = pc_msg[1:0] == 0 && n_pc_dram_msg == 0;
  
   xb2pixel xb2pixel(.wr_clk(bus_clk), .rd_clk(pixel_clk)//, .rst(rst)
     , .din(pc_msg_d), .wr_en(xb2pixel_wren)
@@ -98,26 +118,86 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , .rd_en(xb2dram_ack), .dout(dram_msg)
     , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty));
 
-  patch_coeff_fifo patch_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+  localparam PATCH_COEFF_SIZE = 43;
+  patch_coeff_fifo patch_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
     , .din(app_rd_data[80+:(4 * (PATCH_COEFF_SIZE + 1))])
     //Note: always write into FIFO when there is valid DRAM data because
     //flow control done upstream by DRAMIfc
-    , .wr_en(app_rd_data_valid && !app_rd_data[0])
+    , .wr_en(app_rd_data_valid
+             && app_rd_data[0] == `FALSE) //This is a patch_coeff
     , .rd_en(`FALSE)//FIXME
-    , .dout({patch_num, patch_top_row, patch_val, patch_left_col})
-    , .prog_full(patch_coeff_fifo_high), .full()
-    , .overflow(patch_coeff_fifo_overflow), .empty(patch_coeff_fifo_empty));
+    , .dout({interline_num_out[0], interline_row_out[0], new_patch_val
+           , interline_col_out[0]})
+    , .prog_full(interline_fifo_high[0]), .full()
+    , .overflow(interline_fifo_overflow[0]), .empty(interline_fifo_empty[0]));
 
-  row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
-    , .din(app_rd_data[12+:ROW_REDUCER_CONFIG_SIZE])
-    //Note: always write into FIFO when there is valid DRAM data because
-    //flow control done upstream by DRAMIfc
-    , .wr_en(app_rd_data_valid && app_rd_data[0])
-    , .rd_en(`FALSE)//FIXME
-    , .dout(row_reducer_config)
-    , .prog_full(row_coeff_fifo_high), .full()
-    , .overflow(row_coeff_fifo_overflow), .empty(row_coeff_fifo_empty));
+  genvar geni, genj;
+  generate
+    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin
+      interline_fifo interline_fifo(.clk(pixel_clk)
+        , .din({interline_num_in[geni], interline_row_in[geni]
+              , interline_sum_in[geni], interline_col_in[geni]})
+        , .wr_en(`FALSE)//FIXME
+        , .rd_en(`FALSE)//FIXME
+        , .dout({interline_num_out[geni], interline_row_out[geni]
+               , interline_sum_out[geni], interline_col_out[geni]})
+        , .full(interline_fifo_full[geni])
+        , .overflow(interline_fifo_overflow[geni])
+        , .empty(interline_fifo_empty[geni]));
+    end
+    
+    for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin // For each patch row,
+      row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+        , .din(app_rd_data[12+:ROW_REDUCER_CONFIG_SIZE])
+        //Note: always write into FIFO when there is valid DRAM data because
+        //flow control done upstream by DRAMIfc
+        , .wr_en(app_rd_data_valid
+                 && app_rd_data[0] == `TRUE //This is a row reducer coeff
+                 && app_rd_data[15:12] == geni)
+        , .rd_en(`FALSE)//FIXME
+        , .dout(conf_weights[geni])
+        , .prog_full(row_coeff_fifo_high[geni]), .full()
+        , .overflow(row_coeff_fifo_overflow[geni])
+        , .empty(row_coeff_fifo_empty[geni]));
 
+      assign avail_reducer[geni] = reducer_avail[geni][0] ? 0
+        : reducer_avail[geni][1] ? 1
+        : reducer_avail[geni][2] ? 2
+        : reducer_avail[geni][3] ? 3
+        : reducer_avail[geni][4] ? 4
+        : reducer_avail[geni][5] ? 5
+        : reducer_avail[geni][6] ? 6 : 7
+        // Note: I do not check whether the last reducer is actually available
+        // (|reducer_avail[geni]) tells me if no reducer is available at all.
+        ;
+
+      assign reducer_needed[geni] = !interline_fifo_empty[geni]
+        && !row_coeff_fifo_empty[geni]
+        && (geni != 0 || new_patch_val);
+      
+      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
+        //Tell the chosen reducer to initialize
+        assign reducer_init[geni][genj] = reducer_needed[geni]
+          && |reducer_avail[geni]
+          && genj == avail_reducer[geni];
+
+        PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
+          , .N_ROW_SIZE(log2(N_ROW_MAX)))
+          row_reducer(.clk(pixel_clk), .reset(reset)
+          , .available(reducer_avail[geni]), .init(reducer_init[geni])
+          , .conf_row(interline_row_out[geni])
+          , .conf_col(interline_col_out[geni])
+          , .conf_sum(genj ? interline_sum_out[geni] : 0)
+          , .conf_num(interline_num_out[geni])
+          , .conf_weights(conf_weights[geni])
+          , .n_row(cl_n_row), .l_col(cl_n_col)
+          , .ds_valid_in(dark_sub_rdy), .fds(fds)
+          , .sum(reducer_sum[geni][genj])
+          , .sum_rdy(reducer_sum_rdy[geni][genj]));
+      end
+    end
+  endgenerate
+  
   always @(posedge reset, posedge fds_val)
     if(reset) hb_ctr <= 0;
     else hb_ctr <= hb_ctr + `TRUE;
@@ -139,6 +219,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   always @(posedge pixel_clk) begin
     if(reset) begin
       pixel_state <= PIXEL_STANDBY;
+      //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= COEFFRD_OK;
     end else begin
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid
@@ -154,7 +235,21 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       fds_val_d <= fds_val;
       fds_d <= fds;
 
-     if(!xb2pixel_empty)
+`ifdef REDUCER_HAS_TO_BE_ALWAYS_AVAILABLE
+      for(i=0; i < PATCH_SIZE; i=i+1) begin
+        case(coeffrd_state[i])
+          COEFFRD_OK:
+            if(reducer_needed[i] && !(|reducer_avail[i])) begin
+              // ERROR if a reducer is not available when needed
+              coeffrd_state[i] <= COEFFRD_ERROR;
+            end
+          default: begin
+          end
+        endcase
+      end
+`endif
+
+      if(!xb2pixel_empty)
        case(pixel_state)
          PIXEL_STANDBY:
            if(!fval) begin
@@ -162,7 +257,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
              pixel_state <= PIXEL_INTERFRAME;
            end
          PIXEL_INTRALINE:
-           if(patch_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
+           if(interline_fifo_empty) pixel_state <= PIXEL_ERROR;
            else begin
              if(lval) n_col <= n_col + `TRUE;
              else begin
@@ -253,7 +348,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
             dramifc_state <= app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;
         end
         DRAMIFC_READING: begin
-          if(patch_coeff_fifo_overflow || row_coeff_fifo_overflow) begin
+          if(interline_fifo_overflow || row_coeff_fifo_overflow) begin
             //invariance assertion
             app_en <= `FALSE;
             dramifc_state <= DRAMIFC_ERROR;
@@ -262,7 +357,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
             if(app_addr == end_addr) begin
               app_en <= `FALSE;
               dramifc_state <= DRAMIFC_INTERFRAME;
-            end else if(patch_coeff_fifo_high || row_coeff_fifo_high) begin
+            end else if(interline_fifo_high || row_coeff_fifo_high) begin
               app_en <= `FALSE;//Note: the address is already incremented
               dramifc_state <= DRAMIFC_THROTTLED;
             end
@@ -270,10 +365,10 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         end
         DRAMIFC_THROTTLED:
           if(app_rd_data_valid &&
-             (patch_coeff_fifo_overflow || row_coeff_fifo_overflow)) begin
+             (interline_fifo_overflow || row_coeff_fifo_overflow)) begin
             //invariance assertion
             dramifc_state <= DRAMIFC_ERROR;
-          end else if(!patch_coeff_fifo_high && !row_coeff_fifo_high) begin
+          end else if(!interline_fifo_high && !row_coeff_fifo_high) begin
             app_en <= `TRUE;
             dramifc_state <= DRAMIFC_READING;
           end

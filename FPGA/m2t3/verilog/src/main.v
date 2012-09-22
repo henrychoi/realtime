@@ -698,7 +698,7 @@ module main #(parameter SIMULATION = 0,
       assign xb_wr_wren = xb_wr_wren_r;
       
       initial begin
-        binf = $fopen("/data/SanityTest/patch_coeff_0.bin", "rb");
+        binf = $fopen("/data/SanityTest/reducer_coeff_0.bin", "rb");
         bus_clk_r <= `FALSE;
         xb_wr_wren_r <= `FALSE;
         sim_state <= SIM_UNINITIALIZED;
