@@ -62,7 +62,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , row_coeff_fifo_full;
 
   // Config variables
-  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + log2(PATCH_SIZE);
+  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE;// + log2(PATCH_SIZE);
   wire[(PATCH_SIZE * FP_SIZE)-1:0] conf_weights[PATCH_SIZE-1:0];
   //reg[(PATCH_SIZE * FP_SIZE)-1:0] fst_row_weights;
   wire fval, lval, fds_val;
@@ -179,7 +179,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       assign free_reducer[geni] = |reducer_done[geni];
 
       row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
-        , .din(app_rd_data[12+:ROW_REDUCER_CONFIG_SIZE])
+        , .din(app_rd_data[16+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
         , .wr_en(app_rd_data_valid
@@ -214,7 +214,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         //First row starts with the running sum = 0 of course
         , .conf_sum(0) //First row starts with the running sum = 0 of course
         , .conf_num(interline_num_out[0]), .conf_weights(conf_weights[0])
-        , .cur_row(cl_n_row), .l_col(cl_n_col)
+        , .cur_row(n_row), .l_col(n_col)
         , .fds_val_in(lval_d), .fds(fds)
         , .done(reducer_done[0][genj])
         , .num(reducer_num[0][genj]), .sum(reducer_sum[0][genj])
@@ -245,7 +245,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           , .conf_sum(interline_sum_out[geni])
           , .conf_num(interline_num_out[geni])
           , .conf_weights(conf_weights[geni])
-          , .cur_row(cl_n_row), .l_col(cl_n_col)
+          , .cur_row(n_row), .l_col(n_col)
           , .fds_val_in(lval_d), .fds(fds)
           , .done(reducer_done[geni][genj])
           , .num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])

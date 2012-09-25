@@ -26,7 +26,7 @@ module PatchRowReducer
   assign fds_valid = fromWAITtoMATCHED || state == MATCHED;
 
   fmult fmult(.clk(clk)
-    , .operation_nd(fds_valid), .a(ds), .b(weight[n_ds])
+    , .operation_nd(fds_valid), .a(fds), .b(weight[n_ds])
     , .result(weighted_ds), .rdy(weighted_ds_valid));
   fadd fadd(.clk(clk), .operation_nd(weighted_ds_valid)
     , .a(sum), .b(weighted_ds), .result(running_sum)
