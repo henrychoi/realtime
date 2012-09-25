@@ -172,6 +172,10 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         // Note: I do not check whether the last reducer is actually available
         // (|reducer_avail[geni]) tells me if no reducer is available at all.
         ;
+
+      assign init_reducer[geni] = !interline_fifo_empty[geni]
+        && !row_coeff_fifo_empty[geni] && |reducer_avail[geni];
+      
       assign free_reducer[geni] = |reducer_done[geni];
 
       row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
@@ -179,8 +183,8 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
         , .wr_en(app_rd_data_valid
-                 && app_rd_data[0] == `TRUE //This is a row reducer coeff
-                 && app_rd_data[15:12] == geni)
+                 && app_rd_data[0] == `TRUE    //This is a row reducer coeff
+                 && app_rd_data[15:12] == geni)//This is my row
         , .rd_en(init_reducer[geni])
         , .dout(conf_weights[geni])
         , .prog_full(row_coeff_fifo_high[geni])
@@ -249,9 +253,6 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           , .start_col(reducer_col[geni][genj]));
       end//for genj
         
-      assign init_reducer[geni] = !interline_fifo_empty[geni]
-        && !row_coeff_fifo_empty[geni] && |reducer_avail[geni];
-      
       assign interline_sum_in[geni] = reducer_done[geni][0] ? reducer_sum[geni][0]
         : reducer_done[geni][1] ? reducer_sum[geni][1]
         : reducer_done[geni][2] ? reducer_sum[geni][2]

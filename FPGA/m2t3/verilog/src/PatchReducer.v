@@ -25,17 +25,17 @@ module PatchRowReducer
     && (cur_row == matcher_row) && fds_val_in && (l_col == start_col);
   assign fds_valid = fromWAITtoMATCHED || state == MATCHED;
 
-  fmult fmult(.clk(dram_clk)
+  fmult fmult(.clk(clk)
     , .operation_nd(fds_valid), .a(ds), .b(weight[n_ds])
     , .result(weighted_ds), .rdy(weighted_ds_valid));
-  fadd fadd(.clk(dram_clk), .operation_nd(weighted_ds_valid)
+  fadd fadd(.clk(clk), .operation_nd(weighted_ds_valid)
     , .a(sum), .b(weighted_ds), .result(running_sum)
     , .rdy(running_sum_valid));
     
   assign done = state == SUM_RDY;
   assign available = state == CONFIG_WAIT;
   
-  always @(posedge reset, posedge dram_clk)
+  always @(posedge reset, posedge clk)
     if(reset) begin
       n_ds <= 0;
       n_sum <= 0;

@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="2" />
+   <WVObjectSize size="3" />
    <wvobject fp_name="group47" type="group">
       <obj_property name="label">sim</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -18,11 +18,6 @@
          <obj_property name="ElementShortName">\simulate_xb.sim_state [2:0]</obj_property>
          <obj_property name="ObjectShortName">\simulate_xb.sim_state [2:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/\simulate_xb.coeff_sync_ctr " type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">\simulate_xb.coeff_sync_ctr [5:0]</obj_property>
-         <obj_property name="ObjectShortName">\simulate_xb.coeff_sync_ctr [5:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/\simulate_xb.xb_wr_wren_r " type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">\simulate_xb.xb_wr_wren_r </obj_property>
@@ -100,10 +95,10 @@
             <obj_property name="ElementShortName">pc_msg_is_ds</obj_property>
             <obj_property name="ObjectShortName">pc_msg_is_ds</obj_property>
          </wvobject>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/pc_msg_is_ds_d" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">pc_msg_is_ds_d</obj_property>
-         <obj_property name="ObjectShortName">pc_msg_is_ds_d</obj_property>
+         <wvobject fp_name="/simmain/main/app/pc_msg_is_ds_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">pc_msg_is_ds_d</obj_property>
+            <obj_property name="ObjectShortName">pc_msg_is_ds_d</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="group34" type="group">
          <obj_property name="label">Pixel</obj_property>
@@ -111,6 +106,112 @@
          <wvobject fp_name="/simmain/main/app/pixel_clk" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">pixel_clk</obj_property>
             <obj_property name="ObjectShortName">pixel_clk</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/avail_reducer" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">avail_reducer[11:0,2:0]</obj_property>
+            <obj_property name="ObjectShortName">avail_reducer[11:0,2:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/init_reducer" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">init_reducer[11:0]</obj_property>
+            <obj_property name="ObjectShortName">init_reducer[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_fifo_empty" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_fifo_empty[11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_fifo_empty[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_fifo_full" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_fifo_full[11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_fifo_full[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_fifo_high" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_fifo_high[11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_fifo_high[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_fifo_overflow" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_fifo_overflow[11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_fifo_overflow[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_col_in" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_col_in[11:1,10:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_col_in[11:1,10:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_col_out" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_col_out[11:0,10:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_col_out[11:0,10:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_num_in" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_num_in[11:1,19:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_num_in[11:1,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_num_out" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_num_out[11:0,19:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_num_out[11:0,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_row_in" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_row_in[11:1,11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_row_in[11:1,11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_row_out" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_row_out[11:0,11:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_row_out[11:0,11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_sum_in" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_sum_in[11:1,19:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_sum_in[11:1,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/interline_sum_out" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">interline_sum_out[11:1,19:0]</obj_property>
+            <obj_property name="ObjectShortName">interline_sum_out[11:1,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_avail" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_avail[11:0,7:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_avail[11:0,7:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_done" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_done[11:0,7:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_done[11:0,7:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_init" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_init[11:0,7:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_init[11:0,7:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_num" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_num[11:0,7:0,19:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_num[11:0,7:0,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_col" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_col[11:0,7:0,10:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_col[11:0,7:0,10:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_row" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_row[11:0,7:0,11:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_row[11:0,7:0,11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/reducer_sum" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reducer_sum[11:0,7:0,19:0]</obj_property>
+            <obj_property name="ObjectShortName">reducer_sum[11:0,7:0,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/row_coeff_fifo_empty" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">row_coeff_fifo_empty[11:0]</obj_property>
+            <obj_property name="ObjectShortName">row_coeff_fifo_empty[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/conf_weights" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">conf_weights[11:0,239:0]</obj_property>
+            <obj_property name="ObjectShortName">conf_weights[11:0,239:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/xb2pixel_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">xb2pixel_ack</obj_property>
@@ -132,14 +233,6 @@
          <wvobject fp_name="/simmain/main/app/lval" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">lval</obj_property>
             <obj_property name="ObjectShortName">lval</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/pval_d[5]" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">[5]</obj_property>
-            <obj_property name="ObjectShortName">pval_d[5]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/lval_d[5]" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">[5]</obj_property>
-            <obj_property name="ObjectShortName">lval_d[5]</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/fds_val" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">fds_val</obj_property>
@@ -183,6 +276,18 @@
       <wvobject fp_name="group36" type="group">
          <obj_property name="label">DRAM</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/row_coeff_fifo_full" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">row_coeff_fifo_full[11:0]</obj_property>
+            <obj_property name="ObjectShortName">row_coeff_fifo_full[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/row_coeff_fifo_high" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">row_coeff_fifo_high[11:0]</obj_property>
+            <obj_property name="ObjectShortName">row_coeff_fifo_high[11:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/row_coeff_fifo_overflow" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">row_coeff_fifo_overflow[11:0]</obj_property>
+            <obj_property name="ObjectShortName">row_coeff_fifo_overflow[11:0]</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/xb2dram_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">xb2dram_ack</obj_property>
             <obj_property name="ObjectShortName">xb2dram_ack</obj_property>
@@ -259,6 +364,96 @@
             <obj_property name="ElementShortName">[1]</obj_property>
             <obj_property name="ObjectShortName">p2d_val[1]</obj_property>
          </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group100" type="group">
+      <obj_property name="label">fst_row_reducer[0]</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /init" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">init</obj_property>
+         <obj_property name="ObjectShortName">init</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /fds_val_in" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fds_val_in</obj_property>
+         <obj_property name="ObjectShortName">fds_val_in</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /conf_weights" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">conf_weights[19:0]</obj_property>
+         <obj_property name="ObjectShortName">conf_weights[19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /available" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">available</obj_property>
+         <obj_property name="ObjectShortName">available</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /done" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">done</obj_property>
+         <obj_property name="ObjectShortName">done</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /fromWAITtoMATCHED" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fromWAITtoMATCHED</obj_property>
+         <obj_property name="ObjectShortName">fromWAITtoMATCHED</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /fds_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fds_valid</obj_property>
+         <obj_property name="ObjectShortName">fds_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /weighted_ds_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_ds_valid</obj_property>
+         <obj_property name="ObjectShortName">weighted_ds_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /running_sum_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">running_sum_valid</obj_property>
+         <obj_property name="ObjectShortName">running_sum_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /weighted_ds" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weighted_ds[19:0]</obj_property>
+         <obj_property name="ObjectShortName">weighted_ds[19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /running_sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">running_sum[19:0]</obj_property>
+         <obj_property name="ObjectShortName">running_sum[19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /ds" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">ds</obj_property>
+         <obj_property name="ObjectShortName">ds</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /matcher_row" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">matcher_row[11:0]</obj_property>
+         <obj_property name="ObjectShortName">matcher_row[11:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /start_col" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">start_col[10:0]</obj_property>
+         <obj_property name="ObjectShortName">start_col[10:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">sum[19:0]</obj_property>
+         <obj_property name="ObjectShortName">sum[19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">state[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /weight" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">weight[0:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">weight[0:0,19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /n_ds" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">n_ds[0:0]</obj_property>
+         <obj_property name="ObjectShortName">n_ds[0:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/\[0].fst_row_reducer /n_sum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">n_sum[0:0]</obj_property>
+         <obj_property name="ObjectShortName">n_sum[0:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
