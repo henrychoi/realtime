@@ -261,7 +261,7 @@ module main #(parameter SIMULATION = 0,
   //assign sys_clk = 1'b0; 
   //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
   wire clk_200;
-  //wire clk_85;
+  wire clk_120;
 
   iodelay_ctrl #
     (
@@ -309,7 +309,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       //.clk_85(clk_85),
+       .clk_120(clk_120),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -687,7 +687,7 @@ module main #(parameter SIMULATION = 0,
       xb_wr_bram_fifo xb_wr_bram_fifo(.clk(bus_clk)
         //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
         , .din(xb_wr_data), .wr_en(xb_wr_wren)
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
+        , .rd_en(pc_msg_ack), .dout(pc_msg), .full()
         , .almost_full(xb_wr_full), .empty(pc_msg_empty));
 
       always #4000 bus_clk_r = ~bus_clk_r;
@@ -798,7 +798,7 @@ module main #(parameter SIMULATION = 0,
         , .rd_en(xb_rd_rden), .dout(xb_rd_data)
         , .full(fpga_msg_full), .empty(xb_rd_empty));
 
-      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk)//, .rst(reset)
+      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk), .rst(reset)
         , .din(pc_msg), .wr_en(pc_msg_ack)
         , .rd_en(xb_loop_rden), .dout(xb_loop_data)
         , .full(xb_loop_full), .empty(xb_loop_empty));
@@ -816,7 +816,7 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      , .pixel_clk(clk) //do pixel processing at this speed
+      , .pixel_clk(clk_120) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
       , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)

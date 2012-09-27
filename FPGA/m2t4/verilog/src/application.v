@@ -163,15 +163,15 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
   genvar geni, genj;
   generate
-    for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin // For each patch row,
+    for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin: for_all_patch_rows
       assign avail_reducer[geni] =
-          reducer_avail[geni][0] ? 0
-        : reducer_avail[geni][1] ? 1
-        : reducer_avail[geni][2] ? 2
-        : reducer_avail[geni][3] ? 3
-        : reducer_avail[geni][4] ? 4
-        : reducer_avail[geni][5] ? 5
-        : reducer_avail[geni][6] ? 6 : 7
+          reducer_avail[geni][0] ? 12'd0
+        : reducer_avail[geni][1] ? 12'd1
+        : reducer_avail[geni][2] ? 12'd2
+        : reducer_avail[geni][3] ? 12'd3
+        : reducer_avail[geni][4] ? 12'd4
+        : reducer_avail[geni][5] ? 12'd5
+        : reducer_avail[geni][6] ? 12'd6 : 12'd7
         // Note: I do not check whether the last reducer is actually available
         // (|reducer_avail[geni]) tells me if no reducer is available at all.
         ;
@@ -195,14 +195,14 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .overflow(row_coeff_fifo_overflow[geni])
         , .empty(row_coeff_fifo_empty[geni]));
 
-      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
+      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: assign_reducer_init
         //Tell the chosen reducer to initialize
         assign reducer_init[geni][genj] = init_reducer[geni]
           && genj == avail_reducer[geni];
       end
     end//for geni
 
-    for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
+    for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: init_1st_row_reducer
       PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
           , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
           , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
@@ -220,7 +220,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .start_col(reducer_col[0][genj]));
     end//genj
 
-    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin
+    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin: for_all_non_1st_rows
       interline_fifo interline_fifo(.clk(pixel_clk)
         , .din({interline_num_in[geni], interline_row_in[geni]
               , interline_sum_in[geni], interline_col_in[geni]})
@@ -233,7 +233,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .overflow(interline_fifo_overflow[geni])
         , .empty(interline_fifo_empty[geni]));
       
-      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
+      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: for_row_reducers_on_non_1st
         PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
             , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
             , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))

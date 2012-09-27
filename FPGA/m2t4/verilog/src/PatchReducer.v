@@ -22,9 +22,9 @@ module PatchRowReducer
   wire[FP_SIZE-1:0] weighted_fds[N_PIXEL_PER_CLK-1:0], sum2, running_sum;
   reg[FP_SIZE-1:0] weight[PATCH_SIZE-1:0];
   reg[log2(PATCH_SIZE)-1:0] n_ds, n_sum;
-  wire[log2(N_PIXEL_PER_CLK)-1:0] n_valid_ds;
+  wire[log2(N_PIXEL_PER_CLK):0] n_valid_ds;
   
-  assign r_col = l_col + N_PIXEL_PER_CLK;
+  //assign r_col = l_col + N_PIXEL_PER_CLK;
   assign fromWAITtoMATCHED = (state == MATCH_WAIT)
     && (cur_row == matcher_row) && fds_val_in && (l_col == start_col);
   //assign fds_valid = fromWAITtoMATCHED || state == MATCHED;
@@ -44,7 +44,7 @@ module PatchRowReducer
     , .operation_nd(fds_val[1]), .a(fds1), .b(weight[n_ds + 1'b1])
     , .result(weighted_fds[1]), .rdy(weighted_fds_valid[1]));
 
-  fadd add2(.clk(clk), .operation_nd(weighted_ds_valid)
+  fadd add2(.clk(clk), .operation_nd(|weighted_fds_valid)
     , .a(weighted_fds_valid[0] ? weighted_fds[0] : {FP_SIZE{`FALSE}})
     , .b(weighted_fds_valid[0] ? weighted_fds[1] : {FP_SIZE{`FALSE}})
     , .result(sum2), .rdy(sum2_valid));
