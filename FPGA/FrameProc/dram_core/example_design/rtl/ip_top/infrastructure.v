@@ -92,7 +92,6 @@ module infrastructure #
   wire                       clk_mem_pll;
   wire                       clk_pll;
   wire                       clkfbout_pll;
-  wire                       pll_lock
                              /* synthesis syn_maxfan = 10 */;
   reg [RST_DIV_SYNC_NUM-1:0] rstdiv0_sync_r
                              /* synthesis syn_maxfan = 10 */;

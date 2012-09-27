@@ -20,8 +20,8 @@
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/\simulate_xb.coeff_sync_ctr " type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">\simulate_xb.coeff_sync_ctr [2:0]</obj_property>
-         <obj_property name="ObjectShortName">\simulate_xb.coeff_sync_ctr [2:0]</obj_property>
+         <obj_property name="ElementShortName">\simulate_xb.coeff_sync_ctr [5:0]</obj_property>
+         <obj_property name="ObjectShortName">\simulate_xb.coeff_sync_ctr [5:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/\simulate_xb.xb_wr_wren_r " type="logic" db_ref_id="1">
@@ -155,40 +155,94 @@
             <obj_property name="ElementShortName">fds_val</obj_property>
             <obj_property name="ObjectShortName">fds_val</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/fds_val_d" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">fds_val_d</obj_property>
-            <obj_property name="ObjectShortName">fds_val_d</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/pval_d[13]" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">[13]</obj_property>
-            <obj_property name="ObjectShortName">pval_d[13]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/fval_d[13]" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">[13]</obj_property>
-            <obj_property name="ObjectShortName">fval_d[13]</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/lval_d[13]" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">[13]</obj_property>
-            <obj_property name="ObjectShortName">lval_d[13]</obj_property>
-         </wvobject>
          <wvobject fp_name="/simmain/main/app/fds" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">fds[19:0]</obj_property>
             <obj_property name="ObjectShortName">fds[19:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/fds_d" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">fds_d[19:0]</obj_property>
-            <obj_property name="ObjectShortName">fds_d[19:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/pixel_coeff_fifo_empty" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">pixel_coeff_fifo_empty</obj_property>
-            <obj_property name="ObjectShortName">pixel_coeff_fifo_empty</obj_property>
-         </wvobject>
          <wvobject fp_name="/simmain/main/app/dark" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">dark[19:0]</obj_property>
             <obj_property name="ObjectShortName">dark[19:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/gain" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">gain[19:0]</obj_property>
+            <obj_property name="ObjectShortName">gain[19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/gain_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">gain_d[7:0,19:0]</obj_property>
+            <obj_property name="ObjectShortName">gain_d[7:0,19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <wvobject fp_name="/simmain/main/app/gain_d[7]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[7,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[7,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[6]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[6,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[6,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[5]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[5,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[5,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[4]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[4,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[4,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[3]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[3,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[3,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[2]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[2,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[2,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[1]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[1,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[1,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/gain_d[0]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[0,19:0]</obj_property>
+               <obj_property name="ObjectShortName">gain_d[0,19:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fe" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">fe[19:0]</obj_property>
+            <obj_property name="ObjectShortName">fe[19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fe_val" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fe_val</obj_property>
+            <obj_property name="ObjectShortName">fe_val</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fe_val_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fe_val_d</obj_property>
+            <obj_property name="ObjectShortName">fe_val_d</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/pval_d[22]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">pval_d[22]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/lval_d[22]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">lval_d[22]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fval_d[22]" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">fval_d[22]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/pixel_coeff_fifo_empty" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">pixel_coeff_fifo_empty</obj_property>
+            <obj_property name="ObjectShortName">pixel_coeff_fifo_empty</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/pixel_state" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pixel_state[2:0]</obj_property>
