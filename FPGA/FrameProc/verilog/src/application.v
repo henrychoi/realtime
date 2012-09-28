@@ -26,7 +26,8 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
   localparam N_FRAME_SIZE = 20
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
-    , N_FSUB_LATENCY = 8;
+    , N_FMUL_LATENCY = 8, N_FSUB_LATENCY = 8, N_DN2F_LATENCY = 6
+    , DN_SIZE = 12;
   localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
     , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
   reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
@@ -34,19 +35,19 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FSUB_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] n_col;//, n_col_d[N_FSUB_LATENCY-1:0];
   
-  localparam DN_SIZE = 12, N_DN2F_LATENCY = 6;
-  wire fval, lval, fdn_val, fds_val;
-  reg fds_val_d;
+  wire fval, lval, fdn_val, fds_val, fe_val;
+  reg fe_val_d;
   //Data always flows (can't stop it); need to distinguish whether it is valid
   //pval (pixel valid) indicates whether this is a legitimate data received from
   //the "camera".  Note one more delay to sync up with the sampled fds_val from
   //the sequential logic
-  reg[N_DN2F_LATENCY+N_FSUB_LATENCY:0] pval_d, fval_d, lval_d, val_d;
+  reg[N_DN2F_LATENCY + N_FSUB_LATENCY + N_FMUL_LATENCY:0]
+    pval_d, fval_d, lval_d; //, val_d;
   reg[1:0] p2d_fval, p2d_val; // to cross from pixel to dram clock domain
   wire[DN_SIZE-1:0] dn;
-  wire[FP_SIZE-1:0] fdn, dark, fds;
-  reg[FP_SIZE-1:0] fds_d;
-  wire[3:0] dark_lsb;//bit bucket
+  wire[FP_SIZE-1:0] fdn, dark, gain, fds, fe;
+  reg[FP_SIZE-1:0] fe_d, gain_d[N_FSUB_LATENCY-1:0];
+  //wire[3:0] dark_lsb, gain_lsb;//bit bucket
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
 
@@ -99,13 +100,12 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty));
 
   pixel_coeff_fifo pixel_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
-    , .din(app_rd_data[64+:(8 * (FP_SIZE + 4))])
+    , .din(app_rd_data[96+:(4 * 2 * FP_SIZE)])
     , .wr_en(//Note: always write into FIFO when there is valid DRAM data
              app_rd_data_valid)//flow control done upstream by DRAMIfc
-    , .rd_en(fdn_val)
-    , .dout({dark, dark_lsb /* just a bitbucket */})
     , .prog_full(pixel_coeff_fifo_high), .full()
-    , .overflow(pixel_coeff_fifo_overflow), .empty(pixel_coeff_fifo_empty));
+    , .overflow(pixel_coeff_fifo_overflow)
+    , .rd_en(fdn_val), .dout({dark, gain}), .empty(pixel_coeff_fifo_empty));
 
   DN2f dn2f(.clk(pixel_clk), .a(dn)
     , .operation_nd(!xb2pixel_empty && lval && pixel_state != PIXEL_STANDBY)
@@ -117,7 +117,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         && !pixel_coeff_fifo_empty)//dark coeff from FIFO should be valid
     , .rdy(fds_val), .result(fds));
 
-  always @(posedge reset, posedge fds_val)
+  fmult fmult(.clk(pixel_clk), .a(fds), .b(gain_d[N_FSUB_LATENCY-1])
+    , .operation_nd(fds_val)
+    , .rdy(fe_val), .result(fe));
+
+  always @(posedge reset, posedge fe_val)
     if(reset) hb_ctr <= 0;
     else hb_ctr <= hb_ctr + `TRUE;
 
@@ -145,17 +149,23 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       pval_d[0] <= xb2pixel_ack;
       fval_d[0] <= fval;
       lval_d[0] <= lval;
-      for(i=1; i <= (N_DN2F_LATENCY + N_FSUB_LATENCY); i=i+1) begin
+      for(i=1; i <= (N_DN2F_LATENCY + N_FSUB_LATENCY + N_FMUL_LATENCY); i=i+1)
+      begin
         pval_d[i] <= pval_d[i-1];
         fval_d[i] <= fval_d[i-1];
         lval_d[i] <= lval_d[i-1];
       end
-      // A delay to sync up the floating point logic output with delayed pval
-      fds_val_d <= fds_val;
-      fds_d <= fds;
+      
+      // Delay to synchronize the output of the fsub with gain
+      gain_d[0] <= gain;
+      for(i=1; i < N_FSUB_LATENCY; i=i+1) gain_d[i] <= gain_d[i-1];
 
-     if(!xb2pixel_empty)
-       case(pixel_state)
+      // A delay to sync up the floating point logic output with delayed pval
+      fe_val_d <= fe_val;
+      fe_d <= fe;
+
+      if(!xb2pixel_empty)
+        case(pixel_state)
          PIXEL_STANDBY:
            if(!fval) begin
              n_row <= 0; n_col <= 0; n_frame <= 0;
@@ -286,5 +296,4 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           end
       endcase
     end
-
 endmodule

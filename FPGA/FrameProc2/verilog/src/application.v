@@ -24,9 +24,9 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty
     , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
 
-  localparam N_FRAME_SIZE = 20
+  localparam N_PIXEL_PER_CLK = 2, N_FRAME_SIZE = 20
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
-    , N_FSUB_LATENCY = 8;
+    , N_FSUB_LATENCY = 8, N_FMUL_LATENCY = 8, DN_SIZE = 12, N_DN2F_LATENCY = 6;
   localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
     , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
   reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
@@ -34,19 +34,26 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FSUB_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] n_col;//, n_col_d[N_FSUB_LATENCY-1:0];
   
-  localparam DN_SIZE = 12, N_DN2F_LATENCY = 6;
-  wire fval, lval, fdn_val, fds_val;
-  reg fds_val_d;
+  wire fval, lval;
+  wire[1:0] fdn_val, fds_val, fe_val;
+  reg[1:0] fds_val_d;
   //Data always flows (can't stop it); need to distinguish whether it is valid
   //pval (pixel valid) indicates whether this is a legitimate data received from
   //the "camera".  Note one more delay to sync up with the sampled fds_val from
   //the sequential logic
-  reg[N_DN2F_LATENCY+N_FSUB_LATENCY:0] pval_d, fval_d, lval_d, val_d;
+  reg[N_DN2F_LATENCY + N_FSUB_LATENCY + N_FMUL_LATENCY:0]
+    pval_d, fval_d, lval_d, val_d;
   reg[1:0] p2d_fval, p2d_val; // to cross from pixel to dram clock domain
-  wire[DN_SIZE-1:0] dn;
-  wire[FP_SIZE-1:0] fdn, dark, fds;
-  reg[FP_SIZE-1:0] fds_d;
-  wire[3:0] dark_lsb;//bit bucket
+  wire[DN_SIZE-1:0] dn[N_PIXEL_PER_CLK-1:0];
+  wire[FP_SIZE-1:0] fdn[N_PIXEL_PER_CLK-1:0]
+                  , dark[N_PIXEL_PER_CLK-1:0]
+                  , gain[N_PIXEL_PER_CLK-1:0]
+                  , fds[N_PIXEL_PER_CLK-1:0]
+                  , fe[N_PIXEL_PER_CLK-1:0];
+  reg[FP_SIZE-1:0] fds_d[N_PIXEL_PER_CLK-1:0]
+                 , fe_d[N_PIXEL_PER_CLK-1:0][N_FMUL_LATENCY-1:0];
+  wire[3:0] dark_lsb[N_PIXEL_PER_CLK-1:0]
+          , gain_lsb[N_PIXEL_PER_CLK-1:0];//bit bucket
 
   wire[APP_DATA_WIDTH-1:0] dram_data;
 
@@ -71,7 +78,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
   assign {fval, lval} = pixel_msg[4+:2];
-  assign dn = pixel_msg[8+:DN_SIZE];//Note: throw away the 4 MSB
+  assign {dn[1], dn[0]} = pixel_msg[8+:(2*DN_SIZE)];
   assign error = dramifc_state == DRAMIFC_ERROR
     || pixel_coeff_fifo_overflow;
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
@@ -103,20 +110,31 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , .wr_en(//Note: always write into FIFO when there is valid DRAM data
              app_rd_data_valid)//flow control done upstream by DRAMIfc
     , .rd_en(fdn_val)
-    , .dout({dark, dark_lsb /* just a bitbucket */})
+    , .dout({dark[0], dark_lsb[0], gain[0], gain_lsb[0]
+           , dark[1], dark_lsb[1], gain[1], gain_lsb[1]})
     , .prog_full(pixel_coeff_fifo_high), .full()
     , .overflow(pixel_coeff_fifo_overflow), .empty(pixel_coeff_fifo_empty));
 
-  DN2f dn2f(.clk(pixel_clk), .a(dn)
-    , .operation_nd(!xb2pixel_empty && lval && pixel_state != PIXEL_STANDBY)
-    , .rdy(fdn_val), .result(fdn));
-    
-  fsub fsub(.clk(pixel_clk), .a(fdn), .b(dark)
-    , .operation_nd(//for DS to be valid,
-        fdn_val //converted DN should be valid AND
-        && !pixel_coeff_fifo_empty)//dark coeff from FIFO should be valid
-    , .rdy(fds_val), .result(fds));
+  genvar geni;
+  generate
+    for(geni=0; geni < N_PIXEL_PER_CLK; geni=geni+1) begin
+      DN2f dn2f(.clk(pixel_clk), .a(dn[geni])
+        , .operation_nd(!xb2pixel_empty && lval && pixel_state != PIXEL_STANDBY)
+        , .rdy(fdn_val[geni]), .result(fdn[geni]));
+        
+      fsub fsub(.clk(pixel_clk), .a(fdn[geni]), .b(dark[geni])
+        , .operation_nd(//for DS to be valid,
+            fdn_val[geni]//converted DN should be valid AND
+            && !pixel_coeff_fifo_empty)//dark coeff from FIFO should be valid
+        , .rdy(fds_val[geni]), .result(fds[geni]));
 
+      fmult fmult(.clk(pixel_clk)
+        , .a(fds[geni]), .b(gain_d[geni][N_FSUB_LATENCY-1])
+        , .operation_nd(fds_val[geni])
+        , .rdy(fe_val[geni]), .result(fe[geni]));
+    end
+  endgenerate
+  
   always @(posedge reset, posedge fds_val)
     if(reset) hb_ctr <= 0;
     else hb_ctr <= hb_ctr + `TRUE;
@@ -164,7 +182,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
          PIXEL_INTRALINE:
            if(pixel_coeff_fifo_empty) pixel_state <= PIXEL_ERROR;
            else begin
-             if(lval) n_col <= n_col + `TRUE;
+             if(lval) n_col <= n_col + N_PIXEL_PER_CLK;
              else begin
                if(fval) begin
                  n_row <= n_row + 1'b1;

@@ -1,21 +1,3 @@
-##############################################################
-#
-# Xilinx Core Generator version 13.4
-# Date: Sun Sep 16 23:57:14 2012
-#
-##############################################################
-#
-#  This file contains the customisation parameters for a
-#  Xilinx CORE Generator IP GUI. It is strongly recommended
-#  that you do not manually alter this file as it may cause
-#  unexpected and unsupported behavior.
-#
-##############################################################
-#
-#  Generated from component: xilinx.com:ip:fifo_generator:8.4
-#
-##############################################################
-#
 # BEGIN Project Options
 SET addpads = false
 SET asysymbol = true
@@ -117,14 +99,14 @@ CSET fifo_implementation_wach=Common_Clock_Block_RAM
 CSET fifo_implementation_wdch=Common_Clock_Block_RAM
 CSET fifo_implementation_wrch=Common_Clock_Block_RAM
 CSET full_flags_reset_value=0
-CSET full_threshold_assert_value=11
+CSET full_threshold_assert_value=125
 CSET full_threshold_assert_value_axis=1023
 CSET full_threshold_assert_value_rach=1023
 CSET full_threshold_assert_value_rdch=1023
 CSET full_threshold_assert_value_wach=1023
 CSET full_threshold_assert_value_wdch=1023
 CSET full_threshold_assert_value_wrch=1023
-CSET full_threshold_negate_value=10
+CSET full_threshold_negate_value=124
 CSET id_width=4
 CSET inject_dbit_error=false
 CSET inject_dbit_error_axis=false
@@ -149,8 +131,8 @@ CSET input_depth_wach=16
 CSET input_depth_wdch=1024
 CSET input_depth_wrch=16
 CSET interface_type=Native
-CSET output_data_width=24
-CSET output_depth=1024
+CSET output_data_width=96
+CSET output_depth=256
 CSET overflow_flag=true
 CSET overflow_flag_axi=false
 CSET overflow_sense=Active_High
@@ -174,7 +156,7 @@ CSET rach_type=FIFO
 CSET rdch_type=FIFO
 CSET read_clock_frequency=1
 CSET read_data_count=false
-CSET read_data_count_width=10
+CSET read_data_count_width=8
 CSET register_slice_mode_axis=Fully_Registered
 CSET register_slice_mode_rach=Fully_Registered
 CSET register_slice_mode_rdch=Fully_Registered
@@ -216,4 +198,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: 72ac961f
+# CRC: c190c2b6

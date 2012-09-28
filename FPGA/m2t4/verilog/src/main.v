@@ -698,7 +698,7 @@ module main #(parameter SIMULATION = 0,
       assign xb_wr_wren = xb_wr_wren_r;
       
       initial begin
-        binf = $fopen("/data/SanityTest/reducer_coeff_0.bin", "rb");
+        binf = $fopen("reducer_coeff_0.bin", "rb");
         bus_clk_r <= `FALSE;
         xb_wr_wren_r <= `FALSE;
         sim_state <= SIM_UNINITIALIZED;
@@ -720,7 +720,7 @@ module main #(parameter SIMULATION = 0,
             if($feof(binf)) begin
               $fclose(binf);
 
-              binf = $fopen("/data/SanityTest/ds_0.bin", "rb");
+              binf = $fopen("ds_0.bin", "rb");
               // Read the first message which must be !FVAL
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
