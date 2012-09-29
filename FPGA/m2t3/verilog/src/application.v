@@ -7,7 +7,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 , input app_wdf_rdy, output reg app_wdf_wren, app_wdf_end
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
-, input bus_clk, pixel_clk
+, input bus_clk, math_clk
 , input pc_msg_empty, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
 , input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
 );
@@ -111,7 +111,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
   assign pc_msg_is_ds = pc_msg[1:0] == 0 && n_pc_dram_msg == 0;
   
-  xb2pixel xb2pixel(.wr_clk(bus_clk), .rd_clk(pixel_clk)//, .rst(rst)
+  xb2pixel xb2pixel(.wr_clk(bus_clk), .rd_clk(math_clk)//, .rst(rst)
     , .din(pc_msg_d), .wr_en(xb2pixel_wren)
     , .rd_en(xb2pixel_ack), .dout(pixel_msg)
     , .almost_full(xb2pixel_full), .full(), .empty(xb2pixel_empty));
@@ -134,7 +134,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   //NOT be valid ==> have to check the content
   //assign init_reducer[0] = !interline_fifo_empty[0] && !row_coeff_fifo_empty[0]
   //                       && new_patch_val && |reducer_avail[0];
-  //row_coeff_fifo fst_row_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+  //row_coeff_fifo fst_row_fifo(.wr_clk(dram_clk), .rd_clk(math_clk)
   //  , .din(app_rd_data[12+:ROW_REDUCER_CONFIG_SIZE])
   //  //Note: always write into FIFO when there is valid DRAM data because
   //  //flow control done upstream by DRAMIfc
@@ -145,7 +145,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   //  , .prog_full(row_coeff_fifo_high[0]), .full(row_coeff_fifo_full[0])
   //  , .overflow(row_coeff_fifo_overflow[0]), .empty(row_coeff_fifo_empty[0]));
 
-  patch_coeff_fifo patch_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+  patch_coeff_fifo patch_fifo(.wr_clk(dram_clk), .rd_clk(math_clk)
     , .din(app_rd_data[80+:(4 * (PATCH_COEFF_SIZE + 1))])
     //Note: always write into FIFO when there is valid DRAM data because
     //flow control is done upstream by DRAMIfc
@@ -178,7 +178,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       
       assign free_reducer[geni] = |reducer_done[geni];
 
-      row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+      row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(math_clk)
         , .din(app_rd_data[16+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
@@ -208,7 +208,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
 
       PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
         , .N_ROW_SIZE(log2(N_ROW_MAX)))
-        fst_row_reducer(.clk(pixel_clk), .reset(reset)
+        fst_row_reducer(.clk(math_clk), .reset(reset)
         , .available(reducer_avail[0][genj]), .init(reducer_init[0][genj])
         , .conf_row(interline_row_out[0]), .conf_col(interline_col_out[0])
         //First row starts with the running sum = 0 of course
@@ -223,7 +223,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     end//genj
 
     for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin
-      interline_fifo interline_fifo(.clk(pixel_clk)
+      interline_fifo interline_fifo(.clk(math_clk)
         , .din({interline_num_in[geni], interline_row_in[geni]
               , interline_sum_in[geni], interline_col_in[geni]})
         //When a previous row's sum is ready, move that into the interline fifo
@@ -238,7 +238,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
         PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
           , .N_ROW_SIZE(log2(N_ROW_MAX)))
-          row_reducer(.clk(pixel_clk), .reset(reset)
+          row_reducer(.clk(math_clk), .reset(reset)
           , .available(reducer_avail[geni][genj]), .init(reducer_init[geni][genj])
           , .conf_row(interline_row_out[geni])
           , .conf_col(interline_col_out[geni])
@@ -307,7 +307,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       end
     end
 
-  always @(posedge pixel_clk) begin
+  always @(posedge math_clk) begin
     if(reset) begin
       pixel_state <= PIXEL_STANDBY;
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= COEFFRD_OK;
@@ -381,7 +381,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           end
         endcase
     end
-  end //always @posedge(pixel_clk)
+  end //always @posedge(math_clk)
     
   always @(posedge dram_clk)
     if(reset) begin
