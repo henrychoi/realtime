@@ -181,7 +181,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       
       assign free_reducer[geni] = |reducer_done[geni];
 
-      row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+      row_coeff_fifo row_coeff_fifo(.clk(dram_clk)//.wr_clk(dram_clk), .rd_clk(pixel_clk)
         , .din(app_rd_data[16+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
@@ -206,7 +206,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
           , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
           , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-        fst_row_reducer(.clk(pixel_clk), .reset(reset)
+        fst_row_reducer(.clk(dram_clk), .reset(reset)
         , .available(reducer_avail[0][genj]), .init(reducer_init[0][genj])
         , .conf_row(interline_row_out[0]), .conf_col(interline_col_out[0])
         //First row starts with the running sum = 0 of course
@@ -237,7 +237,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
             , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
             , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-          row_reducer(.clk(pixel_clk), .reset(reset)
+          row_reducer(.clk(dram_clk), .reset(reset)
           , .available(reducer_avail[geni][genj]), .init(reducer_init[geni][genj])
           , .conf_row(interline_row_out[geni])
           , .conf_col(interline_col_out[geni])
