@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Sat Sep 29 05:19:57 2012
+# Date: Tue Sep 04 15:28:07 2012
 #
 ##############################################################
 #
@@ -40,9 +40,9 @@ SELECT Floating-point xilinx.com:ip:floating_point:5.0
 # END Select
 # BEGIN Parameters
 CSET a_precision_type=Custom
-CSET add_sub_value=Add
+CSET add_sub_value=Subtract
 CSET c_a_exponent_width=8
-CSET c_a_fraction_width=12
+CSET c_a_fraction_width=11
 CSET c_compare_operation=Programmable
 CSET c_has_ce=false
 CSET c_has_divide_by_zero=false
@@ -58,9 +58,9 @@ CSET c_mult_usage=No_Usage
 CSET c_optimization=Speed_Optimized
 CSET c_rate=1
 CSET c_result_exponent_width=8
-CSET c_result_fraction_width=12
+CSET c_result_fraction_width=11
 CSET c_speed=Maximum_speed
-CSET component_name=fadd
+CSET component_name=fsub
 CSET maximum_latency=true
 CSET operation_type=Add_Subtract
 CSET result_precision_type=Custom
@@ -69,4 +69,4 @@ CSET result_precision_type=Custom
 MISC pkg_timestamp=2011-10-13T13:13:05Z
 # END Extra information
 GENERATE
-# CRC: 8ca15015
+# CRC: d88f2411
