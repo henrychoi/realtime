@@ -21,7 +21,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   wire pc_msg_is_ds;
   reg pc_msg_is_ds_d, pc_msg_pending_d;
   wire[XB_SIZE-1:0] dram_msg;
-  wire[2*XB_SIZE-1:0] pixel_msg;
+  wire[4*XB_SIZE-1:0] pixel_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
   wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty
     , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
@@ -34,7 +34,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
     , PATCH_SIZE = 12, PATCH_SIZE_MAX = 16
     , N_PATCH = 1024*1024 //let's handle up to 1M
-    , N_PIXEL_PER_CLK = 2'd2
+    , N_PIXEL_PER_CLK = 3'd4
     , N_ROW_REDUCER = 8;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
@@ -100,8 +100,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
   assign {fval, lval} = pixel_msg[4+:2];
-  assign fds[0] = pixel_msg[(XB_SIZE+12)+:FP_SIZE];//Note: throw away the 4 LSB
-  assign fds[1] = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
+  assign fds[0] = pixel_msg[(3*XB_SIZE+12)+:FP_SIZE];
+  assign fds[1] = pixel_msg[(2*XB_SIZE+12)+:FP_SIZE];
+  assign fds[2] = pixel_msg[(XB_SIZE+12)+:FP_SIZE];//Note: throw away the 4 LSB
+  assign fds[3] = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
+  
   assign error = dramifc_state == DRAMIFC_ERROR
     || (pixel_state == PIXEL_ERROR);
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
@@ -181,7 +184,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
       
       assign free_reducer[geni] = |reducer_done[geni];
 
-      row_coeff_fifo row_coeff_fifo(.clk(dram_clk)//.wr_clk(dram_clk), .rd_clk(pixel_clk)
+      row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
         , .din(app_rd_data[16+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
@@ -214,6 +217,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .conf_num(interline_num_out[0]), .conf_weights(conf_weights[0])
         , .cur_row(n_row), .l_col(l_col)
         , .fds_val_in(lval_d), .fds0(fds[0]), .fds1(fds[1])
+        , .fds2(fds[2]), .fds3(fds[3])
         , .done(reducer_done[0][genj])
         , .num(reducer_num[0][genj]), .sum(reducer_sum[0][genj])
         , .matcher_row(reducer_row[0][genj])
@@ -246,6 +250,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           , .conf_weights(conf_weights[geni])
           , .cur_row(n_row), .l_col(l_col)
           , .fds_val_in(lval_d), .fds0(fds[0]), .fds1(fds[1])
+          , .fds2(fds[2]), .fds3(fds[3])
           , .done(reducer_done[geni][genj])
           , .num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])
           , .matcher_row(reducer_row[geni][genj])
