@@ -27,7 +27,7 @@ module infrastructure #
    output clk_mem,            // 2x logic clock
    output clk,                // 1x logic clock
    output clk_rd_base,        // 2x base read clock
-   //output clk_85, //simulated camera link clock
+   output math_clk,
    // Reset outputs
    output rstdiv0,            // Reset CLK and CLKDIV logic (incl I/O),
    // Phase Shift Interface
@@ -98,7 +98,7 @@ module infrastructure #
                              /* synthesis syn_maxfan = 10 */;
   wire                       rst_tmp;
   wire                       sys_rst_act_hi;
-  //wire clk_85_pll;
+  wire math_clk_pll;
 
   assign sys_rst_act_hi = RST_ACT_LOW ? ~sys_rst: sys_rst;
 
@@ -154,7 +154,7 @@ module infrastructure #
      .CLKOUT2_DUTY_CYCLE    (0.500),
      .CLKOUT2_PHASE         (0.000),
      .CLKOUT2_USE_FINE_PS   ("TRUE"),
-     .CLKOUT3_DIVIDE        (1/*14*/), //1200MHz / 14 = 85.7 MHz
+     .CLKOUT3_DIVIDE        (3), //1200MHz / 3 = 400 MHz
      .CLKOUT3_DUTY_CYCLE    (0.500),
      .CLKOUT3_PHASE         (0.000),
      .CLKOUT3_USE_FINE_PS   ("FALSE"),
@@ -184,7 +184,7 @@ module infrastructure #
        .CLKOUT1B     (),
        .CLKOUT2      (clk_rd_base),
        .CLKOUT2B     (),
-       .CLKOUT3      (/*clk_85_pll*/),
+       .CLKOUT3      (math_clk_pll),
        .CLKOUT3B     (),
        .CLKOUT4      (),
        .CLKOUT5      (),
@@ -211,7 +211,7 @@ module infrastructure #
 
   BUFG u_bufg_clk0(.O(clk_mem_bufg), .I(clk_mem_pll));
   BUFG u_bufg_clkdiv0(.O(clk_bufg), .I(clk_pll));
-  //BUFG u_bufg_85(.O(clk_85), .I(clk_85_pll));
+  BUFG u_bufg_math(.O(math_clk), .I(math_clk_pll));
 
   //***************************************************************************
   // RESET SYNCHRONIZATION DESCRIPTION:

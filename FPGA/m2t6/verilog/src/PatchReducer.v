@@ -92,7 +92,7 @@ module PatchRowReducer
           if(running_sum_valid) begin
             n_sum <= n_sum + `TRUE;
             sum <= running_sum;
-            if(n_sum == (start_col[0] ? PATCH_SIZE/2 : PATCH_SIZE/2-1))
+            if(n_sum == (start_col[0] ? 5 : 4)) //TODO: don't hard code
               state <= SUM_RDY;
           end
         SUM_RDY: state <= CONFIG_WAIT;

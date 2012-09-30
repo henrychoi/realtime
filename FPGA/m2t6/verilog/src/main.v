@@ -816,7 +816,7 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      , .pixel_clk(clk_mem) //do pixel processing at this speed
+      , .pixel_clk(clk) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
       , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)

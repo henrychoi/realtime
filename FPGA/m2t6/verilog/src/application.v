@@ -230,33 +230,6 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         : reducer_done[geni][4] ? reducer_sum[geni][4]
         : reducer_done[geni][5] ? reducer_sum[geni][5]
         : reducer_done[geni][6] ? reducer_sum[geni][6] : reducer_sum[geni][7];
-`ifdef OLDCODE
-      assign interline_num_in[geni] = reducer_done[geni][0] ? reducer_num[geni][0]
-        : reducer_done[geni][1] ? reducer_num[geni][1]
-        : reducer_done[geni][2] ? reducer_num[geni][2]
-        : reducer_done[geni][3] ? reducer_num[geni][3]
-        : reducer_done[geni][4] ? reducer_num[geni][4]
-        : reducer_done[geni][5] ? reducer_num[geni][5]
-        : reducer_done[geni][6] ? reducer_num[geni][6] : reducer_num[geni][7];
-
-      assign interline_row_in[geni] = (
-          reducer_done[geni][0] ? reducer_row[geni][0]
-        : reducer_done[geni][1] ? reducer_row[geni][1]
-        : reducer_done[geni][2] ? reducer_row[geni][2]
-        : reducer_done[geni][3] ? reducer_row[geni][3]
-        : reducer_done[geni][4] ? reducer_row[geni][4]
-        : reducer_done[geni][5] ? reducer_row[geni][5]
-        : reducer_done[geni][6] ? reducer_row[geni][6] : reducer_row[geni][7])
-        + `TRUE;
-
-      assign interline_col_in[geni] = reducer_done[geni][0] ? reducer_col[geni][0]
-        : reducer_done[geni][1] ? reducer_col[geni][1]
-        : reducer_done[geni][2] ? reducer_col[geni][2]
-        : reducer_done[geni][3] ? reducer_col[geni][3]
-        : reducer_done[geni][4] ? reducer_col[geni][4]
-        : reducer_done[geni][5] ? reducer_col[geni][5]
-        : reducer_done[geni][6] ? reducer_col[geni][6] : reducer_col[geni][7];
-`endif
     end//for geni
   endgenerate
   

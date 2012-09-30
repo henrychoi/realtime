@@ -309,7 +309,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       //.clk_85(clk_85),
+       .math_clk(math_clk),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -816,7 +816,7 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      , .pixel_clk(clk_mem) //do pixel processing at this speed
+      , .pixel_clk(math_clk) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
       , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)

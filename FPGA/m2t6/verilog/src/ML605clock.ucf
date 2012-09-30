@@ -5,3 +5,6 @@ NET clk_ref_n LOC=H9 | IOSTANDARD=LVDS_25 | DIFF_TERM=TRUE; #Default for
 NET clk_ref_p LOC=J9 | IOSTANDARD=LVDS_25 | DIFF_TERM=TRUE; # differential IO
 NET clk_ref_p TNM_NET = TNM_clk_ref;
 TIMESPEC TS_clk_ref=PERIOD TNM_clk_ref 5 ns;
+
+//NET math_clk TNM_NET = TNM_math_clk;
+//TIMESPEC TS_math_clk=PERIOD TNM_math_clk 2.5 ns; //HIGH 50 % PRIORITY 100 ;
