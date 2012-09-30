@@ -22,7 +22,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   reg pc_msg_is_ds_d, pc_msg_pending_d;
   wire[XB_SIZE-1:0] pixel_msg, dram_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
-  wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb  w2dram_empty
+  wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty
     , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
 
   localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
