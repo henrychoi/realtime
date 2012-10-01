@@ -37,19 +37,21 @@ module PatchRowReducer
   //  , .din(fds0), .wr_en(fds_valid), .full()
   //  , .rd_en(matched_ds_ack), .empty(fifo_empty), .dout(matched_fds));
 
-  fmult fmult0(.clk(clk)
-    , .operation_nd(fds_val[0]), .a(fds0), .b(weight[n_ds])
+  fmult fmult0(.clk(clk),
+    .operation_nd(fds_val[0]), .a(fds0), .b(weight[n_ds])
     , .result(weighted_fds[0]), .rdy(weighted_fds_valid[0]));
-  fmult fmult1(.clk(clk)
-    , .operation_nd(fds_val[1]), .a(fds1), .b(weight[n_ds + 1'b1])
+  fmult fmult1(.clk(clk), 
+    .operation_nd(fds_val[1]), .a(fds1), .b(weight[n_ds + 1'b1])
     , .result(weighted_fds[1]), .rdy(weighted_fds_valid[1]));
 
-  fadd add2(.clk(clk), .operation_nd(|weighted_fds_valid)
+  fadd add2(.clk(clk),
+    .operation_nd(|weighted_fds_valid)
     , .a(weighted_fds_valid[0] ? weighted_fds[0] : {FP_SIZE{`FALSE}})
     , .b(weighted_fds_valid[0] ? weighted_fds[1] : {FP_SIZE{`FALSE}})
     , .result(sum2), .rdy(sum2_valid));
 
-  fadd increment(.clk(clk), .operation_nd(sum2_valid)
+  fadd increment(.clk(clk),
+    .operation_nd(sum2_valid)
     , .a(sum), .b(sum2), .result(running_sum)
     , .rdy(running_sum_valid));
     

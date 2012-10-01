@@ -1,5 +1,5 @@
 `timescale 1ps/1ps
-module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=1)
+module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 (input reset, dram_clk, output error, output heartbeat
 , output reg app_done
 , input app_rdy, output reg app_en, output reg dram_read
@@ -29,11 +29,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
     , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
   reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
 
-  localparam N_FRAME_SIZE = 20
+  localparam FP_SIZE = 20, N_FRAME_SIZE = 20
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
-    , PATCH_SIZE = 9, PATCH_SIZE_MAX = 16
+    , PATCH_SIZE = 3 //, PATCH_SIZE_MAX = 16
     , N_PATCH = 1024*1024 //let's handle up to 1M
-    , N_ROW_REDUCER = 8;
+    , N_ROW_REDUCER = 5;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] n_col;//, n_col_d[N_FADD_LATENCY-1:0];
@@ -95,7 +95,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
   assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
   assign {fval, lval} = pixel_msg[4+:2];
-  assign fds = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
+  assign fds = pixel_msg[12+:FP_SIZE];//Throw away 4 LSB
   assign error = dramifc_state == DRAMIFC_ERROR
     || (pixel_state == PIXEL_ERROR);
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
@@ -142,17 +142,14 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
         , .overflow(row_coeff_fifo_overflow[geni])
         , .empty(row_coeff_fifo_empty[geni]));
 
+      // Note: I do not check whether the last reducer is actually available
+      // (|reducer_avail[geni]) tells me if no reducer is available at all.
       assign avail_reducer[geni] =
           reducer_avail[geni][0] ? 0
         : reducer_avail[geni][1] ? 1
         : reducer_avail[geni][2] ? 2
         : reducer_avail[geni][3] ? 3
-        : reducer_avail[geni][4] ? 4
-        : reducer_avail[geni][5] ? 5
-        : reducer_avail[geni][6] ? 6 : 7
-        // Note: I do not check whether the last reducer is actually available
-        // (|reducer_avail[geni]) tells me if no reducer is available at all.
-        ;
+        : 4;
 
       assign free_reducer[geni] = |reducer_done[geni];
 
@@ -218,40 +215,12 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1, FP_SIZE=
           , .start_col(reducer_col[geni][genj]));
       end//for genj
         
-      assign interline_sum_in[geni] = reducer_done[geni][0] ? reducer_sum[geni][0]
+      assign interline_sum_in[geni]
+        = reducer_done[geni][0] ? reducer_sum[geni][0]
         : reducer_done[geni][1] ? reducer_sum[geni][1]
         : reducer_done[geni][2] ? reducer_sum[geni][2]
         : reducer_done[geni][3] ? reducer_sum[geni][3]
-        : reducer_done[geni][4] ? reducer_sum[geni][4]
-        : reducer_done[geni][5] ? reducer_sum[geni][5]
-        : reducer_done[geni][6] ? reducer_sum[geni][6] : reducer_sum[geni][7];
-`ifdef OLDCODE
-      assign interline_num_in[geni] = reducer_done[geni][0] ? reducer_num[geni][0]
-        : reducer_done[geni][1] ? reducer_num[geni][1]
-        : reducer_done[geni][2] ? reducer_num[geni][2]
-        : reducer_done[geni][3] ? reducer_num[geni][3]
-        : reducer_done[geni][4] ? reducer_num[geni][4]
-        : reducer_done[geni][5] ? reducer_num[geni][5]
-        : reducer_done[geni][6] ? reducer_num[geni][6] : reducer_num[geni][7];
-
-      assign interline_row_in[geni] = (
-          reducer_done[geni][0] ? reducer_row[geni][0]
-        : reducer_done[geni][1] ? reducer_row[geni][1]
-        : reducer_done[geni][2] ? reducer_row[geni][2]
-        : reducer_done[geni][3] ? reducer_row[geni][3]
-        : reducer_done[geni][4] ? reducer_row[geni][4]
-        : reducer_done[geni][5] ? reducer_row[geni][5]
-        : reducer_done[geni][6] ? reducer_row[geni][6] : reducer_row[geni][7])
-        + `TRUE;
-
-      assign interline_col_in[geni] = reducer_done[geni][0] ? reducer_col[geni][0]
-        : reducer_done[geni][1] ? reducer_col[geni][1]
-        : reducer_done[geni][2] ? reducer_col[geni][2]
-        : reducer_done[geni][3] ? reducer_col[geni][3]
-        : reducer_done[geni][4] ? reducer_col[geni][4]
-        : reducer_done[geni][5] ? reducer_col[geni][5]
-        : reducer_done[geni][6] ? reducer_col[geni][6] : reducer_col[geni][7];
-`endif
+        :                         reducer_sum[geni][4];
     end//for geni
   endgenerate
   

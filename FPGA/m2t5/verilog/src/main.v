@@ -261,7 +261,7 @@ module main #(parameter SIMULATION = 0,
   //assign sys_clk = 1'b0; 
   //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
   wire clk_200;
-  wire clk_120;
+  wire math_clk;
 
   iodelay_ctrl #
     (
@@ -309,7 +309,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       .clk_120(clk_120),
+       .math_clk(math_clk),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -807,12 +807,6 @@ module main #(parameter SIMULATION = 0,
 
   assign app_cmd[2:1] = 2'b0;
   
-  reg[1:0] clk_ctr;
-  always @(posedge clk, posedge rst) begin
-    if(rst) clk_ctr <= 0;
-    else clk_ctr <= clk_ctr + `TRUE;
-  end
-  
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
     , .FP_SIZE(FP_SIZE), .XB_SIZE(XB_SIZE))
     app(//dram signals
@@ -822,7 +816,7 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      , .pixel_clk(clk_ctr[1]) //do pixel processing at this speed
+      , .pixel_clk(math_clk) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
       , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)

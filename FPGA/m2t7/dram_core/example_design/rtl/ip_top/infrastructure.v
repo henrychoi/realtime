@@ -27,7 +27,7 @@ module infrastructure #
    output clk_mem,            // 2x logic clock
    output clk,                // 1x logic clock
    output clk_rd_base,        // 2x base read clock
-   output math_clk,
+   output math_clk, //to drive the math clock
    // Reset outputs
    output rstdiv0,            // Reset CLK and CLKDIV logic (incl I/O),
    // Phase Shift Interface
@@ -92,7 +92,6 @@ module infrastructure #
   wire                       clk_mem_pll;
   wire                       clk_pll;
   wire                       clkfbout_pll;
-  wire                       pll_lock
                              /* synthesis syn_maxfan = 10 */;
   reg [RST_DIV_SYNC_NUM-1:0] rstdiv0_sync_r
                              /* synthesis syn_maxfan = 10 */;

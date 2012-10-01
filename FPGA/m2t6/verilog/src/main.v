@@ -670,7 +670,6 @@ module main #(parameter SIMULATION = 0,
    , pc_msg
    , fpga_msg;          //app -> xb_rd_fifo
 
-  localparam FP_SIZE = 20;
   generate
     if(SIMULATION == 1) begin: simulate_xb
       integer binf, idx, rc;
@@ -808,7 +807,7 @@ module main #(parameter SIMULATION = 0,
   assign app_cmd[2:1] = 2'b0;
   
   application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
-    , .FP_SIZE(FP_SIZE), .XB_SIZE(XB_SIZE))
+    , .XB_SIZE(XB_SIZE))
     app(//dram signals
       .dram_clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)
