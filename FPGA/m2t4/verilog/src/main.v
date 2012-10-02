@@ -261,7 +261,7 @@ module main #(parameter SIMULATION = 0,
   //assign sys_clk = 1'b0; 
   //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
   wire clk_200;
-  wire clk_120;
+  //wire clk_120;
 
   iodelay_ctrl #
     (
@@ -309,7 +309,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       .clk_120(clk_120),
+       //.clk_120(clk_120),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -670,7 +670,6 @@ module main #(parameter SIMULATION = 0,
    , pc_msg
    , fpga_msg;          //app -> xb_rd_fifo
 
-  localparam FP_SIZE = 20;
   generate
     if(SIMULATION == 1) begin: simulate_xb
       integer binf, idx, rc;
@@ -807,8 +806,7 @@ module main #(parameter SIMULATION = 0,
 
   assign app_cmd[2:1] = 2'b0;
   
-  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
-    , .FP_SIZE(FP_SIZE), .XB_SIZE(XB_SIZE))
+  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH), .XB_SIZE(XB_SIZE))
     app(//dram signals
       .dram_clk(clk), .reset(rst)
       , .error(error), .heartbeat(heartbeat)
@@ -816,7 +814,6 @@ module main #(parameter SIMULATION = 0,
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      , .pixel_clk(clk) //do pixel processing at this speed
       //xillybus signals
       , .bus_clk(bus_clk)
       , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)

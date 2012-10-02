@@ -3,8 +3,8 @@ module PatchRowReducer
 , N_PIXEL_PER_CLK=1)
 (input reset, clk, init, fds_val_in//, sum_ack
 , input[log2(N_PATCH)-1:0] conf_num, output reg[log2(N_PATCH)-1:0] num
-, input[N_ROW_SIZE-1:0] cur_row, conf_row, output reg[N_ROW_SIZE-1:0] matcher_row
-, input[N_COL_SIZE-1:0] l_col, conf_col, output reg[N_COL_SIZE-1:0] start_col
+, input[N_ROW_SIZE-1:0] cur_row, conf_row//, output reg[N_ROW_SIZE-1:0] matcher_row
+, input[N_COL_SIZE-1:0] l_col, conf_col//, output reg[N_COL_SIZE-1:0] start_col
 , input[FP_SIZE-1:0] conf_sum, fds0, fds1, output reg[FP_SIZE-1:0] sum
 , input[(PATCH_SIZE * FP_SIZE)-1:0] conf_weights
 , output available, done);
@@ -15,8 +15,8 @@ module PatchRowReducer
     , SUM_RDY = 4, N_STATE = 5;
   reg[log2(N_STATE)-1:0] state;
   wire [N_COL_SIZE-1:0] r_col;
-  //reg[N_COL_SIZE-1:0] start_col;
-  //reg[N_ROW_SIZE-1:0] matcher_row;
+  reg[N_COL_SIZE-1:0] start_col;
+  reg[N_ROW_SIZE-1:0] matcher_row;
   wire fromWAITtoMATCHED, fifo_empty, sum2_valid, running_sum_valid;
   wire[N_PIXEL_PER_CLK-1:0] fds_val, weighted_fds_valid;
   wire[FP_SIZE-1:0] weighted_fds[N_PIXEL_PER_CLK-1:0], sum2, running_sum;
@@ -67,12 +67,13 @@ module PatchRowReducer
       case(state)
         CONFIG_WAIT:
           if(init) begin
+            num <= conf_num;
             start_col <= conf_col;
             matcher_row <= conf_row;
             for(i=0; i < PATCH_SIZE; i=i+1)
               weight[i] <= conf_weights[i*FP_SIZE+:FP_SIZE];
             n_sum <= 0;
-            sum <= 0;
+            sum <= conf_sum;
             n_ds <= 0;
             state <= MATCH_WAIT;
           end

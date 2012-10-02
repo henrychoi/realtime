@@ -1,6 +1,89 @@
+//*****************************************************************************
+// (c) Copyright 2009 - 2010 Xilinx, Inc. All rights reserved.
+//
+// This file contains confidential and proprietary information
+// of Xilinx, Inc. and is protected under U.S. and
+// international copyright and other intellectual property
+// laws.
+//
+// DISCLAIMER
+// This disclaimer is not a license and does not grant any
+// rights to the materials distributed herewith. Except as
+// otherwise provided in a valid license issued to you by
+// Xilinx, and to the maximum extent permitted by applicable
+// law: (1) THESE MATERIALS ARE MADE AVAILABLE "AS IS" AND
+// WITH ALL FAULTS, AND XILINX HEREBY DISCLAIMS ALL WARRANTIES
+// AND CONDITIONS, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+// BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, NON-
+// INFRINGEMENT, OR FITNESS FOR ANY PARTICULAR PURPOSE; and
+// (2) Xilinx shall not be liable (whether in contract or tort,
+// including negligence, or under any other theory of
+// liability) for any loss or damage of any kind or nature
+// related to, arising under or in connection with these
+// materials, including for any direct, or any indirect,
+// special, incidental, or consequential loss or damage
+// (including loss of data, profits, goodwill, or any type of
+// loss or damage suffered as a result of any action brought
+// by a third party) even if such damage or loss was
+// reasonably foreseeable or Xilinx had been advised of the
+// possibility of the same.
+//
+// CRITICAL APPLICATIONS
+// Xilinx products are not designed or intended to be fail-
+// safe, or for use in any application requiring fail-safe
+// performance, such as life-support or safety devices or
+// systems, Class III medical devices, nuclear facilities,
+// applications related to the deployment of airbags, or any
+// other applications that could lead to death, personal
+// injury, or severe property or environmental damage
+// (individually and collectively, "Critical
+// Applications"). Customer assumes the sole risk and
+// liability of any use of Xilinx products in Critical
+// Applications, subject only to applicable laws and
+// regulations governing limitations on product liability.
+//
+// THIS COPYRIGHT NOTICE AND DISCLAIMER MUST BE RETAINED AS
+// PART OF THIS FILE AT ALL TIMES.
+//
+//*****************************************************************************
+//   ____  ____
+//  /   /\/   /
+// /___/  \  /    Vendor             : Xilinx
+// \   \   \/     Version            : 3.8
+//  \   \         Application        : MIG
+//  /   /         Filename           : example_top.v
+// /___/   /\     Date Last Modified : $Date: 2011/05/27 15:51:20 $
+// \   \  /  \    Date Created       : Mon Jun 23 2008
+//  \___\/\___\
+//
+// Device           : Virtex-6
+// Design Name      : DDR3 SDRAM
+// Purpose          :
+//                   Top-level  module. This module serves both as an example,
+//                   and allows the user to synthesize a self-contained design,
+//                   which they can use to test their hardware. In addition to
+//                   the memory controller.
+//                   instantiates:
+//                     1. Clock generation/distribution, reset logic
+//                     2. IDELAY control block
+//                     3. Synthesizable testbench - used to model user's backend
+//                        logic
+// Reference        :
+// Revision History :  Target ML605 
+//    1. Add output ports for "pll_lock" and "heartbeat" LEDS
+//    2. Comment out "sda" and "scl" ports and logic.
+//    3. Add "pll_lock" port on module "infrastructure.v" connect to wire "locked"
+//    4. Define active high system reset switch "RST_ACTIVE_LOW = 0"
+//    5. Modify MMCM parameters to generate 400MHz clock using 200MHz input clock (versus default 400MHz)
+//    6. Modify "iodelay_ctrl" module to provide clk_200 output to "infrastructure" MMCM CLKIN
+//    7. Add counter and output assignment for "heartbeat" 
+//    8. Add VIO control inputs to permit traffic generator update from VIO console
+//*****************************************************************************
+
 `timescale 1ps/1ps
 
-module main #(parameter SIMULATION = 0,
+module example_top #
+  (
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= 533 MHz,
                                        //   = 300 when design frequency > 533 MHz.
@@ -117,9 +200,39 @@ module main #(parameter SIMULATION = 0,
    parameter ECC                     = "OFF",
    parameter ECC_TEST                = "OFF",
    parameter TCQ                     = 100,
-   parameter RST_ACT_LOW             = 0, // ML605 reset is active high
-   parameter INPUT_CLK_TYPE          = "DIFFERENTIAL")
-  (input clk_ref_p, clk_ref_n,
+   // Traffic Gen related parameters
+   parameter EYE_TEST                = "FALSE",
+                                       // set EYE_TEST = "TRUE" to probe memory
+                                       // signals. Traffic Generator will only
+                                       // write to one single location and no
+                                       // read transactions will be generated.
+   parameter DATA_PATTERN            = "DGEN_ALL",
+                                        // "DGEN_HAMMER", "DGEN_WALKING1",
+                                        // "DGEN_WALKING0","DGEN_ADDR","
+                                        // "DGEN_NEIGHBOR","DGEN_PRBS","DGEN_ALL"
+   parameter CMD_PATTERN             = "CGEN_ALL",
+                                        // "CGEN_PRBS","CGEN_FIXED","CGEN_BRAM",
+                                        // "CGEN_SEQUENTIAL", "CGEN_ALL"
+
+   parameter BEGIN_ADDRESS           = 32'h00000000,
+   parameter PRBS_SADDR_MASK_POS     = 32'h00000000,
+   parameter END_ADDRESS             = 32'h00ffffff,
+   parameter PRBS_EADDR_MASK_POS     = 32'hff000000,
+   parameter SEL_VICTIM_LINE         = 11,
+   parameter RST_ACT_LOW             = 0,              // ML605 reset active high
+                                       // =1 for active low reset,
+                                       // =0 for active high.
+   parameter INPUT_CLK_TYPE          = "DIFFERENTIAL",
+                                       // input clock type DIFFERENTIAL or SINGLE_ENDED
+   parameter STARVE_LIMIT            = 2
+                                       // # = 2,3,4.
+   )
+  (
+
+//  input                             sys_clk_p,    //differential system clocks
+//  input                             sys_clk_n,
+  input                             clk_ref_p,     //differential iodelayctrl clk
+  input                             clk_ref_n,
    inout  [DQ_WIDTH-1:0]                ddr3_dq,
    output [ROW_WIDTH-1:0]               ddr3_addr,
    output [BANK_WIDTH-1:0]              ddr3_ba,
@@ -139,12 +252,19 @@ module main #(parameter SIMULATION = 0,
  //  output                               scl,      // ML605 
   output[7:0] GPIO_LED,
    input                                sys_rst   // System reset
-  , input PCIE_PERST_B_LS //The host's master bus reset
-  , input PCIE_REFCLK_N, PCIE_REFCLK_P
-  , input[3:0] PCIE_RX_N, PCIE_RX_P
-  , output[3:0] PCIE_TX_N, PCIE_TX_P
    );
-`include "function.v"
+
+  function integer STR_TO_INT;
+    input [7:0] in;
+    begin
+      if(in == "8")
+        STR_TO_INT = 8;
+      else if(in == "4")
+        STR_TO_INT = 4;
+      else
+        STR_TO_INT = 0;
+    end
+  endfunction
 
   localparam SYSCLK_PERIOD          = tCK * nCK_PER_CLK;
 
@@ -155,9 +275,12 @@ module main #(parameter SIMULATION = 0,
   localparam APP_MASK_WIDTH      = APP_DATA_WIDTH / 8;
 
   wire error, phy_init_done, pll_lock, heartbeat;
-  //wire clk_ref, sys_clk;
+
+  wire                                clk_ref;
+  wire                                sys_clk;
   wire                                mmcm_clk;
   wire                                iodelay_ctrl_rdy;
+      
 //  (* KEEP = "TRUE" *) wire            sda_i;
 //  (* KEEP = "TRUE" *) wire            scl_i;
   wire                                rst;
@@ -172,12 +295,40 @@ module main #(parameter SIMULATION = 0,
   wire                                app_hi_pri;
   wire [APP_MASK_WIDTH-1:0]           app_wdf_mask;
   wire [3:0]                          app_ecc_multiple_err_i;
+  wire [47:0]                         traffic_wr_data_counts;
+  wire [47:0]                         traffic_rd_data_counts;
   wire [ADDR_WIDTH-1:0]               app_addr;
   wire [2:0]                          app_cmd;
+  wire                                app_en;
+  wire                                app_sz;
+  wire                                app_rdy;
   wire [APP_DATA_WIDTH-1:0]           app_rd_data;
+  wire                                app_rd_data_valid;
   wire [APP_DATA_WIDTH-1:0]           app_wdf_data;
-  wire app_rd_data_valid, app_en, app_sz, app_rdy
-     , app_wdf_rdy, app_wdf_wren, app_wdf_end;
+  wire                                app_wdf_end;
+  wire                                app_wdf_rdy;
+  wire                                app_wdf_wren;
+  wire                                modify_enable_sel;
+  wire [2:0]                          data_mode_manual_sel;
+  wire [2:0]                          addr_mode_manual_sel;
+  wire                                t_gen_run_traffic;
+  wire  [3:0]                         t_gen_instr_mode;
+  wire [31:0]                         t_gen_start_addr;
+  wire [31:0]                         t_gen_end_addr;
+  wire [31:0]                         t_gen_cmd_seed;
+  wire [31:0]                         t_gen_data_seed;
+  wire                                t_gen_load_seed;
+  wire [2:0]                          t_gen_addr_mode;
+  wire [1:0]                          t_gen_bl_mode;
+  wire [3:0]                          t_gen_data_mode;
+  wire                                t_gen_mode_load;
+  wire [5:0]                          t_gen_fixed_bl;
+  wire [2:0]                          t_gen_fixed_instr;
+  wire [31:0]                         t_gen_fixed_addr;
+  wire                                manual_clear_error;
+  wire [6:0]                          tg_wr_fifo_counts;
+  wire [6:0]                          tg_rd_fifo_counts;
+
 
   wire [5*DQS_WIDTH-1:0]              dbg_cpt_first_edge_cnt;
   wire [5*DQS_WIDTH-1:0]              dbg_cpt_second_edge_cnt;
@@ -253,15 +404,40 @@ module main #(parameter SIMULATION = 0,
   wire [31:0]                         ddr3_cs4_sync_out;
 
   //***************************************************************************
-  assign GPIO_LED[7:4] = {error, phy_init_done, app_rdy, heartbeat};
+  assign GPIO_LED[7:0] = {error, phy_init_done, pll_lock, heartbeat, 4'b0};
   assign app_hi_pri = 1'b0;
   assign app_wdf_mask = {APP_MASK_WIDTH{1'b0}};
 
-  //assign clk_ref = 1'b0;
-  //assign sys_clk = 1'b0; 
-  //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
-  wire clk_200;
-  //wire math_clk;
+// ML605 comment out the following signals to enable traffic generator control from VIO console:
+// assign manual_clear_error     = 1'b0;
+// assign modify_enable_sel      = 1'b1;
+// assign data_mode_manual_sel   = 3'b010; // ADDR_DATA
+// assign addr_mode_manual_sel   = 3'b011; //SEQUENTIAL_ADDR
+
+  wire  locked; // ML605
+  assign pll_lock = locked;  // ML605 
+
+/*  MUXCY scl_inst
+    (
+     .O  (scl),
+     .CI (scl_i),
+     .DI (1'b0),
+     .S  (1'b1)
+     );
+
+  MUXCY sda_inst
+    (
+     .O  (sda),
+     .CI (sda_i),
+     .DI (1'b0),
+     .S  (1'b1)
+     );
+*/
+  assign clk_ref = 1'b0;
+//  assign sys_clk = 1'b0; 
+// ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
+  wire clk_200;    
+
 
   iodelay_ctrl #
     (
@@ -274,12 +450,13 @@ module main #(parameter SIMULATION = 0,
       (
        .clk_ref_p        (clk_ref_p),  // ML605 200MHz EPSON oscillator
        .clk_ref_n        (clk_ref_n),
-       .clk_ref          (1'b0),
+       .clk_ref          (clk_ref),
        .sys_rst          (sys_rst),
        .clk_200          (clk_200),    // ML605 200MHz clock from BUFG to MMCM CLKIN1
        .iodelay_ctrl_rdy (iodelay_ctrl_rdy)
        );
 /* ML605 comment out "clk_ibuf" module. MIG default requires 2 inputs clocks.
+
   clk_ibuf #
     (
      .INPUT_CLK_TYPE (INPUT_CLK_TYPE)
@@ -309,10 +486,9 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       //.math_clk(math_clk),
-       .pll_lock         (pll_lock), // ML605 GPIO LED output port
+       .pll_lock         (locked),     // ML605 GPIO LED output port
        .rstdiv0          (rst),
-       .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
+       .mmcm_clk         (clk_200),    // ML605 single input clock 200MHz from "iodelay_ctrl"
        .sys_rst          (sys_rst),
        .iodelay_ctrl_rdy (iodelay_ctrl_rdy),
        .PSDONE           (pd_PSDONE),
@@ -446,6 +622,122 @@ module main #(parameter SIMULATION = 0,
    .dbg_dq_tap_cnt                   (dbg_dq_tap_cnt),
    .dbg_rddata                       (dbg_rddata)
    );
+
+
+  // Traffic Gen Modules
+  init_mem_pattern_ctr #
+    (
+     .FAMILY        ("VIRTEX6"),
+     .MEM_BURST_LEN (BURST_LENGTH),
+     .BEGIN_ADDRESS (BEGIN_ADDRESS),
+     .END_ADDRESS   (END_ADDRESS),
+     .DWIDTH        (APP_DATA_WIDTH),
+     .ADDR_WIDTH    (ADDR_WIDTH),
+     .EYE_TEST      (EYE_TEST)
+     )
+    init_mem0
+      (
+       .clk_i                (clk),
+       .rst_i                (rst),
+       .mcb_cmd_en_i         (app_en),
+       .mcb_cmd_instr_i      (app_cmd[2:0]),
+       .mcb_cmd_addr_i       (app_addr),
+       .mcb_cmd_bl_i         (6'b001000),
+       .mcb_init_done_i      (phy_init_done),
+       .cmp_error            (error),
+       .run_traffic_o        (t_gen_run_traffic),
+       .start_addr_o         (t_gen_start_addr),
+       .end_addr_o           (t_gen_end_addr),
+       .cmd_seed_o           (t_gen_cmd_seed),
+       .data_seed_o          (t_gen_data_seed),
+       .load_seed_o          (t_gen_load_seed),
+       .addr_mode_o          (t_gen_addr_mode),
+       .instr_mode_o         (t_gen_instr_mode),
+       .bl_mode_o            (t_gen_bl_mode),
+       .data_mode_o          (t_gen_data_mode),
+       .mode_load_o          (t_gen_mode_load),
+       .fixed_bl_o           (t_gen_fixed_bl),
+       .fixed_instr_o        (t_gen_fixed_instr),
+       .fixed_addr_o         (t_gen_fixed_addr),
+       .mcb_wr_en_i          (app_wdf_wren),
+       .vio_modify_enable    (modify_enable_sel),
+       .vio_data_mode_value  (data_mode_manual_sel),
+       .vio_addr_mode_value  (addr_mode_manual_sel),
+       .vio_bl_mode_value    (2'b01),
+       .vio_fixed_bl_value   (6'b000010)
+       );
+
+  mcb_traffic_gen #
+    (
+     .FAMILY              ("VIRTEX6"),
+     .MEM_BURST_LEN       (BURST_LENGTH),
+     .PORT_MODE           ("BI_MODE"),
+     .DATA_PATTERN        (DATA_PATTERN),
+     .CMD_PATTERN         (CMD_PATTERN),
+     .ADDR_WIDTH          (ADDR_WIDTH),
+     .MEM_COL_WIDTH       (COL_WIDTH),
+     .NUM_DQ_PINS         (PAYLOAD_WIDTH),
+     .SEL_VICTIM_LINE     (SEL_VICTIM_LINE),
+     .DWIDTH              (APP_DATA_WIDTH),
+     .DQ_ERROR_WIDTH      (PAYLOAD_WIDTH/8),
+     .PRBS_SADDR_MASK_POS (PRBS_SADDR_MASK_POS),
+     .PRBS_EADDR_MASK_POS (PRBS_EADDR_MASK_POS),
+     .PRBS_SADDR          (BEGIN_ADDRESS),
+     .PRBS_EADDR          (END_ADDRESS),
+     .EYE_TEST            (EYE_TEST)
+     )
+    m_traffic_gen
+      (
+       .clk_i              (clk),
+       .rst_i              (rst),
+       .run_traffic_i      (t_gen_run_traffic),
+       .manual_clear_error (manual_clear_error),
+       .start_addr_i       (t_gen_start_addr),
+       .end_addr_i         (t_gen_end_addr),
+       .cmd_seed_i         (t_gen_cmd_seed),
+       .data_seed_i        (t_gen_data_seed),
+       .load_seed_i        (t_gen_load_seed),
+       .addr_mode_i        (t_gen_addr_mode),
+       .instr_mode_i       (t_gen_instr_mode),
+       .bl_mode_i          (t_gen_bl_mode),
+       .data_mode_i        (t_gen_data_mode),
+       .mode_load_i        (t_gen_mode_load),
+       .fixed_bl_i         (t_gen_fixed_bl),
+       .fixed_instr_i      (t_gen_fixed_instr),
+       .fixed_addr_i       (t_gen_fixed_addr),
+       .bram_cmd_i         (39'b0),
+       .bram_valid_i       (1'b0),
+       .bram_rdy_o         (),
+       .mcb_cmd_en_o       (app_en),
+       .mcb_cmd_instr_o    (app_cmd[2:0]),
+       .mcb_cmd_addr_o     (app_addr),
+       .mcb_cmd_bl_o       (),
+       .mcb_cmd_full_i     (~app_rdy),
+       .mcb_wr_en_o        (app_wdf_wren),
+       .mcb_wr_data_o      (app_wdf_data[APP_DATA_WIDTH-1:0]),
+       .mcb_wr_full_i      (~app_wdf_rdy),
+       .mcb_wr_data_end_o  (app_wdf_end),
+       .mcb_wr_fifo_counts (tg_wr_fifo_counts),
+       .mcb_wr_mask_o      (),
+       .mcb_rd_en_o        (tg_rd_en),
+       .mcb_rd_data_i      (app_rd_data[APP_DATA_WIDTH-1:0]),
+       .mcb_rd_empty_i     (~app_rd_data_valid),
+       .mcb_rd_fifo_counts (tg_rd_fifo_counts),
+       .counts_rst         (rst),
+       .wr_data_counts     (),
+       .rd_data_counts     (),
+       .cmp_data           (),
+       .cmp_error          (),
+       .cmp_data_valid     (),
+       .error              (error),
+       .error_status       (),
+       .mem_rd_data        (),
+       .fixed_data_i       ({APP_DATA_WIDTH{1'b0}}),
+       .dq_error_bytelane_cmp(),
+       .cumlative_dq_lane_error()
+       );
+
+
 
   // If debug port is not enabled, then make certain control input
   // to Debug Port are disabled
@@ -597,6 +889,7 @@ module main #(parameter SIMULATION = 0,
       assign dbg_inc_dec_sel        = ddr3_cs4_sync_out[DQS_CNT_WIDTH+7:8];
 
 // ML605 add assignments to control traffic generator function from VIO console:
+
       assign manual_clear_error     = ddr3_cs4_sync_out[24];     // ML605 debug
       assign modify_enable_sel      = ddr3_cs4_sync_out[25];     // ML605 debug      
       assign addr_mode_manual_sel   = ddr3_cs4_sync_out[28:26];  // ML605 debug
@@ -646,182 +939,17 @@ module main #(parameter SIMULATION = 0,
     end
   endgenerate
 
-  wire app_done;
+// Add ML605 heartbeat counter and LED assignments
+  reg   [28:0] led_counter;
 
-  // Xillybus signals
-  localparam XB_SIZE = 32;
-  wire bus_clk, quiesce
-   , xb_rd_rden         //xb_rd_fifo -> xillybus
-   , xb_rd_empty        //xb_rd_fifo -> xillybus
-   , xb_rd_open         //xillybus -> xb_rd_fifo
-   , fpga_msg_valid     //app -> xb_rd_fifo
-   , fpga_msg_full      //xb_rd_fifo -> app
-   , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
-   , pc_msg_ack         // app -> xb_wr_fifo
-   , xb_wr_wren         // xillybus -> xb_wr_fifo
-   , xb_wr_full         // xb_wr_fifo -> xillybus
-   , xb_wr_open         // xillybus -> xb_wr_fifo
-   , xb_loop_rden       // xillybus -> xb_loop_fifo
-   , xb_loop_empty      // xb_loop_fifo -> xillybus
-   , xb_loop_full;      // xb_loop_fifo -> xillybus
-  wire[XB_SIZE-1:0] xb_rd_data //xb_rd_fifo -> xillybus
-   , xb_loop_data       // xb_loopback_fifo -> xillybus
-   , xb_wr_data         // xillybus -> xb_wr_fifo
-   , pc_msg
-   , fpga_msg;          //app -> xb_rd_fifo
+always @( posedge clk )
+  begin
+    if ( rst )
+      led_counter <= 0;
+    else
+      led_counter <= led_counter + 1;
+  end
 
-  generate
-    if(SIMULATION == 1) begin: simulate_xb
-      integer binf, idx, rc;
-      reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
-      reg[7:0] coeff_byte;
-      
-      localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
-      reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
-      reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
-      localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
-        , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
-      reg[log2(N_SIM_STATE)-1:0] sim_state;
-      
-      xb_wr_bram_fifo xb_wr_bram_fifo(.clk(bus_clk)
-        //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren), .full()
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .almost_full(xb_wr_full), .empty(pc_msg_empty));
-
-      always #4000 bus_clk_r = ~bus_clk_r;
-      assign bus_clk = bus_clk_r;
-      //assign pc_msg = pc_msg_r;
-      //assign pc_msg_empty = pc_msg_empty_r;
-      assign xb_wr_data = xb_wr_data_r;
-      assign xb_wr_wren = xb_wr_wren_r;
-      
-      initial begin
-        binf = $fopen("/data/SanityTest/reducer_coeff_0.bin", "rb");
-        bus_clk_r <= `FALSE;
-        xb_wr_wren_r <= `FALSE;
-        sim_state <= SIM_UNINITIALIZED;
-      end
-      
-      always @(posedge bus_clk) begin
-        case(sim_state)
-          SIM_UNINITIALIZED:
-            if(rst) xb_wr_wren_r <= `FALSE;
-            else begin
-              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                rc = $fread(coeff_byte, binf);
-                xb_wr_data_r[idx+:8] <= coeff_byte;
-              end
-              xb_wr_wren_r <= `TRUE;
-              sim_state <= SIM_READ_COEFF;
-            end
-          SIM_READ_COEFF:
-            if($feof(binf)) begin
-              $fclose(binf);
-
-              binf = $fopen("/data/SanityTest/ds_0.bin", "rb");
-              // Read the first message which must be !FVAL
-              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                rc = $fread(coeff_byte, binf);
-                xb_wr_data_r[idx+:8] <= coeff_byte;
-              end
-              xb_wr_wren_r <= `FALSE;
-              coeff_sync_ctr <= 0;
-              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= coeff_byte;
-                end
-                xb_wr_wren_r <= `TRUE;
-              end
-          SIM_DN_WAIT: begin
-            xb_wr_wren_r <= `FALSE;
-            //Doesn't have to be exact; just sufficient
-            if(coeff_sync_ctr == N_COEFF_SYNC)
-              sim_state <= SIM_DN_PLAY;
-            coeff_sync_ctr <= coeff_sync_ctr + `TRUE;
-          end
-          SIM_DN_PLAY:
-            if($feof(binf)) begin
-              xb_wr_wren_r <= `FALSE;
-              $fclose(binf);
-              sim_state <= SIM_DONE;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= coeff_byte;
-                end
-                xb_wr_wren_r <= `TRUE;
-              end
-          default: xb_wr_wren_r <= `FALSE;
-        endcase
-      end //always
-      
-    end else begin: instantiate_xb
-        
-      xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
-        , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
-        , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
-        , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
-        , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
-        , .bus_clk(bus_clk), .quiesce(quiesce)
-
-        , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
-        , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
-        , .user_r_rd_eof((pc_msg_pending && (pc_msg == ~0) && xb_rd_empty)
-                         || app_done)
-                         
-        , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full)
-        , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
-        
-        , .user_r_rd_loop_rden(xb_loop_rden)
-        , .user_r_rd_loop_empty(xb_loop_empty)
-        , .user_r_rd_loop_data(xb_loop_data)
-        , .user_r_rd_loop_open(xb_loop_open)
-        , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
-        );
-
-      xb_wr_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren)
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .full(xb_wr_full), .empty(pc_msg_empty));
-
-      // Data from dram lock clock domain to PCIe domain
-      xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
-        , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
-        , .rd_en(xb_rd_rden), .dout(xb_rd_data)
-        , .full(fpga_msg_full), .empty(xb_rd_empty));
-
-      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk), .rst(reset)
-        , .din(pc_msg), .wr_en(pc_msg_ack)
-        , .rd_en(xb_loop_rden), .dout(xb_loop_data)
-        , .full(xb_loop_full), .empty(xb_loop_empty));
-    end
-  endgenerate
-
-  assign app_cmd[2:1] = 2'b0;
-  
-  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
-    , .XB_SIZE(XB_SIZE))
-    app(//dram signals
-      .dram_clk(clk), .reset(rst)
-      , .error(error), .heartbeat(heartbeat)
-      , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0]), .app_addr(app_addr)
-      , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
-      , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
-      , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
-      //xillybus signals
-      , .bus_clk(bus_clk)
-      , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)
-      , .pc_msg(pc_msg)
-      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
-      , .fpga_msg(fpga_msg)
-      , .app_done(app_done)
-      );
+assign heartbeat = led_counter[27];
 
 endmodule

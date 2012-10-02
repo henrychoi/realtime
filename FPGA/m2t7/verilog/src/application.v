@@ -31,7 +31,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 
   localparam FP_SIZE = 20, N_FRAME_SIZE = 20
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
-    , PATCH_SIZE = 3 //, PATCH_SIZE_MAX = 16
+    , PATCH_SIZE = 4 //, PATCH_SIZE_MAX = 16
     , N_PATCH = 1024*1024 //let's handle up to 1M
     , N_ROW_REDUCER = 5;
   reg[N_FRAME_SIZE-1:0] n_frame;
@@ -47,11 +47,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   wire[FP_SIZE-1:0] interline_sum_in[PATCH_SIZE-1:1]
                   , interline_sum_out[PATCH_SIZE-1:1]
                   , reducer_sum[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
-  wire[log2(N_PATCH)-1:0] coeff_patch_num[PATCH_SIZE-1:0]
+  wire[log2(N_PATCH)-1:0] conf_num[PATCH_SIZE-1:0]
                         , reducer_num[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
-  wire[log2(N_ROW_MAX)-1:0] coeff_row[PATCH_SIZE-1:0]
+  wire[log2(N_ROW_MAX)-1:0] conf_row[PATCH_SIZE-1:0]
                           , reducer_row[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
-  wire[log2(N_COL_MAX)-1:0] coeff_col[PATCH_SIZE-1:0]
+  wire[log2(N_COL_MAX)-1:0] conf_col[PATCH_SIZE-1:0]
                           , reducer_col[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
   wire[PATCH_SIZE-1:1] interline_fifo_overflow, interline_fifo_high
                      , interline_fifo_empty, interline_fifo_full;
@@ -59,7 +59,8 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
                      , row_coeff_fifo_empty, row_coeff_fifo_full;
 
   // Config variables
-  localparam ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE;// + log2(PATCH_SIZE);
+  localparam PATCH_COEFF_SIZE = 43
+    , ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + PATCH_COEFF_SIZE;
   wire[(PATCH_SIZE * FP_SIZE)-1:0] conf_weights[PATCH_SIZE-1:0];
   //reg[(PATCH_SIZE * FP_SIZE)-1:0] fst_row_weights;
   wire fval, lval, fds_val;
@@ -120,7 +121,20 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 
   assign dramifc_overflow = |interline_fifo_overflow || |row_coeff_fifo_overflow;
 
-  localparam PATCH_COEFF_SIZE = 43;
+`ifdef USE_PATCH_COEFF_FIFO
+  patch_coeff_fifo patch_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
+    , .din(app_rd_data[80+:(4 * (PATCH_COEFF_SIZE + 1))])
+    //Note: always write into FIFO when there is valid DRAM data because
+    //flow control is done upstream by DRAMIfc
+    , .wr_en(app_rd_data_valid
+             && app_rd_data[0] == `FALSE) //This is a patch_coeff
+    , .rd_en(init_reducer[0])//, .valid(patch_fifo_val)
+    //, .dout(patch_data)
+    , .dout({interline_num_out[0], interline_row_out[0]
+             , new_patch_val, interline_col_out[0]})
+    , .prog_full(interline_fifo_high[0]), .full(interline_fifo_full[0])
+    , .overflow(interline_fifo_overflow[0]), .empty(interline_fifo_empty[0]));
+`endif
 
   assign init_reducer[0] = !row_coeff_fifo_empty[0] && |reducer_avail[0];
 
@@ -129,13 +143,14 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin // For each patch row,
       row_coeff_fifo row_coeff_fifo(.wr_clk(dram_clk), .rd_clk(pixel_clk)
         , .rst(reset)
-        , .din(app_rd_data[16+:(PATCH_SIZE*FP_SIZE + PATCH_COEFF_SIZE)])
+        , .din(app_rd_data[8+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
         , .wr_en(app_rd_data_valid
+                 //&& app_rd_data[0] == `TRUE    //This is a row reducer coeff
                  && app_rd_data[15:12] == geni)//This is my row
         , .rd_en(init_reducer[geni])
-        , .dout({coeff_col[geni], coeff_row[geni], coeff_patch_num[geni]
+        , .dout({conf_col[geni], conf_row[geni], conf_num[geni]
                  , conf_weights[geni]})
         , .prog_full(row_coeff_fifo_high[geni])
         , .full(row_coeff_fifo_full[geni])
@@ -161,20 +176,15 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     end//for geni
 
     for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
-`ifdef DEAL_WITH_TIMING_PROBLEM
-      //Tell the chosen reducer to initialize
-      assign reducer_init[0][genj] = init_reducer_d[0]
-        && genj == avail_reducer[0];
-`endif
-
       PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
-        , .N_ROW_SIZE(log2(N_ROW_MAX)))
+        , .N_ROW_SIZE(log2(N_ROW_MAX))
+        , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE))
         fst_row_reducer(.clk(pixel_clk), .reset(reset)
         , .available(reducer_avail[0][genj]), .init(reducer_init[0][genj])
-        , .conf_row(coeff_row[0]), .conf_col(coeff_col[0])
+        , .conf_row(conf_row[0]), .conf_col(conf_col[0])
         //First row starts with the running sum = 0 of course
         , .conf_sum(0) //First row starts with the running sum = 0 of course
-        , .conf_num(coeff_patch_num[0]), .conf_weights(conf_weights[0])
+        , .conf_num(conf_num[0]), .conf_weights(conf_weights[0])
         , .cur_row(n_row), .l_col(n_col)
         , .fds_val_in(lval_d), .fds(fds)
         , .done(reducer_done[0][genj])
@@ -188,24 +198,29 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         && !row_coeff_fifo_empty[geni] && |reducer_avail[geni];
       
       interline_fifo interline_fifo(.clk(pixel_clk)
-        , .din(interline_sum_in[geni])
+        , .din(//{interline_col_in[geni], interline_num_in[geni], interline_row_in[geni],
+              interline_sum_in[geni]//}
+              )
         //When a previous row's sum is ready, move that into the interline fifo
         , .wr_en(free_reducer[geni-1])
         , .rd_en(init_reducer[geni])
-        , .dout(interline_sum_out[geni])
+        , .dout(//{interline_num_out[geni], interline_row_out[geni], interline_col_out[geni]
+               interline_sum_out[geni]//}
+               )
         , .full(interline_fifo_full[geni])
         , .overflow(interline_fifo_overflow[geni])
         , .empty(interline_fifo_empty[geni]));
       
       for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
         PatchRowReducer#(.FP_SIZE(FP_SIZE), .N_COL_SIZE(log2(N_COL_MAX))
-          , .N_ROW_SIZE(log2(N_ROW_MAX)))
+          , .N_ROW_SIZE(log2(N_ROW_MAX))
+          , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE))
           row_reducer(.clk(pixel_clk), .reset(reset)
           , .available(reducer_avail[geni][genj])
           , .init(reducer_init[geni][genj])
-          , .conf_row(coeff_row[geni]), .conf_col(coeff_col[geni])
+          , .conf_row(conf_row[geni]), .conf_col(conf_col[geni])
           , .conf_sum(interline_sum_out[geni])
-          , .conf_num(coeff_patch_num[geni])
+          , .conf_num(conf_num[geni])
           , .conf_weights(conf_weights[geni])
           , .cur_row(n_row), .l_col(n_col)
           , .fds_val_in(lval_d), .fds(fds)
