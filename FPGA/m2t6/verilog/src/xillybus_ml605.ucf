@@ -1,4 +1,4 @@
-CONFIG PART = xc6vlx240t-ff1156-1;
+#CONFIG PART = xc6vlx240t-ff1156-1;
 
 # The location constraints for REFCLK are implicitly given by the choice
 # of the input buffer.

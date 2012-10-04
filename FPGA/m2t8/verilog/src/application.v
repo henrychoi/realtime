@@ -37,7 +37,7 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     , PATCH_SIZE = 6, PATCH_SIZE_MAX = 16
     , N_PATCH = 1024*1024 //let's handle up to 1M
     , N_PIXEL_PER_CLK = 2'd2
-    , N_ROW_REDUCER = 16;
+    , N_ROW_REDUCER = 4;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] l_col;//, n_col_d[N_FADD_LATENCY-1:0];
@@ -172,11 +172,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
           = reducer_avail[genp][geni][0] ? 0
           : reducer_avail[genp][geni][1] ? 1
           : reducer_avail[genp][geni][2] ? 2
-          : reducer_avail[genp][geni][3] ? 3
+          /*: reducer_avail[genp][geni][3] ? 3
           : reducer_avail[genp][geni][4] ? 4
           : reducer_avail[genp][geni][5] ? 5
           : reducer_avail[genp][geni][6] ? 6
-          : reducer_avail[genp][geni][7] ? 7
+          : reducer_avail[genp][geni][7] ? 7*/
           :                                N_ROW_REDUCER - 1;
 
         assign free_reducer[genp][geni] = |reducer_done[genp][geni];
@@ -265,33 +265,33 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
           = reducer_done[genp][geni-1][0] ? reducer_sum[genp][geni-1][0]
           : reducer_done[genp][geni-1][1] ? reducer_sum[genp][geni-1][1]
           : reducer_done[genp][geni-1][2] ? reducer_sum[genp][geni-1][2]
-          : reducer_done[genp][geni-1][3] ? reducer_sum[genp][geni-1][3]
+          /*: reducer_done[genp][geni-1][3] ? reducer_sum[genp][geni-1][3]
           : reducer_done[genp][geni-1][4] ? reducer_sum[genp][geni-1][4]
           : reducer_done[genp][geni-1][5] ? reducer_sum[genp][geni-1][5]
           : reducer_done[genp][geni-1][6] ? reducer_sum[genp][geni-1][6]
-          : reducer_done[genp][geni-1][7] ? reducer_sum[genp][geni-1][7]
+          : reducer_done[genp][geni-1][7] ? reducer_sum[genp][geni-1][7]*/
           :                   reducer_sum[genp][geni-1][N_ROW_REDUCER-1];
 
         assign interline_num_in[genp][geni]
           = reducer_done[genp][geni-1][0] ? reducer_num[genp][geni-1][0]
           : reducer_done[genp][geni-1][1] ? reducer_num[genp][geni-1][1]
           : reducer_done[genp][geni-1][2] ? reducer_num[genp][geni-1][2]
-          : reducer_done[genp][geni-1][3] ? reducer_num[genp][geni-1][3]
+          /*: reducer_done[genp][geni-1][3] ? reducer_num[genp][geni-1][3]
           : reducer_done[genp][geni-1][4] ? reducer_num[genp][geni-1][4]
           : reducer_done[genp][geni-1][5] ? reducer_num[genp][geni-1][5]
           : reducer_done[genp][geni-1][6] ? reducer_num[genp][geni-1][6]
-          : reducer_done[genp][geni-1][7] ? reducer_num[genp][geni-1][7]
+          : reducer_done[genp][geni-1][7] ? reducer_num[genp][geni-1][7]*/
           :                   reducer_num[genp][geni-1][N_ROW_REDUCER-1];
 
         assign interline_row_in[genp][geni]
          = (reducer_done[genp][geni-1][0] ? reducer_row[genp][geni-1][0]
           : reducer_done[genp][geni-1][1] ? reducer_row[genp][geni-1][1]
           : reducer_done[genp][geni-1][2] ? reducer_row[genp][geni-1][2]
-          : reducer_done[genp][geni-1][3] ? reducer_row[genp][geni-1][3]
+          /*: reducer_done[genp][geni-1][3] ? reducer_row[genp][geni-1][3]
           : reducer_done[genp][geni-1][4] ? reducer_row[genp][geni-1][4]
           : reducer_done[genp][geni-1][5] ? reducer_row[genp][geni-1][5]
           : reducer_done[genp][geni-1][6] ? reducer_row[genp][geni-1][6]
-          : reducer_done[genp][geni-1][7] ? reducer_row[genp][geni-1][7]
+          : reducer_done[genp][geni-1][7] ? reducer_row[genp][geni-1][7]*/
           :                   reducer_row[genp][geni-1][N_ROW_REDUCER-1])
           + `TRUE;
 
@@ -299,11 +299,11 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
           = reducer_done[genp][geni-1][0] ? reducer_col[genp][geni-1][0]
           : reducer_done[genp][geni-1][1] ? reducer_col[genp][geni-1][1]
           : reducer_done[genp][geni-1][2] ? reducer_col[genp][geni-1][2]
-          : reducer_done[genp][geni-1][3] ? reducer_col[genp][geni-1][3]
+          /*: reducer_done[genp][geni-1][3] ? reducer_col[genp][geni-1][3]
           : reducer_done[genp][geni-1][4] ? reducer_col[genp][geni-1][4]
           : reducer_done[genp][geni-1][5] ? reducer_col[genp][geni-1][5]
           : reducer_done[genp][geni-1][6] ? reducer_col[genp][geni-1][6]
-          : reducer_done[genp][geni-1][7] ? reducer_col[genp][geni-1][7]
+          : reducer_done[genp][geni-1][7] ? reducer_col[genp][geni-1][7]*/
           :                   reducer_col[genp][geni-1][N_ROW_REDUCER-1];
       end//for geni
 
@@ -311,22 +311,22 @@ module application#(parameter XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         = reducer_done[genp][geni-1][0] ? reducer_sum[genp][geni-1][0]
         : reducer_done[genp][geni-1][1] ? reducer_sum[genp][geni-1][1]
         : reducer_done[genp][geni-1][2] ? reducer_sum[genp][geni-1][2]
-        : reducer_done[genp][geni-1][3] ? reducer_sum[genp][geni-1][3]
+        /*: reducer_done[genp][geni-1][3] ? reducer_sum[genp][geni-1][3]
         : reducer_done[genp][geni-1][4] ? reducer_sum[genp][geni-1][4]
         : reducer_done[genp][geni-1][5] ? reducer_sum[genp][geni-1][5]
         : reducer_done[genp][geni-1][6] ? reducer_sum[genp][geni-1][6]
-        : reducer_done[genp][geni-1][7] ? reducer_sum[genp][geni-1][7]
+        : reducer_done[genp][geni-1][7] ? reducer_sum[genp][geni-1][7]*/
         :                   reducer_sum[genp][geni-1][N_ROW_REDUCER-1];
 
       assign patch_num[genp]
         = reducer_done[genp][geni-1][0] ? reducer_num[genp][geni-1][0]
         : reducer_done[genp][geni-1][1] ? reducer_num[genp][geni-1][1]
         : reducer_done[genp][geni-1][2] ? reducer_num[genp][geni-1][2]
-        : reducer_done[genp][geni-1][3] ? reducer_num[genp][geni-1][3]
+        /*: reducer_done[genp][geni-1][3] ? reducer_num[genp][geni-1][3]
         : reducer_done[genp][geni-1][4] ? reducer_num[genp][geni-1][4]
         : reducer_done[genp][geni-1][5] ? reducer_num[genp][geni-1][5]
         : reducer_done[genp][geni-1][6] ? reducer_num[genp][geni-1][6]
-        : reducer_done[genp][geni-1][7] ? reducer_num[genp][geni-1][7]
+        : reducer_done[genp][geni-1][7] ? reducer_num[genp][geni-1][7]*/
         :                   reducer_num[genp][geni-1][N_ROW_REDUCER-1];
     end//genp
   endgenerate
