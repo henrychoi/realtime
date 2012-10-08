@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/aurora/aurora64/DEMO_TB_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="DEMO_TB" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="2" />
+   <wvobject fp_name="group28" type="group">
+      <obj_property name="label">tb</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/DEMO_TB/reference_clk_1_p_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reference_clk_1_p_r</obj_property>
+         <obj_property name="ObjectShortName">reference_clk_1_p_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/reference_clk_1_n_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reference_clk_1_n_r</obj_property>
+         <obj_property name="ObjectShortName">reference_clk_1_n_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/hard_err_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">hard_err_1_i</obj_property>
+         <obj_property name="ObjectShortName">hard_err_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/soft_err_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">soft_err_1_i</obj_property>
+         <obj_property name="ObjectShortName">soft_err_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/channel_up_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">channel_up_1_i</obj_property>
+         <obj_property name="ObjectShortName">channel_up_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/lane_up_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">lane_up_1_i</obj_property>
+         <obj_property name="ObjectShortName">lane_up_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/rxp_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rxp_1_i</obj_property>
+         <obj_property name="ObjectShortName">rxp_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/rxn_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rxn_1_i</obj_property>
+         <obj_property name="ObjectShortName">rxn_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/txp_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">txp_1_i</obj_property>
+         <obj_property name="ObjectShortName">txp_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/txn_1_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">txn_1_i</obj_property>
+         <obj_property name="ObjectShortName">txn_1_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/data_err_count_1_o" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">data_err_count_1_o[0:7]</obj_property>
+         <obj_property name="ObjectShortName">data_err_count_1_o[0:7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/reference_clk_2_p_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reference_clk_2_p_r</obj_property>
+         <obj_property name="ObjectShortName">reference_clk_2_p_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/reference_clk_2_n_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reference_clk_2_n_r</obj_property>
+         <obj_property name="ObjectShortName">reference_clk_2_n_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/hard_err_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">hard_err_2_i</obj_property>
+         <obj_property name="ObjectShortName">hard_err_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/soft_err_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">soft_err_2_i</obj_property>
+         <obj_property name="ObjectShortName">soft_err_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/channel_up_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">channel_up_2_i</obj_property>
+         <obj_property name="ObjectShortName">channel_up_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/lane_up_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">lane_up_2_i</obj_property>
+         <obj_property name="ObjectShortName">lane_up_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/rxp_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rxp_2_i</obj_property>
+         <obj_property name="ObjectShortName">rxp_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/rxn_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rxn_2_i</obj_property>
+         <obj_property name="ObjectShortName">rxn_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/txp_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">txp_2_i</obj_property>
+         <obj_property name="ObjectShortName">txp_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/txn_2_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">txn_2_i</obj_property>
+         <obj_property name="ObjectShortName">txn_2_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/data_err_count_2_o" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">data_err_count_2_o[0:7]</obj_property>
+         <obj_property name="ObjectShortName">data_err_count_2_o[0:7]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/tied_to_ground_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tied_to_ground_i</obj_property>
+         <obj_property name="ObjectShortName">tied_to_ground_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/gsr_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">gsr_r</obj_property>
+         <obj_property name="ObjectShortName">gsr_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/gts_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">gts_r</obj_property>
+         <obj_property name="ObjectShortName">gts_r</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset_i</obj_property>
+         <obj_property name="ObjectShortName">reset_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/pma_init_r" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pma_init_r</obj_property>
+         <obj_property name="ObjectShortName">pma_init_r</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group34" type="group">
+      <obj_property name="label">example 1</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/sync_clk_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sync_clk_i</obj_property>
+         <obj_property name="ObjectShortName">sync_clk_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/shim_clk_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">shim_clk_i</obj_property>
+         <obj_property name="ObjectShortName">shim_clk_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/user_clk_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">user_clk_i</obj_property>
+         <obj_property name="ObjectShortName">user_clk_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/pll_lock_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pll_lock_i</obj_property>
+         <obj_property name="ObjectShortName">pll_lock_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/pll_not_locked_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pll_not_locked_i</obj_property>
+         <obj_property name="ObjectShortName">pll_not_locked_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/system_reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">system_reset_i</obj_property>
+         <obj_property name="ObjectShortName">system_reset_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/tx_d_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_d_i[0:63]</obj_property>
+         <obj_property name="ObjectShortName">tx_d_i[0:63]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/rx_d_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rx_d_i[0:63]</obj_property>
+         <obj_property name="ObjectShortName">rx_d_i[0:63]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/tx_src_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_src_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">tx_src_rdy_n_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/tx_dst_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_dst_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">tx_dst_rdy_n_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/DEMO_TB/aurora_example_1_i/rx_src_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rx_src_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">rx_src_rdy_n_i</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>
