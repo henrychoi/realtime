@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Fri Oct 05 02:34:04 2012
+# Date: Sun Oct 07 23:09:36 2012
 #
 ##############################################################
 #
@@ -93,11 +93,11 @@ CSET c_gt_loc_8=X
 CSET c_gt_loc_9=X
 CSET c_gt_type=gtx
 CSET c_line_rate=3.125
-CSET c_refclk_frequency=156.250
+CSET c_refclk_frequency=78.125
 CSET c_use_chipscope=false
 CSET c_user_k=false
-CSET component_name=aurora_tx
-CSET dataflow_config=TX-only_Simplex
+CSET component_name=rx1
+CSET dataflow_config=RX-only_Simplex
 CSET flow_mode=None
 CSET interface_mode=Streaming
 # END Parameters
@@ -105,4 +105,4 @@ CSET interface_mode=Streaming
 MISC pkg_timestamp=2012-01-07T15:29:19Z
 # END Extra information
 GENERATE
-# CRC: 2c060471
+# CRC: af146503
