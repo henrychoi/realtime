@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/aurora/EXAMPLE_TB_isim_beh1.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="EXAMPLE_TB" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="2" />
+   <wvobject fp_name="group23" type="group">
+      <obj_property name="label">simmain</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/EXAMPLE_TB/rxp_1_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rxp_1_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">rxp_1_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/rxn_1_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rxn_1_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">rxn_1_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/txp_1_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">txp_1_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">txp_1_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/txn_1_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">txn_1_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">txn_1_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/rxp_2_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rxp_2_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">rxp_2_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/rxn_2_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rxn_2_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">rxn_2_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/txp_2_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">txp_2_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">txp_2_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/txn_2_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">txn_2_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">txn_2_i[0:2]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/GPIO_LED1" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">GPIO_LED1[7:0]</obj_property>
+         <obj_property name="ObjectShortName">GPIO_LED1[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/GPIO_LED2" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">GPIO_LED2[7:0]</obj_property>
+         <obj_property name="ObjectShortName">GPIO_LED2[7:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset_i</obj_property>
+         <obj_property name="ObjectShortName">reset_i</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group38" type="group">
+      <obj_property name="label">main 1</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/sys_rst" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sys_rst</obj_property>
+         <obj_property name="ObjectShortName">sys_rst</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/tx_d_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_d_i[0:47]</obj_property>
+         <obj_property name="ObjectShortName">tx_d_i[0:47]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/tx_src_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_src_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">tx_src_rdy_n_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/tx_dst_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">tx_dst_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">tx_dst_rdy_n_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/rx_d_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">rx_d_i[0:47]</obj_property>
+         <obj_property name="ObjectShortName">rx_d_i[0:47]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/rx_src_rdy_n_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rx_src_rdy_n_i</obj_property>
+         <obj_property name="ObjectShortName">rx_src_rdy_n_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/GTXQ0_left_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">GTXQ0_left_i</obj_property>
+         <obj_property name="ObjectShortName">GTXQ0_left_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/channel_up_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">channel_up_i</obj_property>
+         <obj_property name="ObjectShortName">channel_up_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/lane_up_i" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">lane_up_i[0:2]</obj_property>
+         <obj_property name="ObjectShortName">lane_up_i[0:2]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/user_clk_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">user_clk_i</obj_property>
+         <obj_property name="ObjectShortName">user_clk_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/sync_clk_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">sync_clk_i</obj_property>
+         <obj_property name="ObjectShortName">sync_clk_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">reset_i</obj_property>
+         <obj_property name="ObjectShortName">reset_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/heartbeat" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">heartbeat</obj_property>
+         <obj_property name="ObjectShortName">heartbeat</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/gt_reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">gt_reset_i</obj_property>
+         <obj_property name="ObjectShortName">gt_reset_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/system_reset_i" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">system_reset_i</obj_property>
+         <obj_property name="ObjectShortName">system_reset_i</obj_property>
+      </wvobject>
+      <wvobject fp_name="group44" type="group">
+         <obj_property name="label">reset</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/skip" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">skip</obj_property>
+            <obj_property name="ObjectShortName">skip</obj_property>
+         </wvobject>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/reset_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">reset_d[7:0]</obj_property>
+            <obj_property name="ObjectShortName">reset_d[7:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/RESET" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">RESET</obj_property>
+            <obj_property name="ObjectShortName">RESET</obj_property>
+         </wvobject>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/init_clk_i" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">init_clk_i</obj_property>
+            <obj_property name="ObjectShortName">init_clk_i</obj_property>
+         </wvobject>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/GT_RESET_OUT" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">GT_RESET_OUT</obj_property>
+            <obj_property name="ObjectShortName">GT_RESET_OUT</obj_property>
+         </wvobject>
+         <wvobject fp_name="/EXAMPLE_TB/example_design_1_i/reset_logic_i/debounce_gt_rst_r" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">debounce_gt_rst_r[0:3]</obj_property>
+            <obj_property name="ObjectShortName">debounce_gt_rst_r[0:3]</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+</wave_config>

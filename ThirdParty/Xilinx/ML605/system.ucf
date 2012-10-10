@@ -1,0 +1,587 @@
+##
+###########################################################################
+##  Copyright(C) 2010 by Xilinx, Inc. All rights reserved.               ##
+##                                                                       ##
+##  You may copy and modify these files for your own internal use solely ##
+##  with Xilinx programmable logic devices and  Xilinx EDK system or     ##
+##  create IP modules solely for Xilinx programmable logic devices and   ##
+##  Xilinx EDK system. No rights are granted to distribute any files     ##
+##  unless they are distributed in Xilinx programmable logic devices.    ##
+##                                                                       ##
+##  Source code is provided "as-is", with no obligation on the part of   ##
+##  Xilinx to provide support.                                           ##
+##                                                                       ##
+###########################################################################
+#
+#############################################################################
+# Target Board: Xilinx Virtex-6 ML605 Evaluation Platform Rev C            ##
+# Family:  virtex6                                                         ##
+# Device:  xc6vlx240t                                                      ##
+# Package: ff1156                                                          ##
+# Speed Grade: -1                                                          ##
+#############################################################################
+#
+
+NET  sys_clk_in_p            LOC = J9  | IOSTANDARD = LVDS_25 | DIFF_TERM = TRUE;
+NET  sys_clk_in_n            LOC = H9  | IOSTANDARD = LVDS_25 | DIFF_TERM = TRUE;
+
+Net sys_rst_pin PULLUP;
+Net sys_rst_pin LOC= H10 | IOSTANDARD=SSTL15;
+## System level constraints
+Net sys_rst_pin TIG;
+
+Net dcm_clk_s TNM_NET = dcm_clk_s;
+TIMESPEC TS_dcm_clk_s = PERIOD dcm_clk_s 5000 ps;
+Net sys_rst_pin TIG;
+
+## IO Devices constraints
+
+#### Module RS232_Uart_1 constraints
+
+Net fpga_0_RS232_Uart_1_sin_pin LOC=J24 | IOSTANDARD=LVCMOS25;
+Net fpga_0_RS232_Uart_1_sout_pin LOC=J25 | IOSTANDARD=LVCMOS25;
+
+
+#### Module LEDs_8Bit constraints
+
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<0> LOC = AC22;	
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<1> LOC = AC24;	
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<2> LOC = AE22;	
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<3> LOC = AE23;	
+
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<4> LOC = AB23;
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<5> LOC = AG23;
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<6> LOC = AE24;
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<7> LOC = AD24;
+Net fpga_0_LEDs_8Bit_GPIO_d_out_pin<*> IOSTANDARD=LVCMOS25;
+
+#### Module LEDs_Positions_GPIO constraints
+
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<0> LOC=AP24;
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<1> LOC=AD21;
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<2> LOC=AH28;
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<3> LOC=AE21;
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<4> LOC=AH27;
+Net fpga_0_LEDs_Positions_GPIO_IO_pin<*> IOSTANDARD=LVCMOS15;
+
+
+#### Module Push_Buttons_GPIO constraints
+
+#GPIO PB Center
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<0> LOC = G26;
+#GPIO PB West
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<1> LOC = H17;
+#GPIO PB South
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<2> LOC = A18;
+#GPIO PB East
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<3> LOC = G17;
+#GPIO PB North
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<4> LOC = A19;
+Net fpga_0_Push_Buttons_5Bit_GPIO_IO_pin<*> IOSTANDARD=SSTL15_T_DCI;
+
+Net fpga_0_IIC_EEPROM_Scl_pin LOC=AK9;
+Net fpga_0_IIC_EEPROM_Scl_pin SLEW = SLOW;
+Net fpga_0_IIC_EEPROM_Scl_pin DRIVE = 6;
+Net fpga_0_IIC_EEPROM_Scl_pin IOSTANDARD=LVCMOS25;
+Net fpga_0_IIC_EEPROM_Sda_pin LOC=AE9;
+Net fpga_0_IIC_EEPROM_Sda_pin SLEW = SLOW;
+Net fpga_0_IIC_EEPROM_Sda_pin DRIVE = 6;
+Net fpga_0_IIC_EEPROM_Sda_pin IOSTANDARD=LVCMOS25;
+
+NET fpga_0_FLASH_Mem_A_pin<7> LOC = AA23;
+NET fpga_0_FLASH_Mem_A_pin<8> LOC = AL9;
+NET fpga_0_FLASH_Mem_A_pin<9> LOC = AF9;
+NET fpga_0_FLASH_Mem_A_pin<10> LOC = AF10;
+NET fpga_0_FLASH_Mem_A_pin<11> LOC = AN9;
+NET fpga_0_FLASH_Mem_A_pin<12> LOC = AP9;
+NET fpga_0_FLASH_Mem_A_pin<13> LOC = AG8;
+NET fpga_0_FLASH_Mem_A_pin<14> LOC = AH8;
+NET fpga_0_FLASH_Mem_A_pin<15> LOC = F9;
+NET fpga_0_FLASH_Mem_A_pin<16> LOC = F10;
+NET fpga_0_FLASH_Mem_A_pin<17> LOC = C10;
+NET fpga_0_FLASH_Mem_A_pin<18> LOC = D10;
+NET fpga_0_FLASH_Mem_A_pin<19> LOC = C9;
+NET fpga_0_FLASH_Mem_A_pin<20> LOC = D9;
+NET fpga_0_FLASH_Mem_A_pin<21> LOC = A9;
+NET fpga_0_FLASH_Mem_A_pin<22> LOC = A8;
+NET fpga_0_FLASH_Mem_A_pin<23> LOC = E8;
+NET fpga_0_FLASH_Mem_A_pin<24> LOC = E9;
+NET fpga_0_FLASH_Mem_A_pin<25> LOC = B8;
+NET fpga_0_FLASH_Mem_A_pin<26> LOC = C8;
+NET fpga_0_FLASH_Mem_A_pin<27> LOC = AD10;
+NET fpga_0_FLASH_Mem_A_pin<28> LOC = AC9;
+NET fpga_0_FLASH_Mem_A_pin<29> LOC = AK8;
+NET fpga_0_FLASH_Mem_A_pin<30> LOC = AL8;
+Net fpga_0_FLASH_Mem_A_pin<*> IOSTANDARD=LVCMOS25;
+
+NET fpga_0_FLASH_Mem_DQ_pin<0> LOC = M23;
+NET fpga_0_FLASH_Mem_DQ_pin<1> LOC = L24;
+NET fpga_0_FLASH_Mem_DQ_pin<2> LOC = F24;
+NET fpga_0_FLASH_Mem_DQ_pin<3> LOC = F23;
+NET fpga_0_FLASH_Mem_DQ_pin<4> LOC = N23;
+NET fpga_0_FLASH_Mem_DQ_pin<5> LOC = N24;
+NET fpga_0_FLASH_Mem_DQ_pin<6> LOC = H23;
+NET fpga_0_FLASH_Mem_DQ_pin<7> LOC = G23;
+NET fpga_0_FLASH_Mem_DQ_pin<8> LOC = R24;
+NET fpga_0_FLASH_Mem_DQ_pin<9> LOC = P24;
+NET fpga_0_FLASH_Mem_DQ_pin<10> LOC = H25;
+NET fpga_0_FLASH_Mem_DQ_pin<11> LOC = H24;
+NET fpga_0_FLASH_Mem_DQ_pin<12> LOC = V24;
+NET fpga_0_FLASH_Mem_DQ_pin<13> LOC = W24;
+NET fpga_0_FLASH_Mem_DQ_pin<14> LOC = AF25;
+NET fpga_0_FLASH_Mem_DQ_pin<15> LOC = AF24;
+NET fpga_0_FLASH_Mem_DQ_pin<*> IOSTANDARD=LVCMOS25;
+
+Net fpga_0_FLASH_Mem_CEN_pin LOC=AJ12;
+NET fpga_0_FLASH_Mem_CEN_pin IOSTANDARD=LVCMOS25;
+
+Net fpga_0_FLASH_Mem_WEN_pin LOC=AF23;
+NET fpga_0_FLASH_Mem_WEN_pin IOSTANDARD=LVCMOS25;
+
+Net fpga_0_FLASH_Mem_OEN_pin LOC=AA24;
+NET fpga_0_FLASH_Mem_OEN_pin IOSTANDARD=LVCMOS25;
+
+#### Module SysACE_CompactFlash constraints
+
+Net fpga_0_SysACE_CompactFlash_SysACE_CLK_pin LOC=AE16;
+Net fpga_0_SysACE_CompactFlash_SysACE_CLK_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_SysACE_CompactFlash_SysACE_CLK_pin PERIOD = 30000 ps;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<0> LOC=AC15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<1> LOC=AP15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<2> LOC=AG17;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<3> LOC=AH17;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<4> LOC=AG15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<5> LOC=AF15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<6> LOC=AK14;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPA_pin<*> IOSTANDARD = LVCMOS25;
+
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<0>  LOC=AM15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<1>  LOC=AJ17;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<2>  LOC=AJ16;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<3>  LOC=AP16;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<4>  LOC=AG16;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<5>  LOC=AH15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<6>  LOC=AF16;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<7>  LOC=AN15;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPD_pin<*> IOSTANDARD = LVCMOS25;
+
+Net fpga_0_SysACE_CompactFlash_SysACE_CEN_pin LOC=AJ14;
+Net fpga_0_SysACE_CompactFlash_SysACE_CEN_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_SysACE_CompactFlash_SysACE_OEN_pin LOC=AL15;
+Net fpga_0_SysACE_CompactFlash_SysACE_OEN_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_SysACE_CompactFlash_SysACE_WEN_pin LOC=AL14;
+Net fpga_0_SysACE_CompactFlash_SysACE_WEN_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPIRQ_pin LOC=L9;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPIRQ_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_SysACE_CompactFlash_SysACE_MPIRQ_pin TIG;
+
+#### Module DIP_Switches_4Bit constraints
+
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<0> LOC=D22;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<1> LOC=C22;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<2> LOC=L21;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<3> LOC=L20;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<4> LOC=C18;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<5> LOC=B18;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<6> LOC=K22;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<7> LOC=K21;
+Net fpga_0_DIP_Switches_8Bit_GPIO_IO_I_pin<*> IOSTANDARD = SSTL15;
+
+###############################################################################
+# Temporary Constraints
+###############################################################################
+
+disable = reg_sr_o;
+disable = reg_sr_r;
+
+# Constrain BUFR clocks used to synchronize data from IOB to fabric logic
+# Note that ISE cannot infer this from other PERIOD constraints because 
+# of the use of OSERDES blocks in the BUFR clock generation path
+
+NET "*/*phy_if_0/clk_rsync[*]" TNM_NET = TNM_clk_rsync;
+TIMESPEC TS_clk_rsync = PERIOD "TNM_clk_rsync" 5000 ps;
+
+# Signal to select between controller and physical layer signals. Four divided by two clock
+# cycles (8 memory clock cycles) are provided by design for the signal to settle down.
+# Used only by the phy modules.
+
+INST "*/u_phy_init/u_ff_phy_init_data_sel" TNM = "TNM_PHY_INIT_SEL";
+TIMESPEC "TS_MC_PHY_INIT_SEL" = FROM "TNM_PHY_INIT_SEL" TO FFS = 20000 ps; // mem clock period * 8 or Clk0 period * 4
+
+
+###############################################################################
+# DDR3/Status signals
+###############################################################################
+
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[*]"                               IOSTANDARD = SSTL15_T_DCI;
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[*]"                             IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_BankAddr_pin[*]"                         IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_RAS_n_pin"                               IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_CAS_n_pin"                               IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_WE_n_pin"                                IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_Reset_n_pin"                             IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_CS_n_pin[*]"                             IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_ODT_pin[*]"                              IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_CE_pin[*]"                               IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_DM_pin[*]"                               IOSTANDARD = SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_pin[*]"                              IOSTANDARD = DIFF_SSTL15_T_DCI;
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_n_pin[*]"                            IOSTANDARD = DIFF_SSTL15_T_DCI;
+NET  "fpga_0_DDR3_SDRAM_DDR3_Clk_pin[*]"                              IOSTANDARD = DIFF_SSTL15;
+NET  "fpga_0_DDR3_SDRAM_DDR3_Clk_n_pin[*]"                            IOSTANDARD = DIFF_SSTL15;
+
+##################################################################################
+# Location Constraints
+##################################################################################
+# Banks specified in the comments may no longer be valid
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[0]"                                LOC = "J11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[1]"                                LOC = "E13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[2]"                                LOC = "F13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[3]"                                LOC = "K11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[4]"                                LOC = "L11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[5]"                                LOC = "K13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[6]"                                LOC = "K12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[7]"                                LOC = "D11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[8]"                                LOC = "M13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[9]"                                LOC = "J14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[10]"                               LOC = "B13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[11]"                               LOC = "B12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[12]"                               LOC = "G10" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[13]"                               LOC = "M11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[14]"                               LOC = "C12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[15]"                               LOC = "A11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[16]"                               LOC = "G11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[17]"                               LOC = "F11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[18]"                               LOC = "D14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[19]"                               LOC = "C14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[20]"                               LOC = "G12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[21]"                               LOC = "G13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[22]"                               LOC = "F14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[23]"                               LOC = "H14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[24]"                               LOC = "D26" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[25]"                               LOC = "F26" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[26]"                               LOC = "B26" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[27]"                               LOC = "E26" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[28]"                               LOC = "C24" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[29]"                               LOC = "D25" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[30]"                               LOC = "D27" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQ_pin[31]"                               LOC = "C25" ;          #Bank 36
+
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[12]"                             LOC = "H15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[11]"                             LOC = "M15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[10]"                             LOC = "M16" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[9]"                              LOC = "F15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[8]"                              LOC = "G15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[7]"                              LOC = "B15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[6]"                              LOC = "A15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[5]"                              LOC = "J17" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[4]"                              LOC = "D16" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[3]"                              LOC = "E16" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[2]"                              LOC = "B16" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[1]"                              LOC = "A16" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Addr_pin[0]"                              LOC = "L14" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_BankAddr_pin[2]"                                LOC = "L15" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_BankAddr_pin[1]"                                LOC = "J19" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_BankAddr_pin[0]"                                LOC = "K19" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_RAS_n_pin"                                LOC = "L19" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_CAS_n_pin"                                LOC = "C17" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_WE_n_pin"                                 LOC = "B17" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Reset_n_pin"                              LOC = "E18" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_CS_n_pin[0]"                              LOC = "K18" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_ODT_pin[0]"                               LOC = "F18" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_CE_pin[0]"                               LOC = "M18" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_DM_pin[0]"                                LOC = "E11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DM_pin[1]"                                LOC = "B11" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DM_pin[2]"                                LOC = "E14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DM_pin[3]"                                LOC = "A26" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_pin[0]"                               LOC = "D12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_n_pin[0]"                             LOC = "E12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_pin[1]"                               LOC = "H12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_n_pin[1]"                             LOC = "J12" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_pin[2]"                               LOC = "A13" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_n_pin[2]"                             LOC = "A14" ;          #Bank 26
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_pin[3]"                               LOC = "B25" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_DQS_n_pin[3]"                             LOC = "A25" ;          #Bank 36
+NET  "fpga_0_DDR3_SDRAM_DDR3_Clk_pin[0]"                                LOC = "G18" ;          #Bank 25
+NET  "fpga_0_DDR3_SDRAM_DDR3_Clk_n_pin[0]"                              LOC = "H18" ;          #Bank 25
+
+###############################################################################
+# MMCM Location Constraints
+###############################################################################
+
+INST "clock_generator_0/clock_generator_0/MMCM0_INST/MMCM_ADV_inst" LOC = "MMCM_ADV_X0Y9";
+
+###############################################################################
+# Capture Clock Constraints
+# Available sites are:
+#  Bank 35:
+#    C13:  IO_L11P_SRCC_35 : X2Y137 : CPT[0]
+#    M12:  IO_L10P_MRCC_35 : X2Y139 : RSYNC[0]
+#    L13:  IO_L9P_MRCC_35  : X2Y141 : CPT[1]
+#    K14:  IO_L8P_SRCC_35  : X2Y143 : CPT[2]
+#  Bank 26: 
+#    F21:  IO_L10P_MRCC_26 : X1Y179 : CPT[3]
+#    B20:  IO_L9P_MRCC_26  : X1Y181 : CPT[4]
+#    F19:  IO_L8P_SRCC_26  : X1Y183 : 
+#  Bank 25:
+#    F25:  IO_L11P_SRCC_25 : X1Y137 : CPT[5]
+#    C29:  IO_L10P_MRCC_25 : X1Y139 : RSYNC[1]
+#    C28:  IO_L9P_MRCC_25  : X1Y141 : CPT[6]
+#    D24:  IO_L8P_SRCC_25  : X1Y143 : CPT[7]
+###############################################################################
+
+#####################################################################
+# Place RSYNC OSERDES and IODELAY:
+#####################################################################
+
+# CLK_RSYNC[0]: Site M12
+INST "*/u_phy_rdclk_gen/gen_loop_col0.u_oserdes_rsync"  
+  LOC = "OLOGIC_X2Y139";
+INST "*/u_phy_rdclk_gen/gen_loop_col0.u_odelay_rsync"
+  LOC = "IODELAY_X2Y139";
+INST "*/u_phy_rdclk_gen/gen_loop_col0.u_bufr_rsync"
+  LOC = "BUFR_X2Y6";
+
+# CLK_RSYNC[1]: Site C29
+INST "*/u_phy_rdclk_gen/gen_loop_col1.u_oserdes_rsync"  
+  LOC = "OLOGIC_X1Y139";
+INST "*/u_phy_rdclk_gen/gen_loop_col1.u_odelay_rsync"
+  LOC = "IODELAY_X1Y139";
+INST "*/u_phy_rdclk_gen/gen_loop_col1.u_bufr_rsync"
+  LOC = "BUFR_X1Y6";
+
+# Place CPT OSERDES and IODELAY:
+# DQS[0]: Site C13
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[0].u_oserdes_cpt"
+  LOC = "OLOGIC_X2Y137";
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[0].u_odelay_cpt"
+  LOC = "IODELAY_X2Y137";
+# DQS[1]: Site L13
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[1].u_oserdes_cpt"
+  LOC = "OLOGIC_X2Y141";
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[1].u_odelay_cpt"
+  LOC = "IODELAY_X2Y141";
+# DQS[2]: Site K14
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[2].u_oserdes_cpt"
+  LOC = "OLOGIC_X2Y143";
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[2].u_odelay_cpt"
+  LOC = "IODELAY_X2Y143";
+# DQS[3]: Site F25  
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[3].u_oserdes_cpt"
+  LOC = "OLOGIC_X1Y137";
+INST "*/u_phy_rdclk_gen/gen_ck_cpt[3].u_odelay_cpt"
+  LOC = "IODELAY_X1Y137";
+
+###############################################################################
+# DCI Cascading
+###############################################################################
+
+CONFIG DCI_CASCADE = "26 25";
+CONFIG DCI_CASCADE = "36 35";
+
+#### Module Hard_Ethernet_MAC constraints
+
+Net fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin LOC=AH13;
+Net fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_TemacPhy_RST_n_pin TIG;
+
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<0> LOC=AM11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<0> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<1> LOC=AL11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<1> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<2> LOC=AG10;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<2> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<3> LOC=AG11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<3> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<4> LOC=AL10;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<4> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<5> LOC=AM10;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<5> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<6> LOC=AE11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<6> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<7> LOC=AF11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TXD_0_pin<7> IOSTANDARD = LVCMOS25;
+
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_EN_0_pin LOC=AJ10;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_EN_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_ER_0_pin LOC=AH10;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_ER_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_CLK_0_pin LOC=AH12;
+Net fpga_0_Hard_Ethernet_MAC_GMII_TX_CLK_0_pin IOSTANDARD = LVCMOS25;
+
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<0> LOC=AN13;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<0> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<1> LOC=AF14;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<1> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<2> LOC=AE14;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<2> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<3> LOC=AN12;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<3> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<4> LOC=AM12;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<4> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<5> LOC=AD11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<5> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<6> LOC=AC12;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<6> IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<7> LOC=AC13;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin<7> IOSTANDARD = LVCMOS25;
+
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_DV_0_pin LOC=AM13;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_DV_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_ER_0_pin LOC=AG12;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_ER_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin LOC=AP11;
+Net fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_MII_TX_CLK_0_pin LOC = AD12;
+Net fpga_0_Hard_Ethernet_MAC_MII_TX_CLK_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_MDC_0_pin LOC=AP14;
+Net fpga_0_Hard_Ethernet_MAC_MDC_0_pin IOSTANDARD = LVCMOS25;
+Net fpga_0_Hard_Ethernet_MAC_MDIO_0_pin LOC=AN14;
+Net fpga_0_Hard_Ethernet_MAC_MDIO_0_pin IOSTANDARD = LVCMOS25;
+
+###### Hard_Ethernet_MAC
+# This is a GMII system
+# GTX_CLK_0 = 125MHz
+# LlinkTemac0_CLK = plb_v46 clk = host clock = 100MHz from clock generator
+# Rx/Tx Client clocks are Rx/Tx PHY clocks so CORE Gen PHY clock constraints propagate to Rx/Tx client clock periods
+# Time domain crossing constraints (DATAPATHONLY) are set for maximum bus frequency
+# allowed by IP which is the maximum option in BSB. For lower bus frequency choice in BSB,
+# the constraints are over constrained. Relaxing them for your system may reduce build time.
+
+net "*/hrst*" TIG;                               
+net "*/V6HARD_SYS.I_TEMAC/speed_vector_0_i*" TIG;
+
+NET "*Hard_Ethernet_MAC*/LlinkTemac0_CLK"   TNM_NET = "LLCLK0"; #name of signal connected to TEMAC LlinkTemac0_CLK input
+NET "*Hard_Ethernet_MAC*/SPLB_Clk"          TNM_NET = "PLBCLK"; #name of signal connected to TEMAC SPLB_Clk input 
+
+###############################################################################
+# CLOCK CONSTRAINTS
+# The following constraints are required. If you choose to not use the example
+# design level of wrapper hierarchy, the net names should be translated to
+# match your design.
+###############################################################################
+
+# Ethernet GTX_CLK high quality 125 MHz reference clock                                                       
+#                      __________                         
+# -GTX_CLK_0----------|          |                        
+#                     | BUFGCTRL |---Tx_Cl_Clk
+# -MII_TX_CLK_0-------|__________|                        
+#
+# Changed NET
+# NET "GTX_CLK" TNM_NET = "ref_gtx_clk";
+NET "Hard_Ethernet_MAC*/GTX_CLK_0"   TNM_NET = "ref_gtx_clk"; #name of signal connected to TEMAC GTX_CLK_0 input
+TIMEGRP "v6_emac_v1_3_clk_ref_gtx" = "ref_gtx_clk";
+TIMESPEC "TS_v6_emac_v1_3_clk_ref_gtx" = PERIOD "v6_emac_v1_3_clk_ref_gtx" 8 ns HIGH 50 %;
+
+# Multiplexed 1 Gbps, 10/100 Mbps output inherits constraint from GTX_CLK                                                        
+#                      __________                         
+# -GTX_CLK_0----------|          |                        
+#                     | BUFGCTRL |---Tx_Cl_Clk
+# -MII_TX_CLK_0-------|__________|                        
+#
+# Changed NET name
+# NET "tx_clk" TNM_NET = "ref_mux_clk";
+NET "*/Tx_Cl_Clk" TNM_NET = "ref_mux_clk";
+TIMEGRP "v6_emac_v1_3_clk_ref_mux" = "ref_mux_clk";
+TIMESPEC "TS_v6_emac_v1_3_clk_ref_mux" = PERIOD "v6_emac_v1_3_clk_ref_mux" TS_v6_emac_v1_3_clk_ref_gtx HIGH 50%;
+
+# Ethernet GMII PHY-side receive clock
+#                      __________                         
+#                     |          |                        
+# --- GMII_RX_CLK_0---|   BUFR   |---RxClientClk_0
+#                     |__________|                        
+#
+# Changed NET name
+# NET "GMII_RX_CLK" TNM_NET = "phy_clk_rx";
+NET "*/RxClientClk_0" TNM_NET = "phy_clk_rx";
+TIMEGRP "v6_emac_v1_3_clk_phy_rx" = "phy_clk_rx";
+TIMESPEC "TS_v6_emac_v1_3_clk_phy_rx" = PERIOD "v6_emac_v1_3_clk_phy_rx" 7.5 ns HIGH 50 %;
+                                                                                
+# IDELAYCTRL 200 MHz reference clock
+# Changed NET name 
+# NET "REFCLK" TNM_NET  = "clk_ref_clk";
+NET "*/REFCLK" TNM_NET  = "clk_ref_clk";
+TIMEGRP "ref_clk" = "clk_ref_clk";
+TIMESPEC "TS_ref_clk" = PERIOD "ref_clk" 5 ns HIGH 50 %;
+
+# Constrain the DCR interface clock to an example frequency of 100 MHz
+# Changed NET name
+# NET "DCREMACCLK" TNM_NET = "host_clock";
+NET "*/SPLB_Clk" TNM_NET = "host_clock";
+TIMEGRP "clk_host" = "host_clock";
+TIMESPEC "TS_clk_host" = PERIOD "clk_host" 10 ns HIGH 50 %;
+
+###############################################################################
+# PHYSICAL INTERFACE CONSTRAINTS
+# The following constraints are necessary for proper operation, and are tuned
+# for this example design. They should be modified to suit your design.
+###############################################################################
+
+# GMII physical interface constraints
+# -----------------------------------------------------------------------------
+
+# Set the IDELAY values on the PHY inputs, tuned for this example design.
+# These values should be modified to suit your design.
+INST "*gmii*ideldv"    IDELAY_VALUE = 30; 
+INST "*gmii*ideld0"    IDELAY_VALUE = 25; 
+INST "*gmii*ideld1"    IDELAY_VALUE = 31; 
+INST "*gmii*ideld2"    IDELAY_VALUE = 31; 
+INST "*gmii*ideld3"    IDELAY_VALUE = 27; 
+INST "*gmii*ideld4"    IDELAY_VALUE = 29; 
+INST "*gmii*ideld5"    IDELAY_VALUE = 31; 
+INST "*gmii*ideld6"    IDELAY_VALUE = 31; 
+INST "*gmii*ideld7"    IDELAY_VALUE = 31; 
+INST "*gmii*ideler"    IDELAY_VALUE = 22; 
+
+#  This signal trace is longer than the clock trace, and arrives at the FPGA pin ~65 ps after the clock
+#  Therefore the offset in constraint must have less setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[0] OFFSET = IN 2.435 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~375 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[1] OFFSET = IN 2.875 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~372 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[2] OFFSET = IN 2.872 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~115 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[3] OFFSET = IN 2.615 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~244 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[4] OFFSET = IN 2.744 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~404 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[5] OFFSET = IN 2.904 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~498 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[6] OFFSET = IN 2.998 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~485 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RXD_0_pin[7] OFFSET = IN 2.985 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is shorter than the clock trace, and arrives at the FPGA pin ~291 ps before the clock
+#  Therefore the offset in constraint must have more setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RX_DV_0_pin  OFFSET = IN 2.791 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+#  This signal trace is longer than the clock trace, and arrives at the FPGA pin ~308 ps after the clock
+#  Therefore the offset in constraint must have less setup time than nominal
+NET fpga_0_Hard_Ethernet_MAC_GMII_RX_ER_0_pin  OFFSET = IN 2.192 ns VALID 3 ns BEFORE "fpga_0_Hard_Ethernet_MAC_GMII_RX_CLK_0_pin";
+
+# Constrain the GMII physical interface flip-flops to IOBs
+# Changed from 'true' to 'force'
+INST "*gmii?RXD_TO_MAC*"  IOB = force;
+INST "*gmii?RX_DV_TO_MAC" IOB = force;
+INST "*gmii?RX_ER_TO_MAC" IOB = force;
+INST "*gmii?GMII_TXD_?"   IOB = force;
+INST "*gmii?GMII_TX_EN"   IOB = force;
+INST "*gmii?GMII_TX_ER"   IOB = force;                                        
+
+TIMESPEC "TS_LL_CLK0_2_RX_CLIENT_CLK0"  = FROM LLCLK0 TO phy_clk_rx  8000 ps DATAPATHONLY; #constant value based on Ethernet clock
+TIMESPEC "TS_LL_CLK0_2_TX_CLIENT_CLK0"  = FROM LLCLK0 TO ref_mux_clk 8000 ps DATAPATHONLY; #constant value based on Ethernet clock
+TIMESPEC "TS_RX_CLIENT_CLK0_2_LL_CLK0"  = FROM phy_clk_rx  TO LLCLK0 10000 ps DATAPATHONLY; #varies based on period of LocalLink clock
+TIMESPEC "TS_TX_CLIENT_CLK0_2_LL_CLK0"  = FROM ref_mux_clk TO LLCLK0 10000 ps DATAPATHONLY; #varies based on period of LocalLink clock

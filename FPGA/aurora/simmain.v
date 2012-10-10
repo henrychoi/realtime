@@ -1,6 +1,7 @@
 `timescale 1 ns / 1 ps
 
 module EXAMPLE_TB;
+`include "function.v"
 //*************************Parameter Declarations**************************
   //125.0MHz GTX Reference clock 
   localparam CLOCKPERIOD_1 = 8.0, CLOCKPERIOD_2 = 8.0
@@ -36,10 +37,10 @@ module EXAMPLE_TB;
   assign glbl.GTS = gts_r;
 
   initial begin
-    gts_r = 1'b0;        
-    gsr_r = 1'b1;
+    gts_r = `FALSE;
+    gsr_r = `TRUE;
     #(16*CLOCKPERIOD_1);
-    gsr_r = 1'b0;
+    gsr_r = `FALSE;
   end
 `endif
 
@@ -54,10 +55,12 @@ module EXAMPLE_TB;
 
   //____________________________Resets____________________________    
   initial begin
-    reset_i = 1'b1;
-    #200 reset_i = 1'b0;
+    reset_i = `FALSE;
+    #100 reset_i = `TRUE;
+    #100 reset_i = `FALSE;
   end
 
+  wire[7:0] GPIO_LED1, GPIO_LED2;
   main example_design_1_i(.sys_rst(reset_i)
     , .board_clk_p(reference_clk_1_p_r), .board_clk_n(reference_clk_1_n_r)
     , .GPIO_LED(GPIO_LED1)
