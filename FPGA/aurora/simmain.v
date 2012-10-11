@@ -64,14 +64,14 @@ module EXAMPLE_TB;
   main example_design_1_i(.sys_rst(reset_i)
     , .board_clk_p(reference_clk_1_p_r), .board_clk_n(reference_clk_1_n_r)
     , .GPIO_LED(GPIO_LED1)
-    , .GTXQ0_P(reference_clk_1_p_r), .GTXQ0_N(reference_clk_1_n_r)
+    , .GTXQ4_P(reference_clk_1_p_r), .GTXQ4_N(reference_clk_1_n_r)
     , .RXP(rxp_1_i), .RXN(rxn_1_i), .TXP(txp_1_i), .TXN(txn_1_i)
   );
 
   main example_design_2_i(.sys_rst(reset_i)
     , .board_clk_p(reference_clk_2_p_r), .board_clk_n(reference_clk_2_n_r)
     , .GPIO_LED(GPIO_LED2)
-    , .GTXQ0_P(reference_clk_2_p_r), .GTXQ0_N(reference_clk_2_n_r)
+    , .GTXQ4_P(reference_clk_2_p_r), .GTXQ4_N(reference_clk_2_n_r)
     , .RXP(rxp_2_i), .RXN(rxn_2_i), .TXP(txp_2_i), .TXN(txn_2_i)
   );
 endmodule

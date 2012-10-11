@@ -13,10 +13,10 @@
      </initial_glyph>
     </initial>
     <state name="UP">
-     <tran trig="!CHANNEL_UP || RX_D != expected_data" target="../../2">
+     <tran trig="!CHANNEL_UP || HARD_ERR || RX_D != expected_data" target="../../2">
       <action brief="TX_SRC_RDY_N = 1"/>
       <tran_glyph conn="60,12,1,3,14">
-       <action box="1,-6,15,6"/>
+       <action box="1,-5,15,7"/>
       </tran_glyph>
      </tran>
      <tran trig="!RX_SRC_RDY_N">

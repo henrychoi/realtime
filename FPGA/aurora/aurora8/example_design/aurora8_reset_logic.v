@@ -74,7 +74,7 @@ module aurora8_RESET_LOGIC(
 `endif//POOR_IMPLEMENTATION
 
   localparam NO = 0, YES = 1, WAIT = 2, N_STATE = 3
-    , N_MIN_GTX_RESET = 8;
+    , N_MIN_GTX_RESET = 20;
   reg[log2(N_STATE)-1:0] state;
   reg[log2(N_MIN_GTX_RESET)-1:0] ctr;
 

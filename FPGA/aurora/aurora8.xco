@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Tue Oct 09 14:17:23 2012
+# Date: Thu Oct 11 01:44:05 2012
 #
 ##############################################################
 #
@@ -42,9 +42,9 @@ SELECT Aurora_8B10B xilinx.com:ip:aurora_8b10b:5.3
 CSET backchannel_mode=Sidebands
 CSET c_aurora_lanes=3
 CSET c_column_used=left
-CSET c_gt_clock_1=GTXQ0
+CSET c_gt_clock_1=GTXQ4
 CSET c_gt_clock_2=None
-CSET c_gt_loc_1=1
+CSET c_gt_loc_1=X
 CSET c_gt_loc_10=X
 CSET c_gt_loc_11=X
 CSET c_gt_loc_12=X
@@ -52,10 +52,10 @@ CSET c_gt_loc_13=X
 CSET c_gt_loc_14=X
 CSET c_gt_loc_15=X
 CSET c_gt_loc_16=X
-CSET c_gt_loc_17=X
-CSET c_gt_loc_18=X
-CSET c_gt_loc_19=X
-CSET c_gt_loc_2=2
+CSET c_gt_loc_17=1
+CSET c_gt_loc_18=2
+CSET c_gt_loc_19=3
+CSET c_gt_loc_2=X
 CSET c_gt_loc_20=X
 CSET c_gt_loc_21=X
 CSET c_gt_loc_22=X
@@ -66,7 +66,7 @@ CSET c_gt_loc_26=X
 CSET c_gt_loc_27=X
 CSET c_gt_loc_28=X
 CSET c_gt_loc_29=X
-CSET c_gt_loc_3=3
+CSET c_gt_loc_3=X
 CSET c_gt_loc_30=X
 CSET c_gt_loc_31=X
 CSET c_gt_loc_32=X
@@ -106,4 +106,4 @@ CSET interface_mode=Streaming
 MISC pkg_timestamp=2011-06-01T09:31:53Z
 # END Extra information
 GENERATE
-# CRC: 2f2c9277
+# CRC: 68fa9bf9
