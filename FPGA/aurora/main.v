@@ -76,7 +76,7 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
   // System Interface
   assign  tied_to_gnd_vec_i   =   {DATA_WIDTH{`FALSE}};
   assign  power_down_i        =   1'b0;
-  assign  loopback_i          =   3'b000;
+  assign loopback_i = 3'b001;//000;
 
   //____________________________GT Ports_______________________________
   assign  rxeqmix_in_i  =  3'b111;
@@ -119,7 +119,7 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
         .LOOPBACK(loopback_i),
         .GT_RESET(gt_reset_i),
         .TX_LOCK(tx_lock_i),
-        .INIT_CLK_IN(init_clk_i),
+        .INIT_CLK_IN(init_clk_i),//1Gbit line rate design has this, but 4Gbit doesn't?
         .RXEQMIX_IN(rxeqmix_in_i),
         .DADDR_IN  (daddr_in_i),
         .DCLK_IN   (dclk_in_i),
