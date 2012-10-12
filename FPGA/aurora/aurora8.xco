@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Fri Oct 12 02:48:34 2012
+# Date: Fri Oct 12 18:49:05 2012
 #
 ##############################################################
 #
@@ -93,7 +93,7 @@ CSET c_gt_loc_7=X
 CSET c_gt_loc_8=X
 CSET c_gt_loc_9=X
 CSET c_lane_width=2
-CSET c_line_rate=4
+CSET c_line_rate=1
 CSET c_refclk_frequency=125.000
 CSET c_row_used=None
 CSET c_use_chipscope=false
@@ -106,4 +106,4 @@ CSET interface_mode=Streaming
 MISC pkg_timestamp=2011-06-01T09:31:53Z
 # END Extra information
 GENERATE
-# CRC: 5abf29ec
+# CRC: 14b44d40

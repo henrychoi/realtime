@@ -5,7 +5,7 @@ module aurora8_RESET_LOGIC(
   // User I/O
   input RESET, USER_CLK, INIT_CLK_P, INIT_CLK_N//, GT_RESET_IN;
   , input TX_LOCK_IN, PLL_NOT_LOCKED,
-  output SYSTEM_RESET, output reg GT_RESET_OUT);
+  output SYSTEM_RESET, INIT_CLK_O, output reg GT_RESET_OUT);
 `include "function.v"
 `define DLY #1
 //**************************Internal Register Declarations****************************
@@ -50,31 +50,10 @@ module aurora8_RESET_LOGIC(
    .O(init_clk_i)
   );
 
-  // According to http://forums.xilinx.com/t5/Connectivity/Utilizing-aurora-core-in-ML605/m-p/143786#M2244
-  // "the INIT_CLK needs to be half the REF_CLK frequency or less to permit
-  // the Aurora logic to initialise properly."
-`ifdef POOR_IMPLEMENTATION
-  localparam RESET_DELAY = 20;
-  reg[RESET_DELAY:0] reset_d;
-  reg skip;
-  // Debounce the GT_RESET_IN signal using the INIT_CLK
-  always @(posedge init_clk_i) begin
-    reset_d <= RESET;
-    reset_d[RESET_DELAY:1] <= reset_d[RESET_DELAY-1:0];
-
-    if(RESET) begin
-      skip <= `TRUE;
-      //reset_d <= 0;
-      debounce_gt_rst_r <= 0;
-    end else begin
-      skip <= ~skip;
-      if(!skip) debounce_gt_rst_r <= {reset_d[RESET_DELAY], debounce_gt_rst_r[0:2]};
-    end  
-  end
-`endif//POOR_IMPLEMENTATION
-
+  assign INIT_CLK_O = init_clk_i;
+  
   localparam NO = 0, YES = 1, WAIT = 2, N_STATE = 3
-    , N_MIN_GTX_RESET = 20;
+    , N_MIN_GTX_RESET = 10;
   reg[log2(N_STATE)-1:0] state;
   reg[log2(N_MIN_GTX_RESET)-1:0] ctr;
 

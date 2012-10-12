@@ -6,14 +6,13 @@ TIMESPEC TS_GTXQ4_LEFT_I = PERIOD GT_REFCLK 125.0 MHz HIGH 50%;
 # User Clock Constraint: Value is selected based on the line rate (4.0 Gbps)
 # and lane width (2-Byte)
 NET user_clk_i TNM_NET = USER_CLK;
-TIMESPEC TS_USER_CLK_I = PERIOD USER_CLK 200.0 MHz HIGH 50%;
-#TIMESPEC TS_USER_CLK_I = PERIOD USER_CLK 5.0 ns HIGH 50%;
+TIMESPEC TS_USER_CLK_I = PERIOD USER_CLK 50 MHz HIGH 50%;#200.0
 
 NET GTXQ4_P LOC=H6;#On ML605, these are connected to the Ethernet SGMII clock
 NET GTXQ4_N LOC=H5;
 
 # IBUFDS output from 200 MHz board Clock Constraint
-NET "reset_logic_i/init_clk_i" TNM_NET = INIT_CLK;
+NET init_clk_i TNM_NET = INIT_CLK;#reset_logic_i/init_clk_i
 TIMESPEC TS_INIT_CLK = PERIOD INIT_CLK 5 ns HIGH 50%;
 
 ###### No cross clock domain analysis. Domains are not related ############## 

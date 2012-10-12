@@ -35,32 +35,19 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
     wire               power_down_i;
     wire    [2:0]      loopback_i;
     wire               tx_lock_i;
+    wire               init_clk_i;
     wire    [2:0]     rxeqmix_in_i;
-    wire    [2:0]     rxeqmix_in_lane1_i;
-    wire    [2:0]     rxeqmix_in_lane2_i;
     wire    [7:0]     daddr_in_i;
     wire              dclk_in_i;
     wire              den_in_i;
-    wire[LANE_WIDTH-1:0]    di_in_i;
+    wire    [15:0]    di_in_i;
     wire              drdy_out_unused_i;
-    wire[LANE_WIDTH-1:0]    drpdo_out_unused_i;
+    wire    [15:0]    drpdo_out_unused_i;
     wire              dwe_in_i;
-    wire[7:0]     daddr_in_LANE1_i;
-    wire              dclk_in_LANE1_i;
-    wire              den_in_LANE1_i;
-    wire[LANE_WIDTH-1:0]    di_in_LANE1_i;
-    wire              drdy_out_LANE1_unused_i;
-    wire[LANE_WIDTH-1:0]    drpdo_out_LANE1_unused_i;
-    wire              dwe_in_LANE1_i;
-    wire    [7:0]     daddr_in_LANE2_i;
-    wire              dclk_in_LANE2_i;
-    wire              den_in_LANE2_i;
-    wire[LANE_WIDTH-1:0]    di_in_LANE2_i;
-    wire              drdy_out_LANE2_unused_i;
-    wire[LANE_WIDTH-1:0]    drpdo_out_LANE2_unused_i;
-    wire              dwe_in_LANE2_i;
+
     wire               tx_out_clk_i;
-    wire               gt_reset_i; 
+
+    wire               gt_reset_i;
     wire               system_reset_i;
     //Frame check signals
     wire        lane_up_i_i;
@@ -132,6 +119,7 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
         .LOOPBACK(loopback_i),
         .GT_RESET(gt_reset_i),
         .TX_LOCK(tx_lock_i),
+        .INIT_CLK_IN(init_clk_i),
         .RXEQMIX_IN(rxeqmix_in_i),
         .DADDR_IN  (daddr_in_i),
         .DCLK_IN   (dclk_in_i),
@@ -157,11 +145,11 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
     (
         .RESET(sys_rst),
         .USER_CLK(user_clk_i),
-        .INIT_CLK_P(board_clk_p),
-        .INIT_CLK_N(board_clk_n),
+        .INIT_CLK_P(board_clk_p), .INIT_CLK_N(board_clk_n),
         //.GT_RESET_IN(GT_RESET_IN),
         .TX_LOCK_IN(tx_lock_i),
         .PLL_NOT_LOCKED(pll_not_locked_i),
+        .INIT_CLK_O(init_clk_i),
         .SYSTEM_RESET(system_reset_i),
         .GT_RESET_OUT(gt_reset_i)
     );
@@ -173,7 +161,7 @@ module main#(parameter USE_CHIPSCOPE = 0, SIM_GTXRESET_SPEEDUP = 1
       app(.TX_D(tx_d_i), .TX_SRC_RDY_N(tx_src_rdy_n_i)
       , .TX_DST_RDY_N(tx_dst_rdy_n_i)
       , .RX_D(rx_d_i), .RX_SRC_RDY_N(rx_src_rdy_n_i)
-      , .USER_CLK(user_clk_i), .RESET(reset_i)
+      , .USER_CLK(user_clk_i), .RESET(reset_i), .GT_RESET(gt_reset_i)
       , .CHANNEL_UP(channel_up_i), .LANE_UP(lane_up_i)
       , .HARD_ERR(hard_err_i), .SOFT_ERR(soft_err_i)
       , .GPIO_LED(GPIO_LED)
