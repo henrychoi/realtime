@@ -25,7 +25,8 @@ TIMESPEC TS_TIG1 = FROM INIT_CLK TO USER_CLK TIG;
 #either connect to a switch on board or to an internal reset signal.
 #NET GT_RESET_IN     LOC=F31;   #BUTTON
 
-############################### GT Location ##################################
-INST aurora_module_i/gtx_wrapper_i/GTXE1_INST/gtxe1_i       LOC=GTXE1_X0Y16;
-INST aurora_module_i/gtx_wrapper_i/GTXE1_INST_LANE1/gtxe1_i LOC=GTXE1_X0Y17;
-INST aurora_module_i/gtx_wrapper_i/GTXE1_INST_LANE2/gtxe1_i LOC=GTXE1_X0Y18;
+#GT Location: is this enough, or do I have to explicitly locate the TX and RX?
+# input[0:N_LANE] RXP/RXN  @ D5/D6, output[0:N_LANE] TXP/TXN @ B1/B2?
+INST aurora_module_i/gtx_wrapper_i/GTXE1_INST/gtxe1_i LOC=GTXE1_X0Y18;#16;
+#INST aurora_module_i/gtx_wrapper_i/GTXE1_INST_LANE1/gtxe1_i LOC=GTXE1_X0Y17;
+#INST aurora_module_i/gtx_wrapper_i/GTXE1_INST_LANE2/gtxe1_i LOC=GTXE1_X0Y18;
