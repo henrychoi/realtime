@@ -1,80 +1,89 @@
+`timescale 500 ps / 500 ps
 module main(input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED);
 `include "function.v"
+  localparam DELAY = 3;
   wire CLK;
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
   
-  localparam BRAM_READ_LATENCY = 3;
-  reg[log2(BRAM_READ_LATENCY):0] bram_ptr;
+  localparam BRAM_LATENCY = 5;
+  reg[log2(BRAM_LATENCY)-1:0] bram_ptr;
 
   localparam BRAM_ADDR_SIZE = 11, BRAM_DATA_SIZE = 21;
   reg [BRAM_DATA_SIZE-1:0] din, expected_data;
-  wire[BRAM_DATA_SIZE-1:0] dout[BRAM_READ_LATENCY-1:0];
+  wire[BRAM_DATA_SIZE-1:0] dout[BRAM_LATENCY-1:0];
   
-  reg [BRAM_ADDR_SIZE-1:0] qhead[BRAM_READ_LATENCY-1:0]
-                         , qtail[BRAM_READ_LATENCY-1:0];
-  wire[BRAM_ADDR_SIZE-1:0] qhead_plus1[BRAM_READ_LATENCY-1:0];
-  wire qfull[BRAM_READ_LATENCY-1:0]
-     , qempty[BRAM_READ_LATENCY-1:0]
-     , wren[BRAM_READ_LATENCY-1:0];
+  reg [BRAM_ADDR_SIZE-1:0] qhead[BRAM_LATENCY-1:0]
+                         , qtail[BRAM_LATENCY-1:0];
+  wire[BRAM_ADDR_SIZE-1:0] qhead_plus1[BRAM_LATENCY-1:0];
+  wire qfull[BRAM_LATENCY-1:0]
+     , qempty[BRAM_LATENCY-1:0]
+     , wren[BRAM_LATENCY-1:0];
 
-  localparam WAIT = 0, OK = 1, ERROR = 2, N_STATE = 3;
-  reg[log2(N_STATE)-1:0] state;
-  
+  localparam INIT = 0, OK = 1, ERROR = 2, N_STATE = 3;
+  reg [log2(N_STATE)-1:0] state;
+  reg bwrite;
   reg [23:0] hb_ctr;
   assign GPIO_LED = hb_ctr[23-:8];
   
   genvar geni;
   generate  
-    for(geni=0; geni < BRAM_READ_LATENCY; geni=geni+1) begin
+    for(geni=0; geni < BRAM_LATENCY; geni=geni+1) begin
+      bram21 bram(.clka(CLK), .wea(wren[geni]), .addra(qhead[geni]), .dina(din)
+                , .clkb(CLK), .addrb(qtail[geni]), .doutb(dout[geni])
+                , .sbiterr(), .dbiterr(), .rdaddrecc());
       assign qhead_plus1[geni] = qhead[geni] + `TRUE;
       assign qfull[geni] = qhead_plus1[geni] == qtail[geni];
       assign qempty[geni] = qhead[geni] == qtail[geni];  
-      assign wren[geni] = !RESET && !qfull[geni];
+      assign wren[geni] = bwrite && !qfull[geni] && bram_ptr == geni;
     end
   endgenerate
   
   integer i;
   always @(posedge CLK)
     if(RESET) begin
-      expected_data <= 0;
-      bram_ptr <= 0;
-      for(i=0; i < BRAM_READ_LATENCY; i=i+1) begin
-        qhead[i] <= 0;
-        qtail[i] <= 0;
+      expected_data <= #DELAY 0;
+      bram_ptr <= #DELAY 0; //BRAM_LATENCY - `TRUE;
+      for(i=0; i < BRAM_LATENCY; i=i+1) begin
+        qhead[i] <= #DELAY 0;
+        qtail[i] <= #DELAY 0;
       end//for
-      din <= 0;
-      state <= WAIT;
-      hb_ctr <= 0;
+      din <= #DELAY 0;
+      //hb_ctr <= #DELAY 0;
+      bwrite <= #DELAY `TRUE;
+      state <= #DELAY INIT;
+      //$display("%d ns: bram_ptr %d, din %d", $time, bram_ptr, din);
     end else begin
       case(state)
-        WAIT: begin
-          if(bram_ptr == BRAM_READ_LATENCY)
-            state <= OK;//bram_ptr will be 0 in the next clk
-          din <= din + `TRUE;
-          qhead[bram_ptr] <= qhead[bram_ptr] + `TRUE;
-          bram_ptr <= bram_ptr +`TRUE;
+        INIT: begin
+          //$display("%d ns: bram_ptr %d, din %d", $time, bram_ptr, din);
+          bram_ptr <= #DELAY bram_ptr +`TRUE;
+          din <= #DELAY din + `TRUE;
+          qhead[bram_ptr] <= #DELAY qhead[bram_ptr] + `TRUE;
+          if(bram_ptr == (BRAM_LATENCY-1)) begin
+            bram_ptr <= #DELAY 0;
+            //bwrite <= #DELAY `FALSE;
+            state <= #DELAY OK;
+          end
         end
         OK: begin
-          bram_ptr <= bram_ptr - `TRUE;
-          if(!qfull) begin
-            din <= din + `TRUE;
-            qhead <= qhead + `TRUE;
-          end
-          if(!bram_ptr && !qempty) begin
-            bram_ptr <= BRAM_READ_LATENCY;
-            if(dout == expected_data) begin
-              qtail <= qtail + `TRUE;
-              expected_data <= expected_data + `TRUE;
-              hb_ctr <= hb_ctr + `TRUE;
-            end else state <= ERROR;
+          bram_ptr <= #DELAY bram_ptr + `TRUE;
+          if(bram_ptr == (BRAM_LATENCY-1)) bram_ptr <= #DELAY 0;
+          if(qfull[bram_ptr]) begin //should not fill up; something's wrong
+            state <= #DELAY ERROR;
+          end else begin
+            din <= #DELAY din + `TRUE;
+            qhead[bram_ptr] <= #DELAY qhead[bram_ptr] + `TRUE;
+            if(!qempty[bram_ptr]) begin
+              if(dout[bram_ptr] == expected_data) begin
+                qtail[bram_ptr] <= #DELAY qtail[bram_ptr] + `TRUE;
+                expected_data <= #DELAY expected_data + `TRUE;
+                hb_ctr <= #DELAY hb_ctr + `TRUE;
+              end else state <= #DELAY ERROR;
+            end
           end
         end
         default: begin
         end
       endcase
     end
-  
-  bram21 bram(.clka(CLK), .wea(wren), .addra(qhead), .dina(din)
-            , .clkb(CLK), .addrb(qtail), .doutb(dout)
-            , .sbiterr(), .dbiterr(), .rdaddrecc());
 endmodule

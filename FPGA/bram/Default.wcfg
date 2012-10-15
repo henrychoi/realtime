@@ -10,56 +10,60 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="11" />
-   <wvobject fp_name="/simmain/main/RESET" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">RESET</obj_property>
-      <obj_property name="ObjectShortName">RESET</obj_property>
-   </wvobject>
+   <WVObjectSize size="12" />
    <wvobject fp_name="/simmain/main/CLK" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/qfull" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">qfull</obj_property>
-      <obj_property name="ObjectShortName">qfull</obj_property>
+   <wvobject fp_name="/simmain/main/bwrite" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">bwrite</obj_property>
+      <obj_property name="ObjectShortName">bwrite</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/qempty" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">qempty</obj_property>
-      <obj_property name="ObjectShortName">qempty</obj_property>
+   <wvobject fp_name="/simmain/main/bram_ptr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">bram_ptr[2:0]</obj_property>
+      <obj_property name="ObjectShortName">bram_ptr[2:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/wren" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wren[4:0]</obj_property>
+      <obj_property name="ObjectShortName">wren[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/qhead" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">qhead[4:0,10:0]</obj_property>
+      <obj_property name="ObjectShortName">qhead[4:0,10:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/qfull" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">qfull[4:0]</obj_property>
+      <obj_property name="ObjectShortName">qfull[4:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/qempty" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">qempty[4:0]</obj_property>
+      <obj_property name="ObjectShortName">qempty[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/din" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">din[20:0]</obj_property>
       <obj_property name="ObjectShortName">din[20:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/qhead" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">qhead[10:0]</obj_property>
-      <obj_property name="ObjectShortName">qhead[10:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
    <wvobject fp_name="/simmain/main/qtail" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">qtail[10:0]</obj_property>
-      <obj_property name="ObjectShortName">qtail[10:0]</obj_property>
+      <obj_property name="ElementShortName">qtail[4:0,10:0]</obj_property>
+      <obj_property name="ObjectShortName">qtail[4:0,10:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/dout" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">dout[20:0]</obj_property>
-      <obj_property name="ObjectShortName">dout[20:0]</obj_property>
+      <obj_property name="ElementShortName">dout[4:0,20:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[4:0,20:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/state" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">state[0:0]</obj_property>
-      <obj_property name="ObjectShortName">state[0:0]</obj_property>
+      <obj_property name="ElementShortName">state[1:0]</obj_property>
+      <obj_property name="ObjectShortName">state[1:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/expected_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">expected_data[20:0]</obj_property>
       <obj_property name="ObjectShortName">expected_data[20:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/delay_ctr" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">delay_ctr[2:0]</obj_property>
-      <obj_property name="ObjectShortName">delay_ctr[2:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 </wave_config>

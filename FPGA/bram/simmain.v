@@ -1,5 +1,4 @@
-`timescale 1 ns / 1 ps
-
+`timescale 500 ps / 500 ps
 module simmain;
 `include "function.v"
   wire[7:0] GPIO_LED;
@@ -9,12 +8,12 @@ module simmain;
   initial begin
     CLK <= `FALSE;
     RESET = `FALSE;
-#10 RESET = `TRUE;
-#40 RESET = `FALSE;
+#5 RESET = `TRUE;
+#5 RESET = `FALSE;
   end
   
   assign CLK_N = ~CLK;
-  always #2.5 CLK <= ~CLK;  
+  always #5 CLK <= ~CLK;  
   
   main main(.RESET(RESET), .CLK_P(CLK), .CLK_N(CLK_N), .GPIO_LED(GPIO_LED));
 endmodule
