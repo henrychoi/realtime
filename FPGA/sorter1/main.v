@@ -26,15 +26,17 @@ module main#(SIMULATION=0)
   assign fifo_wr = pll_locked && ready_r[1];
   generate
     if(SIMULATION)
-      aurora_fifo_bram fifo(.wr_clk(clk_200), .rd_clk(clk_240)
-        , .din({random, random}), .wr_en(fifo_wr), .full(fifo_full)
-        , .rd_en(patch_ack), .dout({patch_num, wtsum})
-        , .empty(fifo_empty), .sbiterr(), .dbiterr());
+      aurora_fifo_bram
+        fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
+           , .din({random, random}), .wr_en(fifo_wr), .full(fifo_full)
+           , .rd_en(patch_ack), .dout({patch_num, wtsum}), .empty(fifo_empty)
+           , .valid(fifo_valid), .sbiterr(), .dbiterr());
     else
-      aurora_fifo fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
-        , .din({random, random}), .wr_en(fifo_wr), .full(fifo_full)
-        , .rd_en(patch_ack), .dout({patch_num, wtsum})
-        , .empty(fifo_empty), .sbiterr(), .dbiterr());
+      aurora_fifo
+        fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
+           , .din({random, random}), .wr_en(fifo_wr), .full(fifo_full)
+           , .rd_en(patch_ack), .dout({patch_num, wtsum}), .empty(fifo_empty)
+           , .sbiterr(), .dbiterr());
   endgenerate
 
   application#(.DELAY(DELAY), .N_PATCH(N_PATCH), .FP_SIZE(FP_SIZE))

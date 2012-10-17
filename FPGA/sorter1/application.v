@@ -20,6 +20,7 @@ module application#(parameter DELAY=1, N_PATCH=1, FP_SIZE=1)
   localparam INIT = 0, READY = 1, ERROR = 2, N_STATE = 3;
   reg [log2(N_STATE)-1:0] state;
   assign ready = state == READY;
+  assign patch_ack = `TRUE;
 
   reg [23:0] hb_ctr;
   assign GPIO_LED = {7'd0, hb_ctr[23]};
