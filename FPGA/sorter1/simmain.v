@@ -15,5 +15,6 @@ module simmain;
   assign CLK_N = ~CLK;
   always #25 CLK <= ~CLK;  
   
-  main main(.RESET(RESET), .CLK_P(CLK), .CLK_N(CLK_N), .GPIO_LED(GPIO_LED));
+  main#(.SIMULATION(1))
+    main(.RESET(RESET), .CLK_P(CLK), .CLK_N(CLK_N), .GPIO_LED(GPIO_LED));
 endmodule
