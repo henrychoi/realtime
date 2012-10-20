@@ -7,9 +7,8 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
     , BRAM_END_ADDR = {BRAM_ADDR_SIZE{`TRUE}}
     , N_BRAM = 2**(log2(SYNC_WINDOW) - BRAM_ADDR_SIZE);
   reg [log2(SYNC_WINDOW)-1:0] patch0_loc, wait4patch_loc;
-  assign patch_loc = patch_num[log2(SYNC_WINDOW)-1:0] - patch0_loc;
-
   wire[log2(SYNC_WINDOW)-1:0] patch_loc;
+  assign patch_loc = patch_num[log2(SYNC_WINDOW)-1:0] - patch0_loc;
 
   reg [log2(N_PATCH)-1:0] wait4patch;//The patch num to be completed
   wire[log2(N_PATCH)-1:0] wait4patch_plus_sync_window;
@@ -66,7 +65,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
       wr_addr <= #DELAY 0;
       patch0_loc <= #DELAY 0;
       wait4patch_loc <= #DELAY 0;
-      for(i=0; i < N_BRAM; i=i+1) wren[i] <= #DELAY `TRUE;
+      wren <= #DELAY {N_BRAM{`TRUE}};
       wait4patch <= #DELAY 0;
       sync_valid <= #DELAY `TRUE;
       state <= #DELAY INIT;
@@ -76,7 +75,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
         INIT: begin // Write the starting valid bit to BRAM
           wr_addr <= #DELAY wr_addr + `TRUE;
           if(wr_addr == BRAM_END_ADDR) begin
-            for(i=0; i < N_BRAM; i=i+1) wren[i] <= #DELAY `FALSE;
+            wren <= #DELAY 0;
             state <= #DELAY READY;
           end
         end
@@ -87,9 +86,10 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
           else begin
             for(i=0; i < N_BRAM; i=i+1)
               wren[i] <= #DELAY patch_val && i == patch_loc[0+:log2(N_BRAM)];
-
+              
+            // Pick off the MSB of the patch_loc
             wr_addr <= #DELAY patch_loc[log2(SYNC_WINDOW)-1:log2(N_BRAM)];
-            wr_have_bit <= #DELAY patch_loc >= wait4patch
+            wr_have_bit <= #DELAY patch_loc >= wait4patch_loc
               ? have_bit : ~have_bit;
 
             sync_valid <= #DELAY wait4patch_done;
@@ -99,9 +99,9 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
               wait4patch <= #DELAY wait4patch + `TRUE;
               wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
               sync_wtsum <= #DELAY dout[wait4patch_col];
-              
-              if(wait4patch_loc == SYNC_WINDOW)//Rolling over
-                have_bit <= #DELAY ~have_bit;
+
+              //Rolling over
+              if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;
 
               $display("%d wait4patch: %d, sync_wtsum: %d, have_bit: %d"
               , $time, wait4patch, dout[wait4patch_col], have_bit);
@@ -110,6 +110,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
         end
         default: begin
           sync_valid <= #DELAY `TRUE;
+          wren <= #DELAY 0;
         end
       endcase
     end

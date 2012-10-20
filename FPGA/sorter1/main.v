@@ -18,26 +18,29 @@ module main#(parameter SIMULATION=0, DELAY=1)
     , SYNC_WINDOW = 2**13//I can handle up to this may out-of-order patches
     , FP_SIZE = 20;
   reg [log2(N_PATCH)-log2(SYNC_WINDOW):0] n_loop;
-  reg [log2(SYNC_WINDOW)-2:0] random, ctr;
-  wire[log2(N_PATCH)-1:0] patch_num;
+  reg [log2(SYNC_WINDOW)-2:0] ctr, random; 
+  reg [log2(N_PATCH)-1:0] random_offset; 
+  wire[log2(N_PATCH)-1:0] random_patch_num, patch_num;
   wire[FP_SIZE-1:0] wtsum;
   wire app_rdy;
   reg[1:0] ready_r; //To cross the clock domain
   wire fifo_full, fifo_empty, patch_ack, fifo_wr;
 
+  assign random_patch_num = random + random_offset;
   assign fifo_wr = pll_locked && ready_r[1];
+  
   generate
     if(SIMULATION)
       aurora_fifo_bram
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
-           , .din({n_loop, random, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+           , .din({random_patch_num, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
            , .wr_en(fifo_wr), .full(fifo_full)
            , .rd_en(patch_ack), .dout({patch_num, wtsum})
            , .empty(fifo_empty), .sbiterr(), .dbiterr());
     else
       aurora_fifo
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
-           , .din({n_loop, random, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+           , .din({random_patch_num, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
            , .wr_en(fifo_wr), .full(fifo_full)
            , .rd_en(patch_ack), .dout({patch_num, wtsum})
            , .empty(fifo_empty), .sbiterr(), .dbiterr());
@@ -53,6 +56,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
     if(!pll_locked) begin
       ctr <= #DELAY 0;
       random <= #DELAY 0; //Seed value for LFSR
+      random_offset <= #DELAY 0;
       ready_r <= #DELAY 2'b00;
       n_loop <= #DELAY 0;
     end else begin
@@ -64,10 +68,15 @@ module main#(parameter SIMULATION=0, DELAY=1)
         random <= #DELAY {random[10:0]
           , !(random[11] ^ random[10] ^ random[9] ^ random[3])};
         //$display("%d ctr: %d, random: %d", $time, ctr, random);
-        if(random == 'd2048) n_loop <= #DELAY n_loop + `TRUE;
+        if(random == 'd2048) begin //The last random number
+          n_loop <= #DELAY n_loop + `TRUE;
+          random_offset <= #DELAY random_offset + 'd4095;
+          ctr <= #DELAY 0;
+        end
       end else begin
         ctr <= #DELAY 0;
         random <= #DELAY 0;
+        random_offset <= #DELAY 0;
         n_loop <= #DELAY 0;
       end
     end
