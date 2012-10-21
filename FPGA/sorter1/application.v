@@ -3,12 +3,14 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
 , input patch_val, input[log2(N_PATCH)-1:0] patch_num
 , input[FP_SIZE-1:0] wtsum);
 `include "function.v"
+  wire not_patch = &patch_num;
+
   localparam BRAM_ADDR_SIZE = 10, BRAM_DATA_SIZE = FP_SIZE
     , BRAM_END_ADDR = {BRAM_ADDR_SIZE{`TRUE}}
     , N_BRAM = 2**(log2(SYNC_WINDOW) - BRAM_ADDR_SIZE);
   reg [log2(SYNC_WINDOW)-1:0] patch0_loc, wait4patch_loc;
   wire[log2(SYNC_WINDOW)-1:0] patch_loc;
-  assign patch_loc = patch_num[log2(SYNC_WINDOW)-1:0] - patch0_loc;
+  assign patch_loc = patch_num[log2(SYNC_WINDOW)-1:0] + patch0_loc;
 
   reg [log2(N_PATCH)-1:0] wait4patch;//The patch num to be completed
   wire[log2(N_PATCH)-1:0] wait4patch_plus_sync_window;
@@ -34,9 +36,9 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
   wire[BRAM_ADDR_SIZE-1:0] rd_addr[N_BRAM-1:0];
   wire[N_BRAM-1:0] vout, have_patch;
 
-  localparam INIT = 0, READY = 1, ERROR = 2, N_STATE = 3;
+  localparam INIT = 0, SOF_WAIT = 1, INTERFRAME = 2, ERROR = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
-  assign ready = state == READY;
+  assign ready = state == SOF_WAIT || state == INTERFRAME;
   assign patch_ack = ready;
 
   reg [23:0] hb_ctr;
@@ -76,12 +78,29 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
           wr_addr <= #DELAY wr_addr + `TRUE;
           if(wr_addr == BRAM_END_ADDR) begin
             wren <= #DELAY 0;
-            state <= #DELAY READY;
+            state <= #DELAY SOF_WAIT;
           end
         end
-        READY: begin //Process received patch          
-          if(patch_num < wait4patch //Bounds check
-             || patch_num >= wait4patch_plus_sync_window)
+        
+        SOF_WAIT: begin
+          wren <= #DELAY 0;
+          if(not_patch && wtsum == 1) state <= #DELAY INTERFRAME;
+
+          sync_valid <= #DELAY wait4patch_done;
+          if(wait4patch_done) begin
+            wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
+              ? 0 : wait4patch + `TRUE;
+            wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
+            sync_wtsum <= #DELAY dout[wait4patch_col];
+
+            if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
+          end
+        end
+        
+        INTERFRAME: begin //Process received patch          
+          if(!not_patch
+             //On new frame patch_num will be 0 while wait4patch is near end
+             && patch_num >= wait4patch_plus_sync_window)
             state <= #DELAY ERROR;
           else begin
             for(i=0; i < N_BRAM; i=i+1)
@@ -92,24 +111,32 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
             wr_have_bit <= #DELAY patch_loc >= wait4patch_loc
               ? have_bit : ~have_bit;
 
-            sync_valid <= #DELAY wait4patch_done;
-            
+            if(not_patch) begin //No need to check for EOF
+              //Next frame starts here
+              patch0_loc <= #DELAY patch0_loc + (N_PATCH % SYNC_WINDOW);
+              wren <= #DELAY 0;
+              state <= #DELAY SOF_WAIT;
+            end
+
+            //Handle completed patch
+            sync_valid <= #DELAY wait4patch_done;            
             if(wait4patch_done) begin
-              //FIXME: reset this on SOF
-              wait4patch <= #DELAY wait4patch + `TRUE;
+              wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
+                ? 0 : wait4patch + `TRUE;
+
               wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
               sync_wtsum <= #DELAY dout[wait4patch_col];
 
-              //Rolling over
-              if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;
+              if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
 
-              $display("%d wait4patch: %d, sync_wtsum: %d, have_bit: %d"
-              , $time, wait4patch, dout[wait4patch_col], have_bit);
+              //$display("%d wait4patch: %d, sync_wtsum: %d, have_bit: %d"
+              //  , $time, wait4patch, dout[wait4patch_col], have_bit);
             end
           end
         end
+        
         default: begin
-          sync_valid <= #DELAY `TRUE;
+          sync_valid <= #DELAY `FALSE;
           wren <= #DELAY 0;
         end
       endcase

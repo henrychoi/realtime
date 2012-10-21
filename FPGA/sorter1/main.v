@@ -27,20 +27,23 @@ module main#(parameter SIMULATION=0, DELAY=1)
   wire fifo_full, fifo_empty, patch_ack, fifo_wr;
 
   assign random_patch_num = random + random_offset;
-  assign fifo_wr = pll_locked && ready_r[1];
-  
+  assign fifo_wr = pll_locked && ready_r[1]
+                 && (random_patch_num < N_PATCH || &random_patch_num);
+
   generate
     if(SIMULATION)
       aurora_fifo_bram
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
-           , .din({random_patch_num, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+           , .din({random_patch_num
+                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
            , .wr_en(fifo_wr), .full(fifo_full)
            , .rd_en(patch_ack), .dout({patch_num, wtsum})
            , .empty(fifo_empty), .sbiterr(), .dbiterr());
     else
       aurora_fifo
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
-           , .din({random_patch_num, {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+           , .din({random_patch_num
+                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
            , .wr_en(fifo_wr), .full(fifo_full)
            , .rd_en(patch_ack), .dout({patch_num, wtsum})
            , .empty(fifo_empty), .sbiterr(), .dbiterr());
@@ -52,6 +55,10 @@ module main#(parameter SIMULATION=0, DELAY=1)
       , .GPIO_LED(GPIO_LED), .ready(app_rdy), .patch_ack(patch_ack)
       , .patch_val(!fifo_empty), .patch_num(patch_num), .wtsum(wtsum));
 
+  localparam INIT = 0, INTERFRAME = 1, INTER2INTRA = 2, INTRAFRAME = 3
+    , ERROR = 4, N_STATE = 5;
+  reg [log2(N_STATE)-1:0] state;
+  
   always @(posedge clk_200)//Pseudo random number for the patch_num_offset
     if(!pll_locked) begin
       ctr <= #DELAY 0;
@@ -59,25 +66,63 @@ module main#(parameter SIMULATION=0, DELAY=1)
       random_offset <= #DELAY 0;
       ready_r <= #DELAY 2'b00;
       n_loop <= #DELAY 0;
+      state <= #DELAY INIT;
     end else begin
       ready_r[1] <= #DELAY ready_r[0]; //To cross the clock domain
       ready_r[0] <= #DELAY app_rdy;
 
-      if(ready_r[1] && !fifo_full) begin
-        ctr <= #DELAY ctr + `TRUE;
-        random <= #DELAY {random[10:0]
-          , !(random[11] ^ random[10] ^ random[9] ^ random[3])};
-        //$display("%d ctr: %d, random: %d", $time, ctr, random);
-        if(random == 'd2048) begin //The last random number
-          n_loop <= #DELAY n_loop + `TRUE;
-          random_offset <= #DELAY random_offset + 'd4095;
-          ctr <= #DELAY 0;
+      case(state)
+        INIT: if(ready_r[1]) state <= #DELAY INTERFRAME;
+
+        INTERFRAME: begin
+          random_offset <= #DELAY -1;//Reserved patch num
+          random <= #DELAY 0;
+          ctr <= #DELAY 1;//SOF
+          state <= #DELAY INTER2INTRA;
         end
-      end else begin
-        ctr <= #DELAY 0;
-        random <= #DELAY 0;
-        random_offset <= #DELAY 0;
-        n_loop <= #DELAY 0;
-      end
+        
+        INTER2INTRA: begin
+          random_offset <= #DELAY 0;
+          random <= #DELAY 0;
+          ctr <= #DELAY 0;
+          state <= #DELAY INTRAFRAME;
+        end
+
+        INTRAFRAME:
+          if(!ready_r[1] || fifo_full) begin
+            ctr <= #DELAY 0;
+            random <= #DELAY 0;
+            random_offset <= #DELAY 0;
+            n_loop <= #DELAY 0;
+            state <= #DELAY ERROR;
+          end else begin
+            ctr <= #DELAY ctr + `TRUE;
+            //12 bit implementation
+            random <= #DELAY {random[10:0]
+              , !(random[11] ^ random[10] ^ random[9] ^ random[3])};
+            //$display("%d ctr: %d, random: %d", $time, ctr, random);
+            if(random == 'd2048) begin //The last random number
+              n_loop <= #DELAY n_loop + `TRUE;
+              ctr <= #DELAY 0;
+              
+              if(random_offset > (N_PATCH - 2**12)) begin
+                //Completely done with N_PATCH
+                random_offset <= #DELAY -1;//Reserved patch num
+                state <= #DELAY INTERFRAME;
+              end else begin
+                random_offset <= #DELAY random_offset + 'd4095;
+                state <= #DELAY INTRAFRAME;
+              end
+            end
+          end
+
+        default: begin
+          ctr <= #DELAY 0;
+          random <= #DELAY 0;
+          random_offset <= #DELAY 0;
+          n_loop <= #DELAY 0;
+          state <= #DELAY ERROR;
+        end
+      endcase
     end
 endmodule
