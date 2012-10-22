@@ -69,7 +69,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1)
       wait4patch_loc <= #DELAY 0;
       wren <= #DELAY {N_BRAM{`TRUE}};
       wait4patch <= #DELAY 0;
-      sync_valid <= #DELAY `TRUE;
+      sync_valid <= #DELAY `FALSE;
       state <= #DELAY INIT;
       //$display("%d ns: qptr %d, din %d", $time, qptr, din);
     end else begin

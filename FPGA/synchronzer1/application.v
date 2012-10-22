@@ -1,12 +1,11 @@
 module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
 , N_CAM=1)
 ( input CLK, RESET, output[7:0] GPIO_LED, output ready
-, output[N_CAM-1:0] patch_ack, input[N_CAM-1:0] patch_val
-, input[log2(N_PATCH)-1:0] patch_num0, patch_num1, patch_num2
-, input[FP_SIZE-1:0] wtsum0, wtsum1, wtsum2);
+, output[N_CAM-1:0] input_ack, input[N_CAM-1:0] input_val
+, input[log2(N_PATCH)+FP_SIZE-1:0] aurora_data0, aurora_data1, aurora_data2);
 `include "function.v"
-  wire[N_CAM-1:0] not_patch;
-  assign not_patch = {&patch_num[0], &patch_num[1], &patch_num[2]};
+  reg [23:0] hb_ctr;
+  assign GPIO_LED = {7'd0, hb_ctr[23]};
 
   genvar geni, genj;
   localparam BRAM_ADDR_SIZE = 10, BRAM_DATA_SIZE = FP_SIZE
@@ -14,7 +13,12 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
     , N_BRAM = 2**(log2(SYNC_WINDOW) - BRAM_ADDR_SIZE);
   reg [log2(SYNC_WINDOW)-1:0] patch0_loc, wait4patch_loc;
   wire[log2(SYNC_WINDOW)-1:0] patch_loc[N_CAM-1:0];
-  
+  wire[log2(N_PATCH)-1:0] patch_num[N_CAM-1:0];
+  wire[FP_SIZE-1:0] wtsum[N_CAM-1:0];
+  assign {patch_num[0], wtsum[0]} = aurora_data0;
+  assign {patch_num[1], wtsum[1]} = aurora_data1;
+  assign {patch_num[2], wtsum[2]} = aurora_data2;
+
   reg [log2(N_PATCH)-1:0] wait4patch;//The patch num to be completed
   wire[log2(N_PATCH)-1:0] wait4patch_plus_sync_window;
   assign wait4patch_plus_sync_window = wait4patch + SYNC_WINDOW;
@@ -27,7 +31,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   wire[BRAM_DATA_SIZE-1:0] dout[N_CAM-1:0][N_BRAM-1:0];
   reg [FP_SIZE-1:0] sync_wtsum[N_CAM-1:0];
   reg sync_valid;
-  wire[N_CAM-1:0] debug_hit, wait4patch_done;
+  wire wait4patch_done;
   reg [N_CAM-1:0] wr_have_bit;
   reg have_bit;
   
@@ -35,38 +39,44 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   reg [BRAM_ADDR_SIZE-1:0] wr_addr[N_CAM-1:0];
   wire[BRAM_ADDR_SIZE-1:0] rd_addr[N_CAM-1:0][N_BRAM-1:0];
   wire[N_BRAM-1:0] vout[N_CAM-1:0];
+  //This notation more convenient to test for completion across all cams
   wire[N_CAM-1:0] have_patch[N_BRAM-1:0];
+  wire out_of_bound;
+  assign out_of_bound =
+    (input_val[0] && !(&patch_num[0])
+               && patch_num[0] >= wait4patch_plus_sync_window)
+     || (input_val[1] && !(&patch_num[1])
+               && patch_num[1] >= wait4patch_plus_sync_window)
+     || (input_val[2] && !(&patch_num[2])
+               && patch_num[2] >= wait4patch_plus_sync_window);
 
-  localparam INIT = 0, SOF_WAIT = 1, INTERFRAME = 2, ERROR = 3, N_STATE = 4;
+  localparam ERROR = 0, INIT = 1, OK = 2, N_STATE = 3;
   reg [log2(N_STATE)-1:0] state;
-  assign ready = state == SOF_WAIT || state == INTERFRAME;
+  assign ready = state == OK;
 
   generate
     for(geni=0; geni < N_CAM; geni=geni+1) begin
       for(genj=0; genj < N_BRAM; genj=genj+1) begin
-        bram21 bram(.clka(CLK), .wea(wren[geni]), .addra(wr_addr)
-                  , .dina({wr_have_bit, din[geni]})
+        bram21 bram(.clka(CLK), .wea(wren[geni][genj]), .addra(wr_addr[geni])
+                  , .dina({wr_have_bit[geni], din[geni]})
                   , .clkb(CLK), .addrb(rd_addr[geni][genj])
                   , .doutb({vout[geni][genj], dout[geni][genj]})
                   , .sbiterr(), .dbiterr(), .rdaddrecc());
-        assign rd_addr[geni][genj] = wait4patch_row + (geni < wait4patch_col);
-        assign have_patch[geni] = vout[geni] == have_bit;
+        assign rd_addr[geni][genj] = wait4patch_row + (genj < wait4patch_col);
+        assign have_patch[genj][geni] = vout[geni][genj] == have_bit;
       end
 
-      assign patch_ack[geni] = ready;
-      assign debug_hit[geni] = patch_num[geni] == wait4patch[geni];
-      assign wait4patch_done = &have_patch[wait4patch_col];
+      assign input_ack[geni] = ready;
       assign patch_loc[geni] = patch_num[geni][log2(SYNC_WINDOW)-1:0]
                              + patch0_loc;
     end
   endgenerate
+  assign wait4patch_done = &have_patch[wait4patch_col];
 
-  reg [23:0] hb_ctr;
-  assign GPIO_LED = {7'd0, hb_ctr[23]};
-  
-  integer i;
+  integer i, j;
   always @(posedge CLK) begin
-    din <= #DELAY wtsum;//Delay through register because wren is registered
+    //Delay through register because wren is registered
+    for(i=0; i < N_CAM; i=i+1) din[i] <= #DELAY wtsum[i];
 
     if(RESET) begin
       have_bit <= #DELAY `TRUE;
@@ -78,7 +88,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       patch0_loc <= #DELAY 0;
       wait4patch_loc <= #DELAY 0;
       wait4patch <= #DELAY 0;
-      sync_valid <= #DELAY `TRUE;
+      sync_valid <= #DELAY `FALSE;
       state <= #DELAY INIT;
       //$display("%d ns: qptr %d, din %d", $time, qptr, din);
     end else begin
@@ -87,66 +97,51 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
           for(i=0; i < N_CAM; i=i+1) wr_addr[i] <= #DELAY wr_addr[i] + `TRUE;
           if(wr_addr[0] == BRAM_END_ADDR) begin
             for(i=0; i < N_CAM; i=i+1) wren[i] <= #DELAY 0;
-            state <= #DELAY SOF_WAIT;
+            state <= #DELAY OK;
           end
         end
-        
-        SOF_WAIT: begin
-          for(i=0; i < N_CAM; i=i+1) wren <= #DELAY 0;
-          if(not_patch && wtsum == 1) state <= #DELAY INTERFRAME;
+                
+        OK: begin //Can process received data          
+          if(out_of_bound) state <= #DELAY ERROR;
 
-          sync_valid <= #DELAY wait4patch_done;
+          //Assume SOF and EOF are sufficiently synchronized across cameras,
+          //although not necessarily to the same clock
+          //Consider checking for EOF specifically, currently TB doesn't send EOF
+          //Patch for next frame should start at this slot
+          if(input_val[0] && (&patch_num[0]) && !wtsum[0]) begin
+            //special message, NOT a patch
+            patch0_loc <= #DELAY patch0_loc + (N_PATCH % SYNC_WINDOW);
+            for(i=0; i < N_CAM; i=i+1) wren[i] <= #DELAY 0;
+            //state <= #DELAY SOF_WAIT;
+          end
+
+          for(i=0; i < N_CAM; i=i+1) begin
+            for(j=0; j < N_BRAM; j=j+1) begin
+              wren[i][j] <= #DELAY input_val[i] && !(&patch_num[i])
+                         && j == patch_loc[i][0+:log2(N_BRAM)];
+            end
+            wr_addr[i] <= #DELAY // Pick off the MSB of the patch_loc
+              patch_loc[i][log2(SYNC_WINDOW)-1:log2(N_BRAM)];
+            wr_have_bit[i] <= #DELAY patch_loc[i] >= wait4patch_loc
+              ? have_bit : ~have_bit;
+          end
+
           if(wait4patch_done) begin
+            sync_valid <= #DELAY `TRUE;
             wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
               ? 0 : wait4patch + `TRUE;
+
             wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
-            sync_wtsum <= #DELAY dout[wait4patch_col];
+            for(i=0; i < N_CAM; i=i+1)
+              sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
 
             if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
-          end
-        end
-        
-        INTERFRAME: begin //Process received patch          
-          if(!not_patch
-             //On new frame patch_num will be 0 while wait4patch is near end
-             && patch_num >= wait4patch_plus_sync_window)
-            state <= #DELAY ERROR;
-          else begin
-            for(i=0; i < N_BRAM; i=i+1)
-              wren[i] <= #DELAY patch_val && i == patch_loc[0+:log2(N_BRAM)];
-              
-            // Pick off the MSB of the patch_loc
-            wr_addr <= #DELAY patch_loc[log2(SYNC_WINDOW)-1:log2(N_BRAM)];
-            wr_have_bit <= #DELAY patch_loc >= wait4patch_loc
-              ? have_bit : ~have_bit;
-
-            if(not_patch) begin //No need to check for EOF
-              //Next frame starts here
-              patch0_loc <= #DELAY patch0_loc + (N_PATCH % SYNC_WINDOW);
-              wren <= #DELAY 0;
-              state <= #DELAY SOF_WAIT;
-            end
-
-            //Handle completed patch
-            sync_valid <= #DELAY wait4patch_done;            
-            if(wait4patch_done) begin
-              wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
-                ? 0 : wait4patch + `TRUE;
-
-              wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
-              sync_wtsum <= #DELAY dout[wait4patch_col];
-
-              if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
-
-              //$display("%d wait4patch: %d, sync_wtsum: %d, have_bit: %d"
-              //  , $time, wait4patch, dout[wait4patch_col], have_bit);
-            end
-          end
-        end
+          end else sync_valid <= #DELAY `FALSE;
+        end//OK
         
         default: begin
           sync_valid <= #DELAY `FALSE;
-          wren <= #DELAY 0;
+          for(i=0; i < N_CAM; i=i+1) wren[i] <= #DELAY 0;
         end
       endcase
     end

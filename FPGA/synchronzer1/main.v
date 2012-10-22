@@ -16,15 +16,16 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
   localparam N_PATCH = 600000 // Total # of patches I expect
     , SYNC_WINDOW = 2**13//I can handle up to this may out-of-order patches
+    , LFSR_SIZE = log2(SYNC_WINDOW) - 1
     , FP_SIZE = 20
     , N_CAM = 3;
   reg [log2(SYNC_WINDOW)-2:0] ctr[N_CAM-1:0], random[N_CAM-1:0];
   reg [log2(N_PATCH)-1:0] random_offset;
-  wire[log2(N_PATCH)-1:0] random_patch_num[N_CAM-1:0], patch_num[N_CAM-1:0];
-  wire[FP_SIZE-1:0] wtsum[N_CAM-1:0];
+  wire[log2(N_PATCH)-1:0] random_patch_num[N_CAM-1:0];
+  wire[log2(N_PATCH)+FP_SIZE-1:0] aurora_data[N_CAM-1:0];
   wire app_rdy;
   reg[1:0] ready_r; //To cross the clock domain
-  wire[N_CAM-1:0] fifo_full, fifo_empty, patch_val, patch_ack, fifo_wr;
+  wire[N_CAM-1:0] fifo_full, fifo_empty, input_val, input_ack, fifo_wr;
 
   genvar geni;
   generate
@@ -32,112 +33,116 @@ module main#(parameter SIMULATION=0, DELAY=1)
       if(SIMULATION) aurora_fifo_bram
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
            , .din({random_patch_num[geni]
-                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr[geni]})
            , .wr_en(fifo_wr[geni]), .full(fifo_full[geni])
-           , .rd_en(patch_ack[geni]), .dout({patch_num[geni], wtsum[geni]})
+           , .rd_en(input_ack[geni]), .dout(aurora_data[geni])
            , .empty(fifo_empty[geni]), .sbiterr(), .dbiterr());
       else aurora_fifo
         fifo(.rst(!pll_locked), .wr_clk(clk_200), .rd_clk(clk_240)
            , .din({random_patch_num[geni]
-                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr})
+                 , {(FP_SIZE-log2(SYNC_WINDOW)+1){`FALSE}}, ctr[geni]})
            , .wr_en(fifo_wr[geni]), .full(fifo_full[geni])
-           , .rd_en(patch_ack[geni]), .dout({patch_num[geni], wtsum[geni]})
+           , .rd_en(input_ack[geni]), .dout(aurora_data[geni])
            , .empty(fifo_empty[geni]), .sbiterr(), .dbiterr());
 
       assign random_patch_num[geni] = random[geni] + random_offset;
-      assign fifo_wr[geni] = pll_locked && ready_r[1]
-                           && (random_patch_num[geni] < N_PATCH
-                               || &random_patch_num[geni]);
-      assign patch_val[geni] = ~fifo_empty[geni];
+      assign fifo_wr[geni] =
+        (state == INTERFRAME || state == INTER2INTRA || state == INTRAFRAME)
+        && (random_patch_num[geni] < N_PATCH || &random_patch_num[geni]);
+      assign input_val[geni] = ~fifo_empty[geni];
     end
   endgenerate
 
   application#(.DELAY(DELAY), .SYNC_WINDOW(SYNC_WINDOW), .FP_SIZE(FP_SIZE)
     , .N_PATCH(N_PATCH), .N_CAM(N_CAM))
     app(.CLK(clk_240), .RESET(RESET || !pll_locked)
-      , .GPIO_LED(GPIO_LED), .ready(app_rdy), .patch_ack(patch_ack)
-      , .patch_val(patch_val), .patch_num0(patch_num[0])
-      , .patch_num1(patch_num[1]), .patch_num2(patch_num[2])
-      , .wtsum0(wtsum[0]), .wtsum1(wtsum[1]), .wtsum2(wtsum[2]));
+      , .GPIO_LED(GPIO_LED), .ready(app_rdy), .input_ack(input_ack)
+      , .input_val(input_val)
+      , .aurora_data0(aurora_data[0])
+      , .aurora_data1(aurora_data[1])
+      , .aurora_data2(aurora_data[2]));
 
-  localparam INIT = 0, INTERFRAME = 1, INTER2INTRA = 2, INTRAFRAME = 3
-    , ERROR = 4, N_STATE = 5;
+  localparam ERROR = 0, INIT = 1
+    , INTERFRAME = 2, INTER2INTRA = 3, INTRAFRAME = 4, N_STATE = 5;
   reg [log2(N_STATE)-1:0] state;
   
   integer i;
   always @(posedge clk_200)//Pseudo random number for the patch_num_offset
     if(!pll_locked) begin
-      ctr <= #DELAY 0;
       ready_r <= #DELAY 2'b00;
-      for(i=0; i < N_CAM; i=i+1) begin
-        random <= #DELAY i; //Seed value for LFSR
-        random_offset <= #DELAY 0;
-      end
+      random[0] <= #DELAY 512;
+      random[1] <= #DELAY 1024;
+      random[2] <= #DELAY 2048;
+      random_offset <= #DELAY 0;
+      for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
       state <= #DELAY INIT;
     end else begin
       ready_r[1] <= #DELAY ready_r[0]; //To cross the clock domain
       ready_r[0] <= #DELAY app_rdy;
 
       case(state)
-        INIT: if(ready_r[1]) state <= #DELAY INTERFRAME;
+        INIT:
+          if(ready_r[1]) begin
+            for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
+            state <= #DELAY INTERFRAME;
+          end
 
         INTERFRAME: begin
+          random_offset <= #DELAY -1;//Reserved patch num
           for(i=0; i < N_CAM; i=i+1) begin
-            random <= #DELAY 0;
-            random_offset <= #DELAY -1;//Reserved patch num
+            random[i] <= #DELAY 0;
+            ctr[i] <= #DELAY 1;//SOF
           end
-          ctr <= #DELAY 1;//SOF
           state <= #DELAY INTER2INTRA;
         end
         
         INTER2INTRA: begin
-          for(i=0; i < N_CAM; i=i+1) begin
-            random <= #DELAY i;
-            random_offset <= #DELAY 0;
-          end
-          ctr <= #DELAY 0;
+          random_offset <= #DELAY 0;
+          random[0] <= #DELAY 512;
+          random[1] <= #DELAY 1024;
+          random[2] <= #DELAY 2048;
+          for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
           state <= #DELAY INTRAFRAME;
         end
 
         INTRAFRAME:
           if(!ready_r[1] || fifo_full) begin
-            for(i=0; i < N_CAM; i=i+1) begin
-              random <= #DELAY i;
-              random_offset <= #DELAY 0;
-            end
-            ctr <= #DELAY 0;
+            random_offset <= #DELAY 0;
+            random[0] <= #DELAY 512;
+            random[1] <= #DELAY 1024;
+            random[2] <= #DELAY 2048;
+            for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
             state <= #DELAY ERROR;
           end else begin
-            ctr <= #DELAY ctr + `TRUE;
             for(i=0; i < N_CAM; i=i+1) begin
-              //12 bit implementation
-              random <= #DELAY {random[10:0]
-                , !(random[11] ^ random[10] ^ random[9] ^ random[3])};
-              //$display("%d ctr: %d, random: %d", $time, ctr, random);
+              random[i] <= #DELAY {random[i][0+:LFSR_SIZE-1]
+                //12 bit implementation
+                , !(random[i][11]^random[i][10]^random[i][9]^random[i][3])};
+              ctr[i] <= #DELAY ctr[i] + `TRUE;
             end
             
-            if(ctr == (2**12-2)) begin //The last random number
-              ctr <= #DELAY 0;
-              
-              if(random_offset > (N_PATCH - 2**12)) begin
+            if(ctr[0] == (2**LFSR_SIZE-2)) begin
+              //The last random number sequence in LFSR implementation
+              for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
+
+              if(random_offset > (N_PATCH - 2**12)) begin //rolling over
                 //Completely done with N_PATCH
-                for(i=0; i < N_CAM; i=i+1)
-                  random_offset <= #DELAY -1;//Reserved patch num
+                for(i=0; i < N_CAM; i=i+1) random[i] <= #DELAY 0;
+                random_offset <= #DELAY -1;//Reserved patch num
                 state <= #DELAY INTERFRAME;
               end else begin
-                for(i=0; i < N_CAM; i=i+1)
-                  random_offset <= #DELAY random_offset + (2**12-1);
+                random_offset <= #DELAY random_offset + (2**LFSR_SIZE-1);
                 state <= #DELAY INTRAFRAME;
               end
             end
           end
 
         default: begin
-          for(i=0; i < N_CAM; i=i+1) begin
-            random <= #DELAY i;
-            random_offset <= #DELAY 0;
-          end
-          ctr <= #DELAY 0;
+          random_offset <= #DELAY 0;
+          random[0] <= #DELAY 512;
+          random[1] <= #DELAY 1024;
+          random[2] <= #DELAY 2048;
+          for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
           state <= #DELAY ERROR;
         end
       endcase

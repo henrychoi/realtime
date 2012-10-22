@@ -3,7 +3,7 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="C:/private/realtime/FPGA/sorter1/simmain_isim_beh.wdb" id="1" type="auto">
+      <db_ref path="C:/private/realtime/FPGA/synchronzer1/simmain_isim_beh.wdb" id="1" type="auto">
          <top_modules>
             <top_module name="glbl" />
             <top_module name="simmain" />
@@ -19,9 +19,9 @@
       <obj_property name="ElementShortName">pll_locked</obj_property>
       <obj_property name="ObjectShortName">pll_locked</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/fifo_wr" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">fifo_wr</obj_property>
-      <obj_property name="ObjectShortName">fifo_wr</obj_property>
+   <wvobject fp_name="/simmain/main/fifo_wr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fifo_wr[2:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_wr[2:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/app_rdy" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">app_rdy</obj_property>
@@ -33,13 +33,13 @@
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/ctr" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">ctr[11:0]</obj_property>
-      <obj_property name="ObjectShortName">ctr[11:0]</obj_property>
+      <obj_property name="ElementShortName">ctr[2:0,11:0]</obj_property>
+      <obj_property name="ObjectShortName">ctr[2:0,11:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/random" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">random[11:0]</obj_property>
-      <obj_property name="ObjectShortName">random[11:0]</obj_property>
+      <obj_property name="ElementShortName">random[2:0,11:0]</obj_property>
+      <obj_property name="ObjectShortName">random[2:0,11:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/random_offset" type="array" db_ref_id="1">
@@ -50,27 +50,27 @@
       <obj_property name="CustomSignalColor">#c0c0c0</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/random_patch_num" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">random_patch_num[19:0]</obj_property>
-      <obj_property name="ObjectShortName">random_patch_num[19:0]</obj_property>
+      <obj_property name="ElementShortName">random_patch_num[2:0,19:0]</obj_property>
+      <obj_property name="ObjectShortName">random_patch_num[2:0,19:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="group17" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/app/patch_val" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">patch_val</obj_property>
-         <obj_property name="ObjectShortName">patch_val</obj_property>
+      <wvobject fp_name="/simmain/main/app/input_val" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">input_val[2:0]</obj_property>
+         <obj_property name="ObjectShortName">input_val[2:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/patch_num" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">patch_num[19:0]</obj_property>
-         <obj_property name="ObjectShortName">patch_num[19:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="ElementShortName">patch_num[2:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">patch_num[2:0,19:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#00ffff</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/wtsum" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">wtsum[19:0]</obj_property>
-         <obj_property name="ObjectShortName">wtsum[19:0]</obj_property>
+         <obj_property name="ElementShortName">wtsum[2:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">wtsum[2:0,19:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#00ffff</obj_property>
@@ -81,24 +81,24 @@
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/patch_loc" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">patch_loc[12:0]</obj_property>
-         <obj_property name="ObjectShortName">patch_loc[12:0]</obj_property>
+         <obj_property name="ElementShortName">patch_loc[2:0,12:0]</obj_property>
+         <obj_property name="ObjectShortName">patch_loc[2:0,12:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
          <obj_property name="CustomSignalColor">#ff00ff</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/wr_have_bit" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_have_bit</obj_property>
-         <obj_property name="ObjectShortName">wr_have_bit</obj_property>
+      <wvobject fp_name="/simmain/main/app/wr_have_bit" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">wr_have_bit[2:0]</obj_property>
+         <obj_property name="ObjectShortName">wr_have_bit[2:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/wr_addr" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">wr_addr[9:0]</obj_property>
-         <obj_property name="ObjectShortName">wr_addr[9:0]</obj_property>
+         <obj_property name="ElementShortName">wr_addr[2:0,9:0]</obj_property>
+         <obj_property name="ObjectShortName">wr_addr[2:0,9:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/wren" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">wren[7:0]</obj_property>
-         <obj_property name="ObjectShortName">wren[7:0]</obj_property>
+         <obj_property name="ElementShortName">wren[2:0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">wren[2:0,7:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/wait4patch" type="array" db_ref_id="1">
@@ -130,7 +130,7 @@
       <wvobject fp_name="/simmain/main/app/wait4patch_plus_sync_window" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">wait4patch_plus_sync_window[19:0]</obj_property>
          <obj_property name="ObjectShortName">wait4patch_plus_sync_window[19:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">state[1:0]</obj_property>
@@ -142,32 +142,28 @@
          <obj_property name="ObjectShortName">have_bit</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/din" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">din[19:0]</obj_property>
-         <obj_property name="ObjectShortName">din[19:0]</obj_property>
+         <obj_property name="ElementShortName">din[2:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">din[2:0,19:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/dout" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">dout[7:0,19:0]</obj_property>
-         <obj_property name="ObjectShortName">dout[7:0,19:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
       <wvobject fp_name="/simmain/main/app/vout" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">vout[7:0]</obj_property>
-         <obj_property name="ObjectShortName">vout[7:0]</obj_property>
+         <obj_property name="ElementShortName">vout[2:0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">vout[2:0,7:0]</obj_property>
+         <obj_property name="Radix">BINARYRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/rd_addr" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">rd_addr[7:0,9:0]</obj_property>
-         <obj_property name="ObjectShortName">rd_addr[7:0,9:0]</obj_property>
+         <obj_property name="ElementShortName">rd_addr[2:0,7:0,9:0]</obj_property>
+         <obj_property name="ObjectShortName">rd_addr[2:0,7:0,9:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/dout" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">dout[7:0,19:0]</obj_property>
-         <obj_property name="ObjectShortName">dout[7:0,19:0]</obj_property>
+         <obj_property name="ElementShortName">dout[2:0,7:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">dout[2:0,7:0,19:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/have_patch" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">have_patch[7:0]</obj_property>
-         <obj_property name="ObjectShortName">have_patch[7:0]</obj_property>
+         <obj_property name="ElementShortName">have_patch[7:0,2:0]</obj_property>
+         <obj_property name="ObjectShortName">have_patch[7:0,2:0]</obj_property>
          <obj_property name="Radix">BINARYRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/wait4patch_done" type="logic" db_ref_id="1">
@@ -175,8 +171,8 @@
          <obj_property name="ObjectShortName">wait4patch_done</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/sync_wtsum" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">sync_wtsum[19:0]</obj_property>
-         <obj_property name="ObjectShortName">sync_wtsum[19:0]</obj_property>
+         <obj_property name="ElementShortName">sync_wtsum[2:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">sync_wtsum[2:0,19:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/sync_valid" type="logic" db_ref_id="1">
