@@ -48,7 +48,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
       assign random_patch_num[geni] = random[geni] + random_offset;
       assign fifo_wr[geni] =
         (state == INTERFRAME || state == INTER2INTRA || state == INTRAFRAME)
-        && (random_patch_num[geni] < N_PATCH || &random_patch_num[geni]);
+        && (random_patch_num[geni] < N_PATCH
+            || &random_patch_num[geni][1+:(log2(N_PATCH)-1)]);
       assign input_val[geni] = ~fifo_empty[geni];
     end
   endgenerate
@@ -88,12 +89,15 @@ module main#(parameter SIMULATION=0, DELAY=1)
           end
 
         INTERFRAME: begin
-          random_offset <= #DELAY -1;//Reserved patch num
-          for(i=0; i < N_CAM; i=i+1) begin
-            random[i] <= #DELAY 0;
-            ctr[i] <= #DELAY 1;//SOF
+          for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY ctr[i] + `TRUE;
+          if(ctr[0] == 'h003) begin
+            random_offset <= #DELAY -1;//SOF
+            for(i=0; i < N_CAM; i=i+1) begin
+              random[i] <= #DELAY 0;
+              ctr[i] <= #DELAY 1;//SOF
+            end
+            state <= #DELAY INTER2INTRA;
           end
-          state <= #DELAY INTER2INTRA;
         end
         
         INTER2INTRA: begin
@@ -126,9 +130,12 @@ module main#(parameter SIMULATION=0, DELAY=1)
               for(i=0; i < N_CAM; i=i+1) ctr[i] <= #DELAY 0;
 
               if(random_offset > (N_PATCH - 2**12)) begin //rolling over
-                //Completely done with N_PATCH
-                for(i=0; i < N_CAM; i=i+1) random[i] <= #DELAY 0;
-                random_offset <= #DELAY -1;//Reserved patch num
+                //Completely done with N_PATCH, ^EOF
+                for(i=0; i < N_CAM; i=i+1) begin
+                  random[i] <= #DELAY 0;
+                  ctr[i] <= #DELAY 0;
+                end
+                random_offset <= #DELAY -2;//EOF
                 state <= #DELAY INTERFRAME;
               end else begin
                 random_offset <= #DELAY random_offset + (2**LFSR_SIZE-1);

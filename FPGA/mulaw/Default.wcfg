@@ -27,6 +27,24 @@
          <obj_property name="ObjectShortName">patch_num[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/main/app/wtsum" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">wtsum[19:0]</obj_property>
+         <obj_property name="ObjectShortName">wtsum[19:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/wtsum_m_bias_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">wtsum_m_bias_rdy</obj_property>
+         <obj_property name="ObjectShortName">wtsum_m_bias_rdy</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/wtsum_m_bias" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">wtsum_m_bias[31:0]</obj_property>
+         <obj_property name="ObjectShortName">wtsum_m_bias[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/x_rdy" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">x_rdy</obj_property>
+         <obj_property name="ObjectShortName">x_rdy</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/x" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">x[31:0]</obj_property>
          <obj_property name="ObjectShortName">x[31:0]</obj_property>
@@ -45,22 +63,22 @@
          <obj_property name="ObjectShortName">xb_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/x_d" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">x_d[2:0,31:0]</obj_property>
-         <obj_property name="ObjectShortName">x_d[2:0,31:0]</obj_property>
+         <obj_property name="ElementShortName">x_d[2:0,19:0]</obj_property>
+         <obj_property name="ObjectShortName">x_d[2:0,19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
          <wvobject fp_name="/simmain/main/app/x_d[2]" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">[2,31:0]</obj_property>
-            <obj_property name="ObjectShortName">x_d[2,31:0]</obj_property>
+            <obj_property name="ElementShortName">[2,19:0]</obj_property>
+            <obj_property name="ObjectShortName">x_d[2,19:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/x_d[1]" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">[1,31:0]</obj_property>
-            <obj_property name="ObjectShortName">x_d[1,31:0]</obj_property>
+            <obj_property name="ElementShortName">[1,19:0]</obj_property>
+            <obj_property name="ObjectShortName">x_d[1,19:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/x_d[0]" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">[0,31:0]</obj_property>
-            <obj_property name="ObjectShortName">x_d[0,31:0]</obj_property>
+            <obj_property name="ElementShortName">[0,19:0]</obj_property>
+            <obj_property name="ObjectShortName">x_d[0,19:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
       </wvobject>
@@ -114,13 +132,13 @@
          <obj_property name="ObjectShortName">valid</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/x" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">x[31:0]</obj_property>
-         <obj_property name="ObjectShortName">x[31:0]</obj_property>
+         <obj_property name="ElementShortName">x[19:0]</obj_property>
+         <obj_property name="ObjectShortName">x[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/value" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">value[31:0]</obj_property>
-         <obj_property name="ObjectShortName">value[31:0]</obj_property>
+         <obj_property name="ElementShortName">value[19:0]</obj_property>
+         <obj_property name="ObjectShortName">value[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="vbus58" type="vbus" db_ref_id="1">
@@ -165,8 +183,8 @@
          <obj_property name="ObjectShortName">exponent_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/exponent" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">exponent[31:0]</obj_property>
-         <obj_property name="ObjectShortName">exponent[31:0]</obj_property>
+         <obj_property name="ElementShortName">exponent[19:0]</obj_property>
+         <obj_property name="ObjectShortName">exponent[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/exponent_fifo_empty" type="logic" db_ref_id="1">
@@ -178,8 +196,8 @@
          <obj_property name="ObjectShortName">exponent_fifo_full</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/exponent_d" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">exponent_d[31:0]</obj_property>
-         <obj_property name="ObjectShortName">exponent_d[31:0]</obj_property>
+         <obj_property name="ElementShortName">exponent_d[19:0]</obj_property>
+         <obj_property name="ObjectShortName">exponent_d[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f1_rdy" type="logic" db_ref_id="1">
@@ -187,8 +205,8 @@
          <obj_property name="ObjectShortName">f1_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f1" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">f1[31:0]</obj_property>
-         <obj_property name="ObjectShortName">f1[31:0]</obj_property>
+         <obj_property name="ElementShortName">f1[19:0]</obj_property>
+         <obj_property name="ObjectShortName">f1[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f2_rdy" type="logic" db_ref_id="1">
@@ -196,8 +214,8 @@
          <obj_property name="ObjectShortName">f2_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f2" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">f2[31:0]</obj_property>
-         <obj_property name="ObjectShortName">f2[31:0]</obj_property>
+         <obj_property name="ElementShortName">f2[19:0]</obj_property>
+         <obj_property name="ObjectShortName">f2[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f3_rdy" type="logic" db_ref_id="1">
@@ -205,8 +223,8 @@
          <obj_property name="ObjectShortName">f3_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f3" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">f3[31:0]</obj_property>
-         <obj_property name="ObjectShortName">f3[31:0]</obj_property>
+         <obj_property name="ElementShortName">f3[19:0]</obj_property>
+         <obj_property name="ObjectShortName">f3[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f4_rdy" type="logic" db_ref_id="1">
@@ -214,8 +232,8 @@
          <obj_property name="ObjectShortName">f4_rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/f4" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">f4[31:0]</obj_property>
-         <obj_property name="ObjectShortName">f4[31:0]</obj_property>
+         <obj_property name="ElementShortName">f4[19:0]</obj_property>
+         <obj_property name="ObjectShortName">f4[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/rdy" type="logic" db_ref_id="1">
@@ -223,8 +241,8 @@
          <obj_property name="ObjectShortName">rdy</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/fast_log2/result" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">result[31:0]</obj_property>
-         <obj_property name="ObjectShortName">result[31:0]</obj_property>
+         <obj_property name="ElementShortName">result[19:0]</obj_property>
+         <obj_property name="ObjectShortName">result[19:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
    </wvobject>

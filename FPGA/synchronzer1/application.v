@@ -32,7 +32,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   reg [FP_SIZE-1:0] sync_wtsum[N_CAM-1:0];
   reg sync_valid;
   wire wait4patch_done;
-  reg [N_CAM-1:0] wr_have_bit;
+  reg [N_CAM-1:0] wr_have_bit, eof;
   reg have_bit;
   
   reg [N_BRAM-1:0] wren[N_CAM-1:0];
@@ -40,19 +40,10 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   wire[BRAM_ADDR_SIZE-1:0] rd_addr[N_CAM-1:0][N_BRAM-1:0];
   wire[N_BRAM-1:0] vout[N_CAM-1:0];
   //This notation more convenient to test for completion across all cams
-  wire[N_CAM-1:0] have_patch[N_BRAM-1:0];
-  wire out_of_bound;
-  assign out_of_bound =
-    (input_val[0] && !(&patch_num[0])
-               && patch_num[0] >= wait4patch_plus_sync_window)
-     || (input_val[1] && !(&patch_num[1])
-               && patch_num[1] >= wait4patch_plus_sync_window)
-     || (input_val[2] && !(&patch_num[2])
-               && patch_num[2] >= wait4patch_plus_sync_window);
-
-  localparam ERROR = 0, INIT = 1, OK = 2, N_STATE = 3;
+  wire[N_CAM-1:0] have_patch[N_BRAM-1:0], is_meta, is_sof;
+  localparam ERROR = 0, INIT = 1, SOF_WAIT = 2, INTRAFRAME = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
-  assign ready = state == OK;
+  assign ready = state == SOF_WAIT || state == INTRAFRAME;
 
   generate
     for(geni=0; geni < N_CAM; geni=geni+1) begin
@@ -69,10 +60,12 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       assign input_ack[geni] = ready;
       assign patch_loc[geni] = patch_num[geni][log2(SYNC_WINDOW)-1:0]
                              + patch0_loc;
+      assign is_meta[geni] = &patch_num[geni][1+:(log2(N_PATCH)-1)];
+      assign is_sof[geni] = patch_num[geni][0];
     end
   endgenerate
   assign wait4patch_done = &have_patch[wait4patch_col];
-
+  
   integer i, j;
   always @(posedge CLK) begin
     //Delay through register because wren is registered
@@ -89,6 +82,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       wait4patch_loc <= #DELAY 0;
       wait4patch <= #DELAY 0;
       sync_valid <= #DELAY `FALSE;
+      eof <= #DELAY 0;
       state <= #DELAY INIT;
       //$display("%d ns: qptr %d, din %d", $time, qptr, din);
     end else begin
@@ -97,27 +91,50 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
           for(i=0; i < N_CAM; i=i+1) wr_addr[i] <= #DELAY wr_addr[i] + `TRUE;
           if(wr_addr[0] == BRAM_END_ADDR) begin
             for(i=0; i < N_CAM; i=i+1) wren[i] <= #DELAY 0;
-            state <= #DELAY OK;
+            state <= #DELAY SOF_WAIT;
           end
         end
-                
-        OK: begin //Can process received data          
-          if(out_of_bound) state <= #DELAY ERROR;
+        
+        SOF_WAIT: begin
+          eof <= #DELAY 0;
+          if((input_val[0] && is_meta[0] && is_sof[0])
+          || (input_val[1] && is_meta[1] && is_sof[1])
+          || (input_val[2] && is_meta[2] && is_sof[2]))
+            state <= #DELAY INTRAFRAME;
 
-          //Assume SOF and EOF are sufficiently synchronized across cameras,
-          //although not necessarily to the same clock
-          //Consider checking for EOF specifically, currently TB doesn't send EOF
-          //Patch for next frame should start at this slot
-          if(input_val[0] && (&patch_num[0]) && !wtsum[0]) begin
-            //special message, NOT a patch
+          if(wait4patch_done) begin
+            sync_valid <= #DELAY `TRUE;
+            wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
+              ? 0 : wait4patch + `TRUE;
+
+            wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
+            for(i=0; i < N_CAM; i=i+1)
+              sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
+
+            if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
+          end else sync_valid <= #DELAY `FALSE;
+        end
+        
+        INTRAFRAME: begin //Can process received data          
+          if(&eof) begin // Transition to SOF_WAIT
+            eof <= #DELAY 0;
             patch0_loc <= #DELAY patch0_loc + (N_PATCH % SYNC_WINDOW);
             for(i=0; i < N_CAM; i=i+1) wren[i] <= #DELAY 0;
-            //state <= #DELAY SOF_WAIT;
-          end
+            state <= #DELAY SOF_WAIT;
+          end else if((input_val[0] && !is_meta[0]
+                       && patch_num[0] >= wait4patch_plus_sync_window)
+                   || (input_val[1] && !is_meta[1]
+                       && patch_num[1] >= wait4patch_plus_sync_window)
+                   || (input_val[2] && !is_meta[2]
+                       && patch_num[2] >= wait4patch_plus_sync_window))
+            state <= #DELAY ERROR;
 
           for(i=0; i < N_CAM; i=i+1) begin
+            if(input_val[i] && is_meta[i] && !is_sof[i]) // EOF
+              eof[i] <= #DELAY `TRUE;
+
             for(j=0; j < N_BRAM; j=j+1) begin
-              wren[i][j] <= #DELAY input_val[i] && !(&patch_num[i])
+              wren[i][j] <= #DELAY input_val[i] && !is_meta[i]
                          && j == patch_loc[i][0+:log2(N_BRAM)];
             end
             wr_addr[i] <= #DELAY // Pick off the MSB of the patch_loc

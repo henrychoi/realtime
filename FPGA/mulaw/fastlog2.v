@@ -1,20 +1,20 @@
-module fast_log2#(parameter DELAY=1, FP_SIZE=1)
-( input CLK, RESET, valid, input[FP_SIZE-1:0] x
-, output rdy, output[FP_SIZE-1:0] result);
+module fast_log2#(parameter DELAY=1, DSP_FP_SIZE=1)
+( input CLK, RESET, valid, input[DSP_FP_SIZE-1:0] x
+, output rdy, output[DSP_FP_SIZE-1:0] result);
 `include "function.v"
-  wire[FP_SIZE-1:0] value, exponent, exponent_d, f1, f2, f3, f4;
+  wire[DSP_FP_SIZE-1:0] value, exponent, exponent_d, f1, f2, f3, f4;
   wire f1_rdy, f2_rdy, f3_rdy, f4_rdy, exponent_rdy
     , exponent_fifo_empty, exponent_fifo_full;
 
   localparam FEXPONENT_SIZE = 8
     , FSUB_LATENCY = 11, FMULT_LATENCY = 6, I2F_LATENCY = 5
     , F2_LATENCY = FMULT_LATENCY + FSUB_LATENCY;
-  reg [FP_SIZE-1:0] value_d[F2_LATENCY-1:0];
+  reg [DSP_FP_SIZE-1:0] value_d[F2_LATENCY-1:0];
   reg [FEXPONENT_SIZE:0] i8_d;
 
-  assign value = {x[FP_SIZE-1] //The sign bit
+  assign value = {x[DSP_FP_SIZE-1] //The sign bit
                 , 8'd127 //exponent = 0
-                , x[0+:(FP_SIZE-1 - FEXPONENT_SIZE)]};//the fraction
+                , x[0+:(DSP_FP_SIZE-1 - FEXPONENT_SIZE)]};//the fraction
 
   fmult f1_module(.clk(CLK) // f1 = 0.3333333f * value
     , .operation_nd(valid), .a(value), .b('h3eaaaaab)
@@ -47,7 +47,7 @@ module fast_log2#(parameter DELAY=1, FP_SIZE=1)
     for(i=1; i < F2_LATENCY; i=i+1) value_d[i] <= #DELAY value_d[i-1];
     
     //Extract the exponent (8 bits, starting from the 2nd to the left)
-    i8_d <= #DELAY {valid, x[(FP_SIZE-2)-:FEXPONENT_SIZE] - 8'd128};
+    i8_d <= #DELAY {valid, x[(DSP_FP_SIZE-2)-:FEXPONENT_SIZE] - 8'd128};
     //i8_d[1] <= #DELAY i8_d[0] - 8'd128;
   end
 endmodule
