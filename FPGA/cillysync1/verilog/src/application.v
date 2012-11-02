@@ -5,7 +5,6 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
 , input[N_CAM*(log2(N_PATCH)+FP_SIZE)-1:0] input_data
 , output output_valid, output[XB_SIZE-1:0] output_data);
 `include "function.v"
-  assign GPIO_LED = {3'b000, ready};
   
   localparam MU = 'h40800000 //4.0f
     , BIAS = 'hC2480000 //-50.0f
@@ -60,10 +59,11 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   localparam ERROR = 0, INIT = 1, SOF_WAIT = 2, INTRAFRAME = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
   assign ready = state == SOF_WAIT || state == INTRAFRAME;
-  assign output_valid = |compress_rdy;
+  assign output_valid = |compress_rdy;  
+  assign GPIO_LED = {3'b000, ready};
   
   generate
-    for(geni=0; geni < N_CAM; geni=geni+1) begin
+    for(geni=0; geni < N_CAM; geni=geni+1) begin: foreach_cam
       //Store the patch number matching the wtsum until compander result
       //obtained
       patch_fifo fifo(.clk(CLK), .rst(RESET)
@@ -105,7 +105,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
         , .a(fcompress[geni]), .operation_nd(fcompress_rdy[geni])
         , .result(compress[geni]), .rdy(compress_rdy[geni]));
 
-      for(genj=0; genj < N_BRAM; genj=genj+1) begin
+      for(genj=0; genj < N_BRAM; genj=genj+1) begin: foreach_bram
         bram bram(.clka(CLK), .wea(wren[geni][genj]), .addra(wr_addr[geni])
                   , .dina({wr_have_bit[geni], din[geni]})
                   , .clkb(CLK), .addrb(rd_addr[geni][genj])
@@ -120,20 +120,21 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       assign patch_loc[geni] = patch[geni][log2(SYNC_WINDOW)-1:0] + patch0_loc;
       assign is_meta[geni] = &patch[geni][1+:(log2(N_PATCH)-1)];
       assign is_sof[geni] = patch[geni][0];
-      assign output_data[geni*COMPRESS_SIZE +: COMPRESS_SIZE] = compress[geni];
+      assign output_data[geni*COMPRESS_SIZE +: COMPRESS_SIZE]
+        = compress[geni][0+:COMPRESS_SIZE];
     end//for(N_CAM)
-    assign output_data[N_CAM*COMPRESS_SIZE +: N_CAM] = compress_rdy;
-    assign output_data[XB_SIZE-1:(N_CAM*COMPRESS_SIZE+N_CAM)] =
-      {(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}};
   endgenerate
-  
+    
+  assign output_data[N_CAM*COMPRESS_SIZE +: N_CAM] = compress_rdy;
+  assign output_data[XB_SIZE-1:(N_CAM*COMPRESS_SIZE+N_CAM)] =
+      {(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}};  
   assign wait4patch_done = &have_patch[wait4patch_col];
 
   integer i, j;
   always @(posedge CLK) begin
     for(i=0; i < N_CAM; i=i+1) begin
       //Delay through register because wren is registered
-      din[i] <= #DELAY compress[i];
+      din[i] <= #DELAY compress[i][0+:COMPRESS_SIZE];
       x_d[i][0] <= #DELAY x[i];
       for(j=1; j < FLESS_LATENCY; j=j+1) x_d[i][j] <= #DELAY x_d[i][j-1];
     end
@@ -181,7 +182,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
           if(wait4patch_done) begin
             sync_valid <= #DELAY `TRUE;
             wait4patch <= #DELAY wait4patch == (N_PATCH - 1)
-              ? 0 : wait4patch + `TRUE;
+              ? {log2(N_PATCH){`FALSE}} : wait4patch + `TRUE;
 
             wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
             for(i=0; i < N_CAM; i=i+1)

@@ -180,19 +180,20 @@ module main#(parameter SIMULATION=0, DELAY=1)
       xb_wr_fifo xb_wr_fifo(.rst(RESET), .wr_clk(BUS_CLK), .rd_clk(BUS_CLK)
         , .din(wr_data), .wr_en(wr_rden)
         , .rd_en(wr_fifo_ack), .dout(wr_fifo_data)
-        , .full(wr_32_full), .empty(wr_fifo_empty));
+        , .full(wr_full), .empty(wr_fifo_empty));
 
-      xb_rd_fifo xb_rd_fifo(.clk(BUS_CLK)
+      xb_rd_fifo xb_rd_fifo(.clk(BUS_CLK), .rst(RESET)
         , .din(fpga_msg), .wr_en(fpga_msg_valid && rd_open)
         , .rd_en(rd_rden), .dout(rd_data)
         , .full(rd_fifo_full), .empty(rd_empty));
 
-      xb_loopback_fifo xb_loopback_fifo(.clk(BUS_CLK)//, .rst(reset)
+      xb_loopback_fifo xb_loopback_fifo(.rst(RESET)
+        , .wr_clk(BUS_CLK), .rd_clk(BUS_CLK)
         , .din(wr_fifo_data), .wr_en(wr_fifo_ack)
         , .rd_en(loop_rden), .dout(rd_loop_data)
         , .full(loop_full), .empty(loop_empty));
 
-      assign wr_fifo_ack = `TRUE;
+      assign wr_fifo_ack = !wr_fifo_empty;
       
       //Multiplex the data according to the header
       always @(posedge BUS_CLK) begin
@@ -206,17 +207,23 @@ module main#(parameter SIMULATION=0, DELAY=1)
             input_valid <= #DELAY wr_fifo_data[56+:N_CAM];
             //Write the same data for all cameras
             for(i=0; i < N_CAM; i=i+1)
-              input_data[(i*(log2(N_PATCH)+FP_SIZE)) +: (log2(N_PATCH)+FP_SIZE)]
+              input_data[(i*(log2(N_PATCH)+FP_SIZE))+:(log2(N_PATCH)+FP_SIZE)]
                 <= #DELAY wr_fifo_data[12+:(log2(N_PATCH)+FP_SIZE)];
           end//!wr_fifo_empty
         end//!RESET
       end//always
     end//!SIMULATION
   endgenerate
-  
+
+//`define DEBUGGING
+`ifdef DEBUGGING
+  assign GPIO_LED[7:4] = {3'b000, BUS_CLK};
+`else
   always @(posedge BUS_CLK) begin
     if(RESET) xb_rd_eof <= #DELAY `FALSE;
-    else xb_rd_eof <= #DELAY (!wr_fifo_empty && !wr_fifo_data) || app_done;
+    else //cmd (top nibble) = 0xF means close the read file
+      xb_rd_eof <= #DELAY !wr_fifo_empty && (&wr_fifo_data[(2*XB_SIZE-1)-:4]);
+
   end
 
   application#(.DELAY(DELAY), .SYNC_WINDOW(SYNC_WINDOW), .FP_SIZE(FP_SIZE)
@@ -224,4 +231,5 @@ module main#(parameter SIMULATION=0, DELAY=1)
     app(.CLK(BUS_CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4]), .ready(app_rdy)
       , .input_valid(input_valid), .input_data(input_data)
       , .output_valid(fpga_msg_valid), .output_data(fpga_msg));
+`endif
 endmodule
