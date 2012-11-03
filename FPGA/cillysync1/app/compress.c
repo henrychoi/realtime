@@ -104,6 +104,7 @@ int __cdecl main(int argc, char *argv[]) {
   int i, write_fd, bTalk2FPGA = (int)(argc > 1), bContinue = 1;
 
   if(bTalk2FPGA) {
+    printf("Connecting to FPGA...\n");
     write_fd = _open(writefn, O_WRONLY | _O_BINARY);
     if (write_fd < 0) {
       if (errno == ENODEV)
@@ -170,7 +171,7 @@ int __cdecl main(int argc, char *argv[]) {
           }
           if(patch_num > 0xFFFFF) patch_num = 0xFFFFF;
           cmd.u32 = (cams << 24) // cmd nibble is implicitly 0
-            || patch_num;
+            | patch_num;
           cmd.f = (float)atof(comma+1);
           break;
         }
@@ -184,31 +185,39 @@ int __cdecl main(int argc, char *argv[]) {
       n_bytes = 0;
       while(n_bytes < sizeof(unsigned int)) {
         int do_bytes = fifo_request_drain(&fifo, &info);
-        if (!do_bytes) return 0;
+        if (!do_bytes) {
+          fprintf(stderr, "Received 0 bytes");
+          return 0;
+        }
+        n_bytes += do_bytes;
         if(n_bytes == sizeof(unsigned int)) {
-          printf(" %X", *((unsigned int*)info.addr));
+          unsigned char* cptr = (unsigned int*)info.addr;
+          printf("DEBUG: Got %08X\n", *((unsigned int*)info.addr));
+          for(i=0; i < N_CAM; ++i) actual[i] = *(cptr+i);
+          reply_cams = *(cptr + N_CAM);
           break;
         }
         fifo_drained(&fifo, do_bytes);//return the buffer
-        n_bytes += do_bytes;
       } // end while
     } else {
+      unsigned long* ptr = &cmd;
+      printf("Would have written %08X %08X\n", *ptr, *(ptr+1));
       reply_cams = cams;
       for(i=0; i < N_CAM; ++i) actual[i] = expected;
     }
-    for(match = 0, i=0; i < N_CAM; ++i)
-      match |= (actual[i] == expected) << i;
+    for(match = 0, i=0; i < N_CAM; ++i) match |= (actual[i] == expected) << i;
 
     if(reply_cams == cams && (match & cams) == cams) printf(
       "PASS; %f compressed to %d\n", cmd.f, expected);
     else printf(
-      "FAIL; %f compressed to %d: %d != %d: %d, %d, %d\n"
+      "FAIL; %f compressed to 0x%X: %d != 0x%X: %d, %d, %d\n"
       , cmd.f, cams, expected, reply_cams, actual[2], actual[1], actual[0]);
 
 loop_end:
     continue;
   } //end for(;;)
 
+  printf("Exiting...\n");
   cmd.u32 = CMD_CLOSE;//Make the FPGA close the rd file
   if(bTalk2FPGA) {
     allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
