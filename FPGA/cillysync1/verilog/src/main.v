@@ -208,7 +208,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
             //Write the same data for all cameras
             for(i=0; i < N_CAM; i=i+1)
               input_data[(i*(log2(N_PATCH)+FP_SIZE))+:(log2(N_PATCH)+FP_SIZE)]
-                <= #DELAY wr_fifo_data[12+:(log2(N_PATCH)+FP_SIZE)];
+                <= #DELAY wr_fifo_data[12 //skip 12 LSB
+                                       +:(log2(N_PATCH)+FP_SIZE)];
           end//!wr_fifo_empty
         end//!RESET
       end//always
@@ -228,7 +229,9 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
   application#(.DELAY(DELAY), .SYNC_WINDOW(SYNC_WINDOW), .FP_SIZE(FP_SIZE)
     , .N_PATCH(N_PATCH), .N_CAM(N_CAM), .XB_SIZE(XB_SIZE))
-    app(.CLK(BUS_CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4]), .ready(app_rdy)
+    app(.CLK(BUS_CLK), .RESET(RESET)
+      , .GPIO_LED(GPIO_LED[7:4])
+      , .ready(app_rdy)
       , .input_valid(input_valid), .input_data(input_data)
       , .output_valid(fpga_msg_valid), .output_data(fpga_msg));
 `endif

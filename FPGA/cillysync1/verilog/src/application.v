@@ -21,7 +21,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
      , lessThanMu, lessThanMu_rdy
      , xbp1_rdy, log_rdy, fcompress_rdy, compress_rdy
      , patch_fifo_empty, patch_fifo_full;
-  reg [N_CAM-1:0] xb_rdy;
+  reg [N_CAM-1:0] xb_rdy, input_count;
   wire[COMPRESS_SIZE:0] compress[N_CAM-1:0];
 
   genvar geni, genj;
@@ -59,8 +59,8 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   localparam ERROR = 0, INIT = 1, SOF_WAIT = 2, INTRAFRAME = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
   assign ready = state == SOF_WAIT || state == INTRAFRAME;
-  assign output_valid = |compress_rdy;  
-  assign GPIO_LED = {3'b000, ready};
+  assign output_valid = |input_valid;//|compress_rdy;  
+  assign GPIO_LED = {input_count, ready};
   
   generate
     for(geni=0; geni < N_CAM; geni=geni+1) begin: foreach_cam
@@ -120,14 +120,14 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       assign patch_loc[geni] = patch[geni][log2(SYNC_WINDOW)-1:0] + patch0_loc;
       assign is_meta[geni] = &patch[geni][1+:(log2(N_PATCH)-1)];
       assign is_sof[geni] = patch[geni][0];
-      assign output_data[geni*COMPRESS_SIZE +: COMPRESS_SIZE]
-        = compress[geni][0+:COMPRESS_SIZE];
+      //assign output_data[geni*COMPRESS_SIZE +: COMPRESS_SIZE]
+        //= compress[geni][0+:COMPRESS_SIZE];
     end//for(N_CAM)
   endgenerate
-    
-  assign output_data[N_CAM*COMPRESS_SIZE +: N_CAM] = compress_rdy;
-  assign output_data[XB_SIZE-1:(N_CAM*COMPRESS_SIZE+N_CAM)] =
-      {(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}};  
+  assign output_data = input_data[20+:XB_SIZE];
+  //assign output_data[N_CAM*COMPRESS_SIZE +: N_CAM] = compress_rdy;
+  //assign output_data[XB_SIZE-1:(N_CAM*COMPRESS_SIZE+N_CAM)] =
+  //    {(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}};  
   assign wait4patch_done = &have_patch[wait4patch_col];
 
   integer i, j;
@@ -140,6 +140,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
     end
 
     if(RESET) begin
+      input_count <= #DELAY 0;
       have_bit <= #DELAY `TRUE;
       for(i=0; i < N_CAM; i=i+1) begin
         wr_have_bit[i] <= #DELAY `FALSE;
@@ -156,6 +157,8 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       //$display("%d ns: qptr %d, din %d", $time, qptr, din);
     end else begin
       for(i=0; i < N_CAM; i=i+1) begin
+        if(input_valid[i]) input_count[i] <= #DELAY input_count[i] + `TRUE;
+        
         x_d[i][FLESS_LATENCY] <= #DELAY lessThanMu_rdy[i] && lessThanMu[i]
           ? x_d[i][FLESS_LATENCY-1][DSP_FP_SIZE-1]
             ? 0 : x_d[i][FLESS_LATENCY-1]
