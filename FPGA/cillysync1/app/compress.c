@@ -13,21 +13,22 @@ static int read_fd = 0;
 // Write to FIFO, read from standard output
 DWORD WINAPI read_thread(LPVOID arg)
 {
-  struct xillyfifo *fifo = arg;
-  int do_bytes, read_bytes;
+  struct xillyfifo *fifo = (struct xillyfifo*)arg;
+  int rd_bytes, read_bytes;
   struct xillyinfo info;
   unsigned char *buf;
 
   while (1) {
-    do_bytes = fifo_request_write(fifo, &info);
+    //Get a loan from the FIFO for zero copy FIFO write
+    rd_bytes = fifo_request_write(fifo, &info); //May write up to this much
 
-    if (do_bytes == 0)
+    if (rd_bytes == 0)
       return 0;
 
-    for (buf = info.addr; do_bytes > 0;
-      buf += read_bytes, do_bytes -= read_bytes) {
-
-      read_bytes = _read(read_fd, buf, do_bytes);
+    for(buf = (unsigned char*)info.addr;
+        rd_bytes > 0;
+        buf += read_bytes, rd_bytes -= read_bytes) {
+      read_bytes = _read(read_fd, buf, rd_bytes);//Read up to the loan
 
       if ((read_bytes < 0) && (errno != EINTR)) {
 	      perror("read() failed");
@@ -44,8 +45,8 @@ DWORD WINAPI read_thread(LPVOID arg)
 	      read_bytes = 0;
 	      continue;
       }
-      
-      fifo_wrote(fifo, read_bytes);
+      //printf("DEBUG: read_thread: buf %p, %X\n", buf, *buf);
+      fifo_wrote(fifo, read_bytes);//Return loaned bytes to FIFO and alert
     }
   }
 }
@@ -101,7 +102,7 @@ int __cdecl main(int argc, char *argv[]) {
   struct xillyfifo fifo;
   struct xillyinfo info;
   unsigned int fifo_size = 4096*4, cur_frame, n_bytes = 0;
-  int i, write_fd, bTalk2FPGA = (int)(argc > 1), bContinue = 1;
+  int i, write_fd, bTalk2FPGA = (int)(argc < 2), bContinue = 1;
 
   if(bTalk2FPGA) {
     printf("Connecting to FPGA...\n");
@@ -151,8 +152,10 @@ int __cdecl main(int argc, char *argv[]) {
     "wtsum: floating point value\n");
 
   for( ; bContinue; ) {
+    unsigned int* ptr32;
     unsigned char expected, actual[N_CAM];
     unsigned long cams = 0, reply_cams, match, patch_num;
+    printf("$ ");
     for(; ; Sleep(10)) {
       if(_kbhit()) {
 #define COMMAND_BUFFER_SIZE 80
@@ -162,7 +165,7 @@ int __cdecl main(int argc, char *argv[]) {
         } else {
           char* comma;
           cams = strtoul(line, &comma, 2); //0 if no conversion performed
-          if(!cams) { bContinue = 0; goto loop_end; }
+          if(!cams) { bContinue = 0; goto cleanup; }
           patch_num = strtoul(comma+1, &comma, 16);
           if(!patch_num) {
             fprintf(stderr
@@ -179,29 +182,29 @@ int __cdecl main(int argc, char *argv[]) {
     } // end for
     
     expected = mulaw_compress(cmd.f);//The correct answer
+    ptr32 = (unsigned int*)&cmd;
+    printf("Writing %08X %08X\n", *ptr32, *(ptr32+1));
 
     if(bTalk2FPGA) {
-      allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
-      n_bytes = 0;
-      while(n_bytes < sizeof(unsigned int)) {
-        int do_bytes = fifo_request_drain(&fifo, &info);
-        if (!do_bytes) {
-          fprintf(stderr, "Received 0 bytes");
+      int rd_bytes;
+      allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));//Write to device
+
+      for(n_bytes = 0; n_bytes <= 0; n_bytes += rd_bytes) {
+        rd_bytes = fifo_request_drain(&fifo, &info);//block for reply
+        //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvv
+        //I COULD call fifo_drained(0), but that's a NOOP, so don't bother
+        if (!rd_bytes) { // Nothing to read!
+          fprintf(stderr, "ERROR: No reply data");
           return 0;
         }
-        n_bytes += do_bytes;
-        if(n_bytes == sizeof(unsigned int)) {
-          unsigned char* cptr = (unsigned int*)info.addr;
-          printf("DEBUG: Got %08X\n", *((unsigned int*)info.addr));
-          for(i=0; i < N_CAM; ++i) actual[i] = *(cptr+i);
-          reply_cams = *(cptr + N_CAM);
-          break;
-        }
-        fifo_drained(&fifo, do_bytes);//return the buffer
-      } // end while
+      } // end while(n_bytes < sizeof(unsigned int))
+      for(rd_bytes = 0; rd_bytes < n_bytes; rd_bytes++)
+        printf(" %02X", *((unsigned char*)info.addr + rd_bytes));
+
+        //for(i=0; i < N_CAM; ++i) actual[i] = *cptr++;
+        //reply_cams = *cptr;
+      fifo_drained(&fifo, n_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
     } else {
-      unsigned long* ptr = &cmd;
-      printf("Would have written %08X %08X\n", *ptr, *(ptr+1));
       reply_cams = cams;
       for(i=0; i < N_CAM; ++i) actual[i] = expected;
     }
@@ -210,13 +213,11 @@ int __cdecl main(int argc, char *argv[]) {
     if(reply_cams == cams && (match & cams) == cams) printf(
       "PASS; %f compressed to %d\n", cmd.f, expected);
     else printf(
-      "FAIL; %f compressed to 0x%X: %d != 0x%X: %d, %d, %d\n"
-      , cmd.f, cams, expected, reply_cams, actual[2], actual[1], actual[0]);
-
-loop_end:
-    continue;
+      "FAIL; %f compressed to %d != 0x%X: %d, %d, %d\n"
+      , cmd.f, expected, reply_cams, actual[2], actual[1], actual[0]);
   } //end for(;;)
 
+cleanup:
   printf("Exiting...\n");
   cmd.u32 = CMD_CLOSE;//Make the FPGA close the rd file
   if(bTalk2FPGA) {

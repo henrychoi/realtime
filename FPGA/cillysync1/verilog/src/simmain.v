@@ -6,14 +6,14 @@ module simmain;
   wire CLK_N;
 
   initial begin
-    CLK <= `FALSE;
-    RESET = `FALSE;
-#4 RESET = `TRUE;
-#96 RESET = `FALSE;
+     CLK <= `FALSE;
+     RESET = `FALSE;
+#4   RESET = `TRUE;
+#396 RESET = `FALSE;
   end
   
   assign CLK_N = ~CLK;
-  always #4 CLK <= ~CLK;  
+  always #2 CLK <= ~CLK;  
 
   main#(.SIMULATION(1), .DELAY(2))
     main(.GPIO_LED(GPIO_LED), .RESET(RESET)

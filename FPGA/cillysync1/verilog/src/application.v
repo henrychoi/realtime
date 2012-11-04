@@ -59,7 +59,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   localparam ERROR = 0, INIT = 1, SOF_WAIT = 2, INTRAFRAME = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
   assign ready = state == SOF_WAIT || state == INTRAFRAME;
-  assign output_valid = |input_valid;//|compress_rdy;  
+  assign output_valid = |compress_rdy;  
   assign GPIO_LED = {input_count, ready};
   
   generate
@@ -120,14 +120,15 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       assign patch_loc[geni] = patch[geni][log2(SYNC_WINDOW)-1:0] + patch0_loc;
       assign is_meta[geni] = &patch[geni][1+:(log2(N_PATCH)-1)];
       assign is_sof[geni] = patch[geni][0];
-      //assign output_data[geni*COMPRESS_SIZE +: COMPRESS_SIZE]
-        //= compress[geni][0+:COMPRESS_SIZE];
     end//for(N_CAM)
   endgenerate
-  assign output_data = input_data[20+:XB_SIZE];
-  //assign output_data[N_CAM*COMPRESS_SIZE +: N_CAM] = compress_rdy;
-  //assign output_data[XB_SIZE-1:(N_CAM*COMPRESS_SIZE+N_CAM)] =
-  //    {(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}};  
+
+  //assign output_data = input_data[0+:XB_SIZE];
+  assign output_data = {{(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}}
+    , compress_rdy
+    , compress[2][0+:COMPRESS_SIZE]
+    , compress[1][0+:COMPRESS_SIZE]
+    , compress[0][0+:COMPRESS_SIZE]};
   assign wait4patch_done = &have_patch[wait4patch_col];
 
   integer i, j;
