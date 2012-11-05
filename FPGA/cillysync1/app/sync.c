@@ -72,32 +72,6 @@ void allwrite(int fd, unsigned char *buf, int len) {
   }
 }
 
-float log2(float x) {
-  union { unsigned int u32; float f; } u;
-  u.f = x;
-  u.u32 << 23;
-  return 0;
-}
-
-unsigned char mulaw_compress(float x) {
-  const static float MU = 4.0f, BIAS = -50.0f
-    , MUxScale = 0.002522068095f
-    , CEILING_DIV_LOG1PMU = 158.4404f
-    //ln(2) = 0.693147f
-    , LOG2xCEILING_DIV_LOG1PMU = 109.8224879388f
-    ;
-  float fresult;
-  float xb = (x - BIAS) * MUxScale;
-  if(xb < 0.0f) xb = 0.0f; // bound it
-  else if(xb > MU) xb = MU;
-#ifdef EXACT
-  fresult = CEILING_DIV_LOG1PMU * (float)log(xb + 1.0f);
-#else
-  fresult = LOG2xCEILING_DIV_LOG1PMU * (float)log2(xb + 1.0f);
-#endif
-  return (unsigned char)(fresult + 0.5f);//round it
-}
-
 #define CMD_CLOSE 0xFFFFFFFF
 struct pc2fpga {
   unsigned int u32;
@@ -114,7 +88,7 @@ int __cdecl main(int argc, char *argv[]) {
   struct xillyfifo fifo;
   struct xillyinfo info;
   unsigned int fifo_size = 4096*4, cur_frame, n_bytes = 0;
-  int i, write_fd, bTalk2FPGA = (int)(argc < 2), bContinue = 1;
+  int i, write_fd, bTalk2FPGA = (int)(argc < 2);
 
   if(bTalk2FPGA) {
     printf("Connecting to FPGA...\n");
@@ -129,9 +103,10 @@ int __cdecl main(int argc, char *argv[]) {
 
     // If more than one FIFO is created, use the total memory needed instead
     // of fifo_size with SetProcessWorkingSetSize()
-    if(fifo_size > 20000
-      && !SetProcessWorkingSetSize(GetCurrentProcess()
-          , 1024*1024 + fifo_size, 2048*1024 + fifo_size))
+    if ((fifo_size > 20000) &&
+        !SetProcessWorkingSetSize(GetCurrentProcess(),
+				  1024*1024 + fifo_size,
+				  2048*1024 + fifo_size))
       errorprint("Failed to enlarge unswappable RAM limit", GetLastError());
 
     if (fifo_init(&fifo, fifo_size)) {
@@ -156,48 +131,13 @@ int __cdecl main(int argc, char *argv[]) {
     }
   }//end if(bTalk2FPGA)
 
-  printf("Usage: [cam select, patch num] [, wtsum]<ENTER>\n"
-    "If just <ENTER>, quit\n"
-    "cam select: bitmap or'ed of 001 (cam0), 010 (cam1), 100 (cam2)\n"
-    "patch num (in hex, start from 0x1). SOF: 0xfffff, EOF: 0xffffe\n"
-    "wtsum: floating point value\n");
+  printf("Press any kep to quit.\n");
 
-  for( ; bContinue; ) {
-    unsigned int* ptr32;
-    unsigned char expected, actual[N_CAM];
-    unsigned long cams = 0, reply_cams, match, patch_num;
-    printf("$ ");
-    for(; ; Sleep(10)) {
-      if(_kbhit()) {
-#define COMMAND_BUFFER_SIZE 80
-        char line[COMMAND_BUFFER_SIZE];
-        if(!gets_s(line, sizeof(line))) { // EOF reached
-            fprintf(stderr, "\nError; please try again.\n");
-        } else {
-          char* comma;
-          cams = strtoul(line, &comma, 2); //0 if no conversion performed
-          if(!cams) { bContinue = 0; goto cleanup; }
-          patch_num = strtoul(comma+1, &comma, 16);
-          if(!patch_num || patch_num > 0xFFFFF) {
-            fprintf(stderr
-              , "Invalid patch num; see usage above and try again\n");
-            continue;
-          }
-          if(patch_num < 0xFFFF0) // Not meta
-            --patch_num;//so I can start at 0
-          cmd.u32 = (cams << 24) // cmd nibble is implicitly 0
-            | patch_num;
-          cmd.f = (float)atof(comma+1);
-          break;
-        }
-      } // end if(_kbhit())
-    } // end for
+  for(; !_kbhit();) {
+    unsigned long cams = 7, reply_cams, match, patch_num = 0;
+    // Pick a camera and generate a random patch
+    cmd.f = 0.f;
     
-    expected = mulaw_compress(cmd.f);//The correct answer
-    ptr32 = (unsigned int*)&cmd;
-    printf("DEBUG: Writing %08X %08X, expecting compressed result %d\n"
-      , *ptr32, *(ptr32+1), expected);
-
     if(bTalk2FPGA) {
       int rd_bytes;
       allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));//Write to device
