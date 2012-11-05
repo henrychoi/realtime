@@ -167,12 +167,13 @@ int __cdecl main(int argc, char *argv[]) {
           cams = strtoul(line, &comma, 2); //0 if no conversion performed
           if(!cams) { bContinue = 0; goto cleanup; }
           patch_num = strtoul(comma+1, &comma, 16);
-          if(!patch_num) {
+          if(!patch_num || patch_num > 0xFFFFF) {
             fprintf(stderr
-              , "patch num unspecified; see usage above and try again\n");
+              , "Invalid patch num; see usage above and try again\n");
             continue;
           }
-          if(patch_num > 0xFFFFF) patch_num = 0xFFFFF;
+          if(patch_num < 0xFFFF0) // Not meta
+            --patch_num;//so I can start at 0
           cmd.u32 = (cams << 24) // cmd nibble is implicitly 0
             | patch_num;
           cmd.f = (float)atof(comma+1);
@@ -183,38 +184,29 @@ int __cdecl main(int argc, char *argv[]) {
     
     expected = mulaw_compress(cmd.f);//The correct answer
     ptr32 = (unsigned int*)&cmd;
-    printf("Writing %08X %08X\n", *ptr32, *(ptr32+1));
+    printf("DEBUG: Writing %08X %08X\n", *ptr32, *(ptr32+1));
 
     if(bTalk2FPGA) {
       int rd_bytes;
       allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));//Write to device
-
       for(n_bytes = 0; n_bytes <= 0; n_bytes += rd_bytes) {
-        rd_bytes = fifo_request_drain(&fifo, &info);//block for reply
+        Sleep(100);
+        rd_bytes = fifo_request_drain(&fifo, &info, 0);//don't block for reply
+        //Normally, there will not be a response
         //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvv
         //I COULD call fifo_drained(0), but that's a NOOP, so don't bother
         if (!rd_bytes) { // Nothing to read!
-          fprintf(stderr, "ERROR: No reply data");
-          return 0;
+          break;//Not an error in this case
         }
       } // end while(n_bytes < sizeof(unsigned int))
-      for(rd_bytes = 0; rd_bytes < n_bytes; rd_bytes++)
-        printf(" %02X", *((unsigned char*)info.addr + rd_bytes));
-
-        //for(i=0; i < N_CAM; ++i) actual[i] = *cptr++;
-        //reply_cams = *cptr;
+      if(n_bytes > 0) {
+        printf("Received ");
+        for(rd_bytes = 0; rd_bytes < n_bytes; rd_bytes++)
+          printf(" %02X", *((unsigned char*)info.addr + rd_bytes));
+        printf("\n");
+      }
       fifo_drained(&fifo, n_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
-    } else {
-      reply_cams = cams;
-      for(i=0; i < N_CAM; ++i) actual[i] = expected;
     }
-    for(match = 0, i=0; i < N_CAM; ++i) match |= (actual[i] == expected) << i;
-
-    if(reply_cams == cams && (match & cams) == cams) printf(
-      "PASS; %f compressed to %d\n", cmd.f, expected);
-    else printf(
-      "FAIL; %f compressed to %d != 0x%X: %d, %d, %d\n"
-      , cmd.f, expected, reply_cams, actual[2], actual[1], actual[0]);
   } //end for(;;)
 
 cleanup:

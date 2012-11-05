@@ -47,7 +47,8 @@ struct xillyinfo {
 int fifo_init(struct xillyfifo *fifo, unsigned int size);
 void fifo_done(struct xillyfifo *fifo);
 void fifo_destroy(struct xillyfifo *fifo);
-int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info);
+int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info
+  , unsigned bWait);
 void fifo_drained(struct xillyfifo *fifo, int req_bytes);
 int fifo_request_write(struct xillyfifo *fifo, struct xillyinfo *info);
 void fifo_wrote(struct xillyfifo *fifo, int req_bytes);

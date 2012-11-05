@@ -3,7 +3,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
 ( input CLK, RESET, output[7:4] GPIO_LED, output ready
 , input[N_CAM-1:0] input_valid
 , input[N_CAM*(log2(N_PATCH)+FP_SIZE)-1:0] input_data
-, output output_valid, output[XB_SIZE-1:0] output_data);
+, output reg output_valid, output reg[XB_SIZE-1:0] output_data);
 `include "function.v"
   
   localparam MU = 'h40800000 //4.0f
@@ -13,7 +13,10 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
     , ONE = 'h3f800000 //1.0f
     , FLESS_LATENCY = 2
     , DSP_FP_SIZE = 32
-    , COMPRESS_SIZE = 8;
+    , COMPRESS_SIZE = 8
+    , N_FRAME_SIZE = 20
+    ;
+  reg [N_FRAME_SIZE-1:0] n_frame;
   reg [DSP_FP_SIZE-1:0] x_d[N_CAM-1:0][FLESS_LATENCY:0];
   wire[DSP_FP_SIZE-1:0] x[N_CAM-1:0], wtsum_m_bias[N_CAM-1:0], xbp1[N_CAM-1:0]
     , log2_1pxb[N_CAM-1:0], fcompress[N_CAM-1:0];
@@ -43,7 +46,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
 
   reg [BRAM_DATA_SIZE-1:0] din[N_CAM-1:0];
   wire[BRAM_DATA_SIZE-1:0] dout[N_CAM-1:0][N_BRAM-1:0];
-  reg [FP_SIZE-1:0] sync_wtsum[N_CAM-1:0];
+  //reg [FP_SIZE-1:0] sync_wtsum[N_CAM-1:0];
   reg sync_valid;
   wire wait4patch_done;
   reg [N_CAM-1:0] wr_have_bit, eof;
@@ -59,7 +62,7 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   localparam ERROR = 0, INIT = 1, SOF_WAIT = 2, INTRAFRAME = 3, N_STATE = 4;
   reg [log2(N_STATE)-1:0] state;
   assign ready = state == SOF_WAIT || state == INTRAFRAME;
-  assign output_valid = |compress_rdy;  
+  //assign output_valid = |compress_rdy;  
   assign GPIO_LED = {input_count, ready};
   
   generate
@@ -124,11 +127,11 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
   endgenerate
 
   //assign output_data = input_data[0+:XB_SIZE];
-  assign output_data = {{(XB_SIZE-N_CAM*COMPRESS_SIZE-N_CAM){`FALSE}}
-    , compress_rdy
-    , compress[2][0+:COMPRESS_SIZE]
-    , compress[1][0+:COMPRESS_SIZE]
-    , compress[0][0+:COMPRESS_SIZE]};
+  //assign output_data = {is_meta[0] && !is_sof[0], is_meta[0] && is_sof[0]
+  //  , 3'b000, compress_rdy
+  //  , compress[2][0+:COMPRESS_SIZE]
+  //  , compress[1][0+:COMPRESS_SIZE]
+  //  , compress[0][0+:COMPRESS_SIZE]};
   assign wait4patch_done = &have_patch[wait4patch_col];
 
   integer i, j;
@@ -141,7 +144,10 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
     end
 
     if(RESET) begin
+      n_frame <= #DELAY 0;
       input_count <= #DELAY 0;
+      output_valid <= #DELAY `FALSE;
+      output_data <= #DELAY 0;
       have_bit <= #DELAY `TRUE;
       for(i=0; i < N_CAM; i=i+1) begin
         wr_have_bit[i] <= #DELAY `FALSE;
@@ -157,6 +163,9 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
       state <= #DELAY INIT;
       //$display("%d ns: qptr %d, din %d", $time, qptr, din);
     end else begin
+      output_valid <= #DELAY `FALSE; // set default values
+      output_data <= #DELAY 0;
+
       for(i=0; i < N_CAM; i=i+1) begin
         if(input_valid[i]) input_count[i] <= #DELAY input_count[i] + `TRUE;
         
@@ -180,8 +189,13 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
           eof <= #DELAY 0;
           if((compress_rdy[0] && is_meta[0] && is_sof[0])
           || (compress_rdy[1] && is_meta[1] && is_sof[1])
-          || (compress_rdy[2] && is_meta[2] && is_sof[2]))
+          || (compress_rdy[2] && is_meta[2] && is_sof[2])) begin
+            n_frame <= #DELAY n_frame + `TRUE; // a new frame!
+            output_valid <= #DELAY `TRUE;
+            output_data <= #DELAY {`FALSE, `TRUE // !EOF, SOF
+              , 10'h000, n_frame};
             state <= #DELAY INTRAFRAME;
+          end
 
           if(wait4patch_done) begin
             sync_valid <= #DELAY `TRUE;
@@ -189,10 +203,18 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
               ? {log2(N_PATCH){`FALSE}} : wait4patch + `TRUE;
 
             wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
-            for(i=0; i < N_CAM; i=i+1)
-              sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
-
             if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
+
+            // Emit output
+            output_valid <= #DELAY `TRUE;
+            output_data[N_CAM*COMPRESS_SIZE+:8] <= #DELAY
+              {`FALSE, `FALSE   // !EOF, !SOF
+              , 3'b000, 3'b111};// all 3 cams emitted together
+            for(i=0; i < N_CAM; i=i+1) begin
+              //sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
+              output_data[i*COMPRESS_SIZE+:COMPRESS_SIZE] <= #DELAY
+                dout[i][wait4patch_col];
+            end            
           end else sync_valid <= #DELAY `FALSE;
         end
         
@@ -231,10 +253,18 @@ module application#(parameter DELAY=1, SYNC_WINDOW=1, FP_SIZE=1, N_PATCH=1
               ? 0 : wait4patch + `TRUE;
 
             wait4patch_loc <= #DELAY wait4patch_loc + `TRUE;
-            for(i=0; i < N_CAM; i=i+1)
-              sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
-
             if(&wait4patch_loc) have_bit <= #DELAY ~have_bit;//Rolling over
+
+            // Emit output
+            output_valid <= #DELAY `TRUE;
+            output_data[N_CAM*COMPRESS_SIZE+:8] <= #DELAY
+              {`FALSE, `FALSE   // !EOF, !SOF
+              , 3'b000, 3'b111};// all 3 cams emitted together
+            for(i=0; i < N_CAM; i=i+1) begin
+              //sync_wtsum[i] <= #DELAY dout[i][wait4patch_col];
+              output_data[i*COMPRESS_SIZE+:COMPRESS_SIZE] <= #DELAY
+                dout[i][wait4patch_col];
+            end
           end else sync_valid <= #DELAY `FALSE;
         end//OK
         

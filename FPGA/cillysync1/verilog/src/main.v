@@ -262,6 +262,21 @@ module main#(parameter SIMULATION=0, DELAY=1)
 #    8  wr_data_r = 'h40400000;
 #    8  wr_wren_r = `FALSE;
 
+        // Send patch #1
+#  100  wr_wren_r = `TRUE;
+        wr_data_r = 'h01000000;
+#    8  wr_data_r = 'hc2480000;//-50.0
+#    8  wr_wren_r = `FALSE;
+
+#    8  wr_wren_r = `TRUE;
+        wr_data_r = 'h02000000;
+#    8  wr_data_r = 'h42480000;//50.0
+#    8  wr_wren_r = `FALSE;
+
+#    8  wr_wren_r = `TRUE;
+        wr_data_r = 'h04000000;
+#    8  wr_data_r = 'h44c00000;//1536.0
+#    8  wr_wren_r = `FALSE;
 
         // Send EOF
 #  100  wr_wren_r = `TRUE;

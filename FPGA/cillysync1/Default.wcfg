@@ -199,22 +199,22 @@
       <obj_property name="ObjectShortName">output_data[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
+   <wvobject fp_name="/simmain/main/rd_rden" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_rden</obj_property>
+      <obj_property name="ObjectShortName">rd_rden</obj_property>
+   </wvobject>
    <wvobject fp_name="/simmain/main/rd_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">rd_data[31:0]</obj_property>
       <obj_property name="ObjectShortName">rd_data[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/rd_rden" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">rd_rden</obj_property>
-      <obj_property name="ObjectShortName">rd_rden</obj_property>
+   <wvobject fp_name="/simmain/main/fpga_msg_valid" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/fpga_msg" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">fpga_msg[31:0]</obj_property>
       <obj_property name="ObjectShortName">fpga_msg[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/fpga_msg_valid" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
-      <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
    </wvobject>
 </wave_config>

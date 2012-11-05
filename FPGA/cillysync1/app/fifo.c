@@ -88,7 +88,8 @@ void fifo_destroy(struct xillyfifo *fifo) {
   fifo->baseaddr = NULL;
 }
 
-int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info) {
+int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info
+  , unsigned bWait) {
   int taken = 0;
   unsigned int now_bytes, max_bytes;
 
@@ -96,8 +97,7 @@ int fifo_request_drain(struct xillyfifo *fifo, struct xillyinfo *info) {
   info->addr = NULL;
 
   now_bytes = __sync_add_and_fetch(&fifo->bytes_in_fifo, 0);
-
-  while (now_bytes == 0) {
+  while (now_bytes == 0 && bWait) {
     if (fifo->done)
       goto fail; // FIFO will not be used by other side, and is empty
 
