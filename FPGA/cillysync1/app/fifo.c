@@ -67,7 +67,7 @@ int fifo_init(struct xillyfifo *fifo, unsigned int size) {
 
 void fifo_done(struct xillyfifo *fifo) {
   fifo->done = 1;
-  
+  // Get the blocked threads off this FIFO
   if (!SetEvent(fifo->read_event))
     errorprint("fifo_done: Failed to set read event", GetLastError());
 

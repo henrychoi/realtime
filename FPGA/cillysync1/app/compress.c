@@ -73,10 +73,18 @@ void allwrite(int fd, unsigned char *buf, int len) {
 }
 
 float log2(float x) {
-  union { unsigned int u32; float f; } u;
+  union { unsigned int i; float f; } u;
+  int whole;
+  float fraction;
   u.f = x;
-  u.u32 << 23;
-  return 0;
+  whole = ((u.i >> 23) & 255) - 128;//Extract whole number portion of exponent
+  
+  // Extract fraction of the exponent only
+	u.i &= ~(255 << 23);//mask out the exponent ==> pick up sign bit and fraction
+	u.i += 127 << 23;//set the exponent to 0 (127 - 127 = 0)
+  fraction = (2.0f - 0.3333333f * u.f) * u.f - 0.6666666f;
+
+  return fraction + whole;
 }
 
 unsigned char mulaw_compress(float x) {
@@ -88,13 +96,17 @@ unsigned char mulaw_compress(float x) {
     ;
   float fresult;
   float xb = (x - BIAS) * MUxScale;
+  float log_xp1;
+
   if(xb < 0.0f) xb = 0.0f; // bound it
   else if(xb > MU) xb = MU;
-#ifdef EXACT
-  fresult = CEILING_DIV_LOG1PMU * (float)log(xb + 1.0f);
-#else
-  fresult = LOG2xCEILING_DIV_LOG1PMU * (float)log2(xb + 1.0f);
-#endif
+
+  log_xp1 = log(xb + 1.0f);
+  fresult = CEILING_DIV_LOG1PMU * log_xp1;
+  printf("Exact answer is %f\n", fresult);
+
+  log_xp1 = log2(xb + 1.0f);
+  fresult = LOG2xCEILING_DIV_LOG1PMU * log2(xb + 1.0f);
   return (unsigned char)(fresult + 0.5f);//round it
 }
 
@@ -184,7 +196,7 @@ int __cdecl main(int argc, char *argv[]) {
             continue;
           }
           if(patch_num < 0xFFFF0) // Not meta
-            --patch_num;//so I can start at 0
+            --patch_num;//so I can start the patch num at 0
           cmd.u32 = (cams << 24) // cmd nibble is implicitly 0
             | patch_num;
           cmd.f = (float)atof(comma+1);

@@ -10,7 +10,6 @@
 
 static int read_fd = 0;
 
-// Write to FIFO, read from standard output
 DWORD WINAPI read_thread(LPVOID arg)
 {
   struct xillyfifo *fifo = (struct xillyfifo*)arg;
@@ -51,6 +50,22 @@ DWORD WINAPI read_thread(LPVOID arg)
   }
 }
 
+DWORD WINAPI report_thread(LPVOID arg) {
+  static DWORD n_char = 0;
+  struct xillyinfo info;  
+  struct xillyfifo *fifo = (struct xillyfifo*)arg;
+  while(!fifo->done) {
+    int i, rd_bytes = fifo_request_drain(fifo, &info, 1);//block for reply
+    //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvvvvv
+    if (!rd_bytes < 0) continue;// Nothing to read! Not an error in this case
+    for(i = 0; i < rd_bytes; ++i, ++n_char)
+      printf((n_char & 0x3) == 0 ? "%02X\n" : "%02X "
+          , *((unsigned char*)info.addr + i));
+    fifo_drained(fifo, rd_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
+  }
+  return n_char;
+}
+
 void allwrite(int fd, unsigned char *buf, int len) {
   int sent = 0;
   while (sent < len) {
@@ -74,21 +89,27 @@ void allwrite(int fd, unsigned char *buf, int len) {
 
 #define CMD_CLOSE 0xFFFFFFFF
 struct pc2fpga {
-  unsigned int u32;
+  unsigned int i;
   float f;
 };
 
 int __cdecl main(int argc, char *argv[]) {
+#define N_FRAME 2
 #define N_CAM 3
+#define N_PATCH 100
   struct pc2fpga cmd = {0, 0.f};
-  DWORD startTick, elapsedMS;
   const char* readfn = "\\\\.\\xillybus_rd"
 	  , * writefn = "\\\\.\\xillybus_wr";
-  HANDLE tid[1];
+  HANDLE tid[2];
   struct xillyfifo fifo;
-  struct xillyinfo info;
-  unsigned int fifo_size = 4096*4, cur_frame, n_bytes = 0;
+  unsigned int fifo_size = 4096*16;
   int i, write_fd, bTalk2FPGA = (int)(argc < 2);
+  unsigned short random[N_CAM], lsft_ctr = 0;
+  int random_offset = -1;
+#define INTERFRAME 1
+#define INTRAFRAME 2
+  unsigned state = INTERFRAME;
+  unsigned int n_frame = 0;
 
   if(bTalk2FPGA) {
     printf("Connecting to FPGA...\n");
@@ -103,10 +124,9 @@ int __cdecl main(int argc, char *argv[]) {
 
     // If more than one FIFO is created, use the total memory needed instead
     // of fifo_size with SetProcessWorkingSetSize()
-    if ((fifo_size > 20000) &&
-        !SetProcessWorkingSetSize(GetCurrentProcess(),
-				  1024*1024 + fifo_size,
-				  2048*1024 + fifo_size))
+    if ((fifo_size > 20000)
+      && !SetProcessWorkingSetSize(GetCurrentProcess()
+            , 1024*1024 + fifo_size, 2048*1024 + fifo_size))
       errorprint("Failed to enlarge unswappable RAM limit", GetLastError());
 
     if (fifo_init(&fifo, fifo_size)) {
@@ -126,44 +146,91 @@ int __cdecl main(int argc, char *argv[]) {
     // default security, default stack size, default startup flags
     tid[0] = CreateThread(NULL, 0, read_thread, &fifo, 0, NULL);
     if (tid[0] == NULL) {
-      errorprint("Failed to create thread", GetLastError());
+      errorprint("Failed to create read thread", GetLastError());
+      exit(1);
+    }
+    tid[1] = CreateThread(NULL, 0, report_thread, &fifo, 0, NULL);
+    if (tid[1] == NULL) {
+      errorprint("Failed to create report thread", GetLastError());
       exit(1);
     }
   }//end if(bTalk2FPGA)
 
-  printf("Press any kep to quit.\n");
+#define LFSR_SIZE 3
+#if (LFSR_SIZE == 3)
+#define LFSR_TAP 0x6  //'b110
+#elif (LFSR_SIZE == 4)
+#define LFSR_TAP 0xC  //'b1100
+#elif (LFSR_SIZE == 5)
+#define LFSR_TAP 0x14 //'b1_0100
+#elif (LFSR_SIZE == 6)
+#define LFSR_TAP 0x30 //'b11_0000
+#elif (LFSR_SIZE == 7)
+#define LFSR_TAP 0x60 //'b110_0000
+#elif (LFSR_SIZE == 8)
+#define LFSR_TAP 0xB8 //'b1011_1000
+#elif (LFSR_SIZE == 9)
+#define LFSR_TAP 0x120//'b1_0010_0000
+#elif (LFSR_SIZE == 10)
+#define LFSR_TAP 0x240//'b10_0100_0000
+#elif (LFSR_SIZE == 11)
+#define LFSR_TAP 0x500//'b101_0000_0000
+#elif (LFSR_SIZE == 12)
+#define LFSR_TAP 0xE08//'b1110_0000_1000
+#else
+# error Unsupported LFSR_SIZE
+#endif
+
+  for(i = 0; i < N_CAM; ++i) random[i] = 1 << (LFSR_SIZE-1-i);
 
   for(; !_kbhit();) {
-    unsigned long cams = 7, reply_cams, match, patch_num = 0;
-    // Pick a camera and generate a random patch
-    cmd.f = 0.f;
-    
-    if(bTalk2FPGA) {
-      int rd_bytes;
-      allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));//Write to device
-      for(n_bytes = 0; n_bytes <= 0; n_bytes += rd_bytes) {
-        Sleep(100);
-        rd_bytes = fifo_request_drain(&fifo, &info, 0);//don't block for reply
-        //Normally, there will not be a response
-        //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvv
-        //I COULD call fifo_drained(0), but that's a NOOP, so don't bother
-        if (!rd_bytes) { // Nothing to read!
-          break;//Not an error in this case
-        }
-      } // end while(n_bytes < sizeof(unsigned int))
-      if(n_bytes > 0) {
-        printf("Received ");
-        for(rd_bytes = 0; rd_bytes < n_bytes; rd_bytes++)
-          printf(" %02X", *((unsigned char*)info.addr + rd_bytes));
-        printf("\n");
+    Sleep(1000);
+    if(state == INTERFRAME) {
+      for(i = 0; i < N_CAM; ++i) {
+        cmd.i = (1 << (24 + i)) | 0xFFFFF;//SOF
+        printf("0x%08X ", cmd.i);
+        if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));        
       }
-      fifo_drained(&fifo, n_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
+      printf("\n");
+      state = INTRAFRAME;
+    }
+
+    cmd.f = lsft_ctr;
+    for(i = 0; i < N_CAM; ++i) {
+      cmd.i = (1 << (24 + i)) | (random[i] + random_offset);
+      printf("0x%08X ", cmd.i);
+      if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
+
+      random[i] = (random[i] >> 1) ^ (-(random[i] & 1u) & 0x6);
+      if(random[i] > (1<<LFSR_SIZE))
+        printf("ERROR");
+    } //end for(i)
+    printf("\n");
+
+    if(++lsft_ctr == ((1<<LFSR_SIZE) - 1)) { // LSFR rolling over
+      lsft_ctr = 0;
+      if(random_offset >= (N_PATCH - (1<<LFSR_SIZE))) { // Emit EOF
+        for(i = 0; i < N_CAM; ++i) {
+          cmd.i = (1 << (24 + i)) | 0xFFFFE;//EOF
+          printf("0x%08X ", cmd.i);
+          if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
+        }
+        printf("\n");
+        if(++n_frame == N_FRAME)
+          break;
+        for(i = 0; i < N_CAM; ++i) random[i] = 1 << (LFSR_SIZE-1-i);
+        random_offset = -1;
+        state = INTERFRAME;
+      } else { //Just increase random_offset
+        random_offset += (1<<LFSR_SIZE) - 1;
+      }
     }
   } //end for(;;)
 
 cleanup:
-  printf("Exiting...\n");
-  cmd.u32 = CMD_CLOSE;//Make the FPGA close the rd file
+  printf("Press any key to exit\n");
+  getchar();
+  cmd.i = CMD_CLOSE;//Make the FPGA close the rd file
   if(bTalk2FPGA) {
     allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
 
