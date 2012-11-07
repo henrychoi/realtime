@@ -27,6 +27,14 @@ DWORD WINAPI read_thread(LPVOID arg)
     for(buf = (unsigned char*)info.addr;
         rd_bytes > 0;
         buf += read_bytes, rd_bytes -= read_bytes) {
+      /*  You don't need to worry about non-32-bit granularity, since _read()
+      will never return anything unaligned to the underlying channel, unless
+      it has been requested an unaligned number of bytes. This holds for both
+      Windows on Linux.  So unless you've done something bizarre such as
+      allocating a buffer which isn't 32-bit aligned, or chosen such a
+      FIFO_BACKOFF, there's nothing to check. It's pretty simple to verify that
+      the two LSBs of all variables in the foodchain are necessarily forced to
+      0. */
       read_bytes = _read(read_fd, buf, rd_bytes);//Read up to the loan
 
       if ((read_bytes < 0) && (errno != EINTR)) {
@@ -51,19 +59,34 @@ DWORD WINAPI read_thread(LPVOID arg)
 }
 
 DWORD WINAPI report_thread(LPVOID arg) {
-  static DWORD n_char = 0;
   struct xillyinfo info;  
   struct xillyfifo *fifo = (struct xillyfifo*)arg;
-  while(!fifo->done) {
+  unsigned int n_patch, n_frame = 0;
+  for(n_patch = 0; ;) {
     int i, rd_bytes = fifo_request_drain(fifo, &info, 1);//block for reply
     //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvvvvv
-    if (!rd_bytes < 0) continue;// Nothing to read! Not an error in this case
-    for(i = 0; i < rd_bytes; ++i, ++n_char)
-      printf((n_char & 0x3) == 0 ? "%02X\n" : "%02X "
-          , *((unsigned char*)info.addr + i));
+    if(rd_bytes < 0) continue;// Nothing to read! Not an error in this case
+    if(!rd_bytes) break; //FIFO closed.  Do NOT check fifo->done
+    if((rd_bytes & 0x3) != 0) {
+      fprintf(stderr, "fifo_request_drain returned non-aligned data %d bytes"
+          , rd_bytes);
+      return rd_bytes;
+    }
+    for(i = 0; i < (rd_bytes >> 2); ++i, ++n_patch) {
+      unsigned int msg = *(((unsigned int*)info.addr) + i);
+      //If SOF, the FPGA sends
+      //output_data <= #DELAY {`FALSE, `TRUE // !EOF, SOF
+      //        , 10'h000, n_frame};
+      if(msg >= 0x40000000) {
+        n_frame = msg & 0xFFFFF;
+        n_patch = 0;
+		printf("SOF %d\n", n_frame);
+      }
+      //printf("%3d, %08d: 0x%08X\n", n_frame, n_patch, msg);
+    }
     fifo_drained(fifo, rd_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
   }
-  return n_char;
+  return 0;
 }
 
 void allwrite(int fd, unsigned char *buf, int len) {
@@ -94,9 +117,10 @@ struct pc2fpga {
 };
 
 int __cdecl main(int argc, char *argv[]) {
-#define N_FRAME 2
+#define LFSR_SIZE 12
+#define N_FRAME 100
 #define N_CAM 3
-#define N_PATCH 100
+#define N_PATCH 600000//(1<<LFSR_SIZE)
   struct pc2fpga cmd = {0, 0.f};
   const char* readfn = "\\\\.\\xillybus_rd"
 	  , * writefn = "\\\\.\\xillybus_wr";
@@ -105,7 +129,7 @@ int __cdecl main(int argc, char *argv[]) {
   unsigned int fifo_size = 4096*16;
   int i, write_fd, bTalk2FPGA = (int)(argc < 2);
   unsigned short random[N_CAM], lsft_ctr = 0;
-  int random_offset = -1;
+  int random_offset = -1; //Galois LFSR never hits 0, so I have to subtract 1
 #define INTERFRAME 1
 #define INTRAFRAME 2
   unsigned state = INTERFRAME;
@@ -156,7 +180,6 @@ int __cdecl main(int argc, char *argv[]) {
     }
   }//end if(bTalk2FPGA)
 
-#define LFSR_SIZE 3
 #if (LFSR_SIZE == 3)
 #define LFSR_TAP 0x6  //'b110
 #elif (LFSR_SIZE == 4)
@@ -170,7 +193,7 @@ int __cdecl main(int argc, char *argv[]) {
 #elif (LFSR_SIZE == 8)
 #define LFSR_TAP 0xB8 //'b1011_1000
 #elif (LFSR_SIZE == 9)
-#define LFSR_TAP 0x120//'b1_0010_0000
+#define LFSR_TAP 0x110//'b1_0001_0000
 #elif (LFSR_SIZE == 10)
 #define LFSR_TAP 0x240//'b10_0100_0000
 #elif (LFSR_SIZE == 11)
@@ -184,7 +207,7 @@ int __cdecl main(int argc, char *argv[]) {
   for(i = 0; i < N_CAM; ++i) random[i] = 1 << (LFSR_SIZE-1-i);
 
   for(; !_kbhit();) {
-    Sleep(1000);
+    //Sleep(100);
     if(state == INTERFRAME) {
       for(i = 0; i < N_CAM; ++i) {
         cmd.i = (1 << (24 + i)) | 0xFFFFF;//SOF
@@ -198,14 +221,15 @@ int __cdecl main(int argc, char *argv[]) {
     cmd.f = lsft_ctr;
     for(i = 0; i < N_CAM; ++i) {
       cmd.i = (1 << (24 + i)) | (random[i] + random_offset);
-      printf("0x%08X ", cmd.i);
       if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&cmd, sizeof(cmd));
+      else printf("0x%08X ", cmd.i);
 
-      random[i] = (random[i] >> 1) ^ (-(random[i] & 1u) & 0x6);
+      random[i] = (random[i] >> 1) ^ (-(random[i] & 1u) & LFSR_TAP);
       if(random[i] > (1<<LFSR_SIZE))
         printf("ERROR");
     } //end for(i)
-    printf("\n");
+    if(!bTalk2FPGA)
+      printf("\n");
 
     if(++lsft_ctr == ((1<<LFSR_SIZE) - 1)) { // LSFR rolling over
       lsft_ctr = 0;
