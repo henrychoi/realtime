@@ -128,7 +128,7 @@ module simmain;
                                         // Update interval
   localparam VT_MAX                     = CLK_PERIOD/40;
                                         // Maximum VT shift
-
+  localparam DELAY = 1;
 
   //**************************************************************************//
   // Wire Declarations
@@ -186,8 +186,6 @@ module simmain;
   reg [(CS_WIDTH*nCS_PER_RANK)-1:0] ddr3_cs_n_r;
   reg [(CS_WIDTH*nCS_PER_RANK)-1:0] ddr3_odt_r;
   reg [CKE_WIDTH-1:0]               ddr3_cke_r;
-
-
 
   //**************************************************************************//
   // Clock generation and reset
@@ -304,7 +302,7 @@ module simmain;
   //assign sda = 1'b1;
   //assign scl = 1'b1;
 
-  main #(.SIMULATION(1),
+  main #(.SIMULATION(1), .DELAY(DELAY),
      .nCK_PER_CLK               (nCK_PER_CLK),
      .tCK                       (tCK),
      .RST_ACT_LOW               (RST_ACT_LOW),
