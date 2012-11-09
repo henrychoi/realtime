@@ -71,9 +71,9 @@ DWORD WINAPI report_thread(LPVOID arg) {
           , rd_bytes);
       return rd_bytes;
     }
-    for(i = 0; i < (rd_bytes >> 2); ++i) {
-      unsigned int msg = *(((unsigned int*)info.addr) + i);
-      printf("0x%08X\n", msg);
+    for(i = 0; i < rd_bytes; ++i) {
+      unsigned char msg = *(((unsigned char*)info.addr) + i);
+      printf("%02X ", msg);
     }
     fifo_drained(fifo, rd_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
   }
@@ -104,7 +104,7 @@ void allwrite(int fd, unsigned char *buf, int len) {
 int __cdecl main(int argc, char *argv[]) {
 #define N_FRAME 100
 #define N_PATCH 600000//(1<<LFSR_SIZE)
-  const char* readfn = "\\\\.\\xillybus_rd"
+  const char* readfn = "\\\\.\\xillybus_rd_loop"
 	  , * writefn = "\\\\.\\xillybus_wr";
   HANDLE tid[2];
   struct xillyfifo fifo;

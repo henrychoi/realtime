@@ -773,7 +773,7 @@ module main #(parameter SIMULATION = 0, DELAY=1,
         , .full(xb_wr_full), .empty(pc_msg_empty));
 
       xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk), .rst(reset)
-        , .din(pc_msg), .wr_en(pc_msg_ack)
+        , .din(pc_msg), .wr_en(!pc_msg_empty/*pc_msg_ack*/)
         , .rd_en(xb_loop_rden), .dout(xb_loop_data)
         , .full(xb_loop_full), .empty(xb_loop_empty));
     end
@@ -792,7 +792,7 @@ module main #(parameter SIMULATION = 0, DELAY=1,
     , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
     , .user_r_rd_eof(xb_rd_eof)
                      
-    , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full)
+    , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full || xb_loop_full)
     , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
     
     , .user_r_rd_loop_rden(xb_loop_rden)
