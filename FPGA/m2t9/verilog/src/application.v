@@ -8,8 +8,8 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 , input bus_clk
-, input pc_msg_empty, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
-, input fpga_msg_full, output reg fpga_msg_valid, output reg[APP_DATA_WIDTH-1:0] fpga_msg
+, input pc_msg_pending, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
+, input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
 );
 `include "function.v"
   integer i;
@@ -109,7 +109,7 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     || (pixel_state == PIXEL_ERROR);
   assign GPIO_LED = {dramifc_state, error};
   //assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
-  assign pc_msg_ack = !(pc_msg_empty || xb2pixel_full || xb2dram_full);  
+  assign pc_msg_ack = pc_msg_pending && !xb2pixel_full && !xb2dram_full;  
   assign {fval, lval} = pixel_msg[4+:2];
   assign fds[0] = pixel_msg[(XB_SIZE+12)+:FP_SIZE];//Note: throw away the 4 LSB
   assign fds[1] = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
@@ -324,7 +324,7 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       n_pc_dram_msg <= #DELAY 0;
       pc_msg_pending_d <= #DELAY `FALSE;
     end else begin
-      pc_msg_pending_d <= #DELAY ~pc_msg_empty;
+      pc_msg_pending_d <= #DELAY pc_msg_pending;
       // Note how the delay through a sequential logic syncs up with pc_msg_d
       pc_msg_is_ds_d <= #DELAY pc_msg_is_ds;
       if(pc_msg_ack) begin// Was this a real message?
@@ -351,8 +351,8 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= #DELAY COEFFRD_OK;
     end else begin // normal operation
       // For testing over xillybus
-      fpga_msg_valid <= #DELAY app_rd_data_valid;
-      fpga_msg  <= #DELAY app_rd_data;
+      fpga_msg_valid <= #DELAY pc_msg_pending;//app_rd_data_valid;
+      fpga_msg <= #DELAY pc_msg;//app_rd_data;
       
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid

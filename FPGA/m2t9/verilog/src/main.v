@@ -1,6 +1,6 @@
-`timescale 1ps/1ps
+`timescale 1 ps/1 ps
 
-module main #(parameter SIMULATION = 0, DELAY=1,
+module main #(parameter SIMULATION=0, DELAY=1,
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= #DELAY 533 MHz,
                                        //   = 300 when design frequency > 533 MHz.
@@ -657,6 +657,7 @@ module main #(parameter SIMULATION = 0, DELAY=1,
    , fpga_msg_valid     //app -> xb_rd_fifo
    , fpga_msg_full      //xb_rd_fifo -> app
    , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
+   , pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
    , xb_wr_full         // xb_wr_fifo -> xillybus
@@ -669,36 +670,30 @@ module main #(parameter SIMULATION = 0, DELAY=1,
    , xb_loop_data       // xb_loopback_fifo -> xillybus
    , xb_wr_data         // xillybus -> xb_wr_fifo
    , pc_msg;
-  wire[APP_DATA_WIDTH-1:0] fpga_msg;//app -> xb_rd_fifo
+  wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
 
   generate
-    if(SIMULATION == 1) begin: simulate_xb
+    if(SIMULATION) begin: simulate_xb
       integer binf, idx, rc;
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] coeff_byte;
       
       localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
       reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
-      reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
+      reg bus_clk_r, xb_wr_wren_r;//wr_data_empty_r;
       localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
         , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
       reg[log2(N_SIM_STATE)-1:0] sim_state;
       
-      xb_wr_bram_fifo xb_wr_bram_fifo(.clk(bus_clk)
-        //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren)
-        , .rd_en(pc_msg_ack), .dout(pc_msg), .full()
-        , .almost_full(xb_wr_full), .empty(pc_msg_empty));
-
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
       //assign pc_msg = pc_msg_r;
-      //assign pc_msg_empty = pc_msg_empty_r;
+      //assign pc_msg_empty = wr_data_empty_r;
       assign xb_wr_data = xb_wr_data_r;
       assign xb_wr_wren = xb_wr_wren_r;
       assign xb_rd_open = `TRUE;
       assign xb_rd_rden = `TRUE;
-      
+      assign xb_loop_rden = `TRUE;
       initial begin
         binf = $fopen("reducer_coeff_0.bin", "rb");
         bus_clk_r <= #DELAY `FALSE;
@@ -709,7 +704,7 @@ module main #(parameter SIMULATION = 0, DELAY=1,
       always @(posedge bus_clk) begin
         case(sim_state)
           SIM_UNINITIALIZED:
-            if(rst) xb_wr_wren_r <= #DELAY `FALSE;
+            if(rst || xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
             else begin
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
@@ -764,18 +759,6 @@ module main #(parameter SIMULATION = 0, DELAY=1,
           default: xb_wr_wren_r <= #DELAY `FALSE;
         endcase
       end //always
-      
-    end else begin: instantiate_xb
-        
-      xb_wr_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren)
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .full(xb_wr_full), .empty(pc_msg_empty));
-
-      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk), .rst(reset)
-        , .din(pc_msg), .wr_en(!pc_msg_empty/*pc_msg_ack*/)
-        , .rd_en(xb_loop_rden), .dout(xb_loop_data)
-        , .full(xb_loop_full), .empty(xb_loop_empty));
     end
   endgenerate
 
@@ -802,12 +785,27 @@ module main #(parameter SIMULATION = 0, DELAY=1,
     , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
     );
 
-  // Data from dram lock clock domain to PCIe domain
-  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
+  xb_wr_bram_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(rst)
+    , .din(xb_wr_data), .wr_en(xb_wr_wren)
+    , .rd_en(pc_msg_ack), .dout(pc_msg)
+    , .full(xb_wr_full), .empty(pc_msg_empty));
+
+  xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
+    , .din(pc_msg), .wr_en(pc_msg_pending /*pc_msg_ack*/)
+    , .rd_en(xb_loop_rden), .dout(xb_loop_data)
+    , .full(xb_loop_full), .empty(xb_loop_empty));
+  
+  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
     , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
     , .rd_en(xb_rd_rden), .dout(xb_rd_data)
     , .full(fpga_msg_full), .empty(xb_rd_empty));
 
+`ifdef DEBUG  
+  assign GPIO_LED[7:4] = {xb_rd_eof, `FALSE, `FALSE, rst};
+  assign pc_msg_ack = !pc_msg_empty;
+  assign fpga_msg = pc_msg;  
+  assign fpga_msg_valid = !pc_msg_empty;
+`else
   application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE)
     , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
@@ -818,13 +816,13 @@ module main #(parameter SIMULATION = 0, DELAY=1,
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
       //xillybus signals
       , .bus_clk(bus_clk)
-      , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)
-      , .pc_msg(pc_msg)
+      , .pc_msg_pending(pc_msg_pending), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
       , .app_done(app_done)
       );
+`endif
 
-  always @(posedge bus_clk)
-    xb_rd_eof <= #DELAY !pc_msg_empty && (&pc_msg);
+  assign pc_msg_pending = !pc_msg_empty;
+  always @(posedge bus_clk) xb_rd_eof <= #DELAY pc_msg_pending && (&pc_msg);
 endmodule

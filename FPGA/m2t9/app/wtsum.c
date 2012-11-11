@@ -104,13 +104,15 @@ void allwrite(int fd, unsigned char *buf, int len) {
 int __cdecl main(int argc, char *argv[]) {
 #define N_FRAME 100
 #define N_PATCH 600000//(1<<LFSR_SIZE)
-  const char* readfn = "\\\\.\\xillybus_rd_loop"
+  const char* readfn = "\\\\.\\xillybus_rd"
 	  , * writefn = "\\\\.\\xillybus_wr";
   HANDLE tid[2];
   struct xillyfifo fifo;
   unsigned int fifo_size = 4096*16;
   int write_fd, bTalk2FPGA = (int)(argc < 2);
   unsigned int n_frame = 0;
+  unsigned int msg;
+  int rd;
   FILE* pixel_coeff_f = fopen("reducer_coeff_0.bin", "rb")
     , *ds_coeff_f = fopen("ds_0.bin", "rb");
   if(!pixel_coeff_f) {
@@ -167,22 +169,19 @@ int __cdecl main(int argc, char *argv[]) {
     }
   }//end if(bTalk2FPGA)
 
-  for(; !_kbhit() && !feof(ds_coeff_f);) {
-    unsigned int msg;
-    int rd;
-    //Sleep(100);
-    if(!feof(pixel_coeff_f)) rd = fread(&msg, sizeof(msg), 1, pixel_coeff_f);
-    else {
-      for(; !_kbhit(); ) Sleep(100);
-      rd = fread(&msg, sizeof(msg), 1, ds_coeff_f);
-    }
-    if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(rd));
-    else printf("0x%08X\n", msg);
-  } //end for(;;)
+  for(; !feof(pixel_coeff_f); ) {
+    rd = fread(&msg, sizeof(msg), 1, pixel_coeff_f);
+    //printf("0x%08X\n", msg);
+    if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
+  } //end for
+
+  for(; !feof(ds_coeff_f); ) {
+    rd = fread(&msg, sizeof(msg), 1, ds_coeff_f);
+    //printf("0x%08X\n", msg);
+    if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
+  } //end for
 
 cleanup:
-  printf("Press any key to exit\n");
-  getchar();
   if(bTalk2FPGA) {
     unsigned int msg = ~0;//Make the FPGA close the rd file
     allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
@@ -197,5 +196,7 @@ cleanup:
   }
   fclose(ds_coeff_f);
   fclose(pixel_coeff_f);
+  printf("Press any key to exit\n");
+  getchar();
   return 0;
 }
