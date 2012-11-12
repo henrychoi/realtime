@@ -1,15 +1,15 @@
 `timescale 1ps/1ps
-module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
-(input reset, dram_clk, output error, output[7:4] GPIO_LED
+module application#(parameter SIMULATION=0, DELAY=1
+, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
+(input RESET, CLK, output error, output[7:4] GPIO_LED
 , output reg app_done
 , input app_rdy, output reg app_en, output reg dram_read
 , output reg[ADDR_WIDTH-1:0] app_addr
 , input app_wdf_rdy, output reg app_wdf_wren, app_wdf_end
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
-, input bus_clk
 , input pc_msg_pending, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
-, input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
+, input fpga_msg_full, output reg fpga_msg_valid, output reg[APP_DATA_WIDTH-1:0] fpga_msg
 );
 `include "function.v"
   integer i;
@@ -123,22 +123,23 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   assign xb2pixel_wren = !xb2pixel_full && pc_msg_pending_d &&  pc_msg_is_ds_d;
   assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
   assign pc_msg_is_ds = pc_msg[1:0] == 2'b00 && n_pc_dram_msg == 0;
-
-  xb2dram xb2dram(.wr_clk(bus_clk), .rd_clk(dram_clk)//, .rst(rst)
-    , .din(pc_msg_d), .wr_en(xb2dram_wren)
-    , .rd_en(xb2dram_ack), .dout(dram_msg)
-    , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty));
-
   assign dramifc_overflow = patch_coeff_fifo_overflow || |row_coeff_fifo_overflow;
 
-  xb2pixel xb2pixel(.wr_clk(bus_clk), .rd_clk(dram_clk)//, .rst(rst)
+  // Builtin FIFO does NOT offer ALMOST_full port
+  xb2dram xb2dram(.clk(CLK), .rst(RESET)
+    , .din(pc_msg_d), .wr_en(xb2dram_wren)
+    , .rd_en(xb2dram_ack), .dout(dram_msg)
+    , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty)
+    , .sbiterr(), .dbiterr());
+  xb2pixel xb2pixel(.clk(CLK), .rst(RESET)
     , .din(pc_msg_d), .wr_en(xb2pixel_wren)
     , .rd_en(xb2pixel_ack), .dout(pixel_msg)
-    , .almost_full(xb2pixel_full), .full(), .empty(xb2pixel_empty));
-
+    , .almost_full(xb2pixel_full), .full(), .empty(xb2pixel_empty)
+    , .sbiterr(), .dbiterr());
+  
 `ifdef PROCESS_PIXELS
-  patch_coeff_fifo patch_fifo(//.wr_clk(dram_clk), .rd_clk(dram_clk)
-    .clk(dram_clk), .rst(reset)
+  patch_coeff_fifo patch_fifo(//.wr_clk(CLK), .rd_clk(CLK)
+    .clk(CLK), .rst(RESET)
     , .din(app_rd_data[4+:PATCH_COEFF_SIZE])
     //Note: always write into FIFO when there is valid DRAM data because
     //flow control is done upstream by DRAMIfc
@@ -171,8 +172,8 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 
       assign free_reducer[geni] = |reducer_done[geni];
 
-      row_coeff_fifo row_coeff_fifo(.clk(dram_clk), .rst(reset)
-        //.wr_clk(dram_clk), .rd_clk(dram_clk)
+      row_coeff_fifo row_coeff_fifo(.clk(CLK), .rst(RESET)
+        //.wr_clk(CLK), .rd_clk(CLK)
         , .din(app_rd_data[8+:ROW_REDUCER_CONFIG_SIZE])
         //Note: always write into FIFO when there is valid DRAM data because
         //flow control done upstream by DRAMIfc
@@ -197,7 +198,7 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
           , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
           , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-        fst_row_reducer(.clk(dram_clk), .reset(reset)
+        fst_row_reducer(.clk(CLK), .RESET(RESET)
         , .available(reducer_avail[0][genj]), .init(reducer_init[0][genj])
         , .conf_row(conf_row), .conf_col(conf_col)
         //First row starts with the running sum = 0 of course
@@ -212,7 +213,7 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
     end//genj
 
     for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin//: for_all_non_1st_rows
-      interline_fifo interline_fifo(.clk(dram_clk), .rst(reset)
+      interline_fifo interline_fifo(.clk(CLK), .rst(RESET)
         , .din({interline_num_in[geni], interline_row_in[geni]
               , interline_sum_in[geni], interline_col_in[geni]})
         //When a previous row's sum is ready, move that into the interline fifo
@@ -227,7 +228,7 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
         PatchRowReducer#(.N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
             , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
             , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-          row_reducer(.clk(dram_clk), .reset(reset)
+          row_reducer(.clk(CLK), .RESET(RESET)
           , .available(reducer_avail[geni][genj]), .init(reducer_init[geni][genj])
           , .conf_row(interline_row_out[geni])
           , .conf_col(interline_col_out[geni])
@@ -315,26 +316,14 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
   endgenerate
 `endif
   
-  always @(posedge reset, posedge fds_val)
-    if(reset) hb_ctr <= #DELAY 0;
+  always @(posedge RESET, posedge fds_val)
+    if(RESET) hb_ctr <= #DELAY 0;
     else hb_ctr <= #DELAY hb_ctr + `TRUE;
 
-  always @(posedge bus_clk)
-    if(reset) begin
+  always @(posedge CLK)
+    if(RESET) begin
       n_pc_dram_msg <= #DELAY 0;
       pc_msg_pending_d <= #DELAY `FALSE;
-    end else begin
-      pc_msg_pending_d <= #DELAY pc_msg_pending;
-      // Note how the delay through a sequential logic syncs up with pc_msg_d
-      pc_msg_is_ds_d <= #DELAY pc_msg_is_ds;
-      if(pc_msg_ack) begin// Was this a real message?
-        pc_msg_d <= #DELAY pc_msg;// delay this to match up against pc_msg_is_ds_d
-        if(!pc_msg_is_ds) n_pc_dram_msg <= #DELAY n_pc_dram_msg + `TRUE;
-      end
-    end
-
-  always @(posedge dram_clk)
-    if(reset) begin
   		app_addr <= #DELAY START_ADDR;
       end_addr <= #DELAY START_ADDR;
       app_en <= #DELAY `FALSE;
@@ -350,9 +339,17 @@ module application#(parameter DELAY=1, XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
       pixel_state <= #DELAY PIXEL_STANDBY;
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= #DELAY COEFFRD_OK;
     end else begin // normal operation
+      pc_msg_pending_d <= #DELAY pc_msg_pending;
+      // Note how the delay through a sequential logic syncs up with pc_msg_d
+      pc_msg_is_ds_d <= #DELAY pc_msg_is_ds;
+      if(pc_msg_ack) begin// Was this a real message?
+        pc_msg_d <= #DELAY pc_msg;// delay this to match up against pc_msg_is_ds_d
+        if(!pc_msg_is_ds) n_pc_dram_msg <= #DELAY n_pc_dram_msg + `TRUE;
+      end
+
       // For testing over xillybus
-      fpga_msg_valid <= #DELAY pc_msg_pending;//app_rd_data_valid;
-      fpga_msg <= #DELAY pc_msg;//app_rd_data;
+      fpga_msg_valid <= #DELAY app_rd_data_valid;
+      fpga_msg <= #DELAY app_rd_data;
       
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid

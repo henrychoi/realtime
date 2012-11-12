@@ -196,7 +196,6 @@ cleanup:
   }
   fclose(ds_coeff_f);
   fclose(pixel_coeff_f);
-  printf("Press any key to exit\n");
-  getchar();
+  printf("Press any key to exit\n"); getchar();
   return 0;
 }

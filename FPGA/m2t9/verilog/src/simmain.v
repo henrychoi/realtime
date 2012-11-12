@@ -128,7 +128,7 @@ module simmain;
                                         // Update interval
   localparam VT_MAX                     = CLK_PERIOD/40;
                                         // Maximum VT shift
-  localparam DELAY = 1;
+  localparam DELAY = 999;
 
   //**************************************************************************//
   // Wire Declarations

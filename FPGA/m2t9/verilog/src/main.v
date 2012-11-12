@@ -670,7 +670,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , xb_loop_data       // xb_loopback_fifo -> xillybus
    , xb_wr_data         // xillybus -> xb_wr_fifo
    , pc_msg;
-  wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
+  wire[APP_DATA_WIDTH-1:0] fpga_msg;//app -> xb_rd_fifo
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -725,7 +725,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
               end
               xb_wr_wren_r <= #DELAY `FALSE;
               coeff_sync_ctr <= #DELAY 0;
-              sim_state <= #DELAY SIM_DONE;//SIM_DN_PLAY;//SIM_DN_WAIT;
+              sim_state <= #DELAY SIM_DN_PLAY;//SIM_DN_WAIT;
             end else
               if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
               else begin
@@ -806,16 +806,15 @@ module main #(parameter SIMULATION=0, DELAY=1,
   assign fpga_msg = pc_msg;  
   assign fpga_msg_valid = !pc_msg_empty;
 `else
-  application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE)
+  application#(.SIMULATION(SIMULATION), .DELAY(DELAY), .XB_SIZE(XB_SIZE)
     , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
-      .dram_clk(clk), .reset(rst), .error(error), .GPIO_LED(GPIO_LED[7:4])
+      .CLK(clk), .RESET(rst), .error(error), .GPIO_LED(GPIO_LED[7:4])
       , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0]), .app_addr(app_addr)
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
       //xillybus signals
-      , .bus_clk(bus_clk)
       , .pc_msg_pending(pc_msg_pending), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
