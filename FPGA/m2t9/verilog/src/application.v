@@ -97,7 +97,8 @@ module application#(parameter SIMULATION=0, DELAY=1
     , DRAMIFC_N_STATE = 8;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
-  //Note: designed deliberately to wrap
+  //Note: designed deliberately 1 bit short to wrap automatically even when I
+  //simply increment
   reg[log2(APP_DATA_WIDTH*2-1)-1:0] tmp_data_offset;
   
 `ifdef REDUCER_HAS_TO_BE_ALWAYS_AVAILABLE

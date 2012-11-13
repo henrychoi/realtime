@@ -37,16 +37,17 @@
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
-      <wvobject fp_name="/simmain/main/app/dram_clk" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">dram_clk</obj_property>
-         <obj_property name="ObjectShortName">dram_clk</obj_property>
-      </wvobject>
       <wvobject fp_name="group42" type="group">
          <obj_property name="label">xb</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
             <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/pc_msg_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">pc_msg_d[31:0]</obj_property>
+            <obj_property name="ObjectShortName">pc_msg_d[31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/pc_msg_ack" type="logic" db_ref_id="1">

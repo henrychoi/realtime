@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Mon Nov 12 04:49:22 2012
+# Date: Tue Nov 13 02:03:19 2012
 #
 ##############################################################
 #
@@ -198,7 +198,7 @@ CSET underflow_sense=Active_High
 CSET underflow_sense_axi=Active_High
 CSET use_clock_enable=false
 CSET use_dout_reset=false
-CSET use_embedded_registers=true
+CSET use_embedded_registers=false
 CSET use_extra_logic=true
 CSET valid_flag=false
 CSET valid_sense=Active_High
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: 5742c29a
+# CRC: c900542f
