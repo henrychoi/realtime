@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/fifo/simmain_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simmain" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="5" />
+   <wvobject fp_name="/simmain/RESET" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">RESET</obj_property>
+      <obj_property name="ObjectShortName">RESET</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/CLK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/GPIO_LED" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/dout" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">dout[7:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="group27" type="group">
+      <obj_property name="label">better_fifo</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/fwft/rd_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">rd_en</obj_property>
+         <obj_property name="ObjectShortName">rd_en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/wr_en" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">wr_en</obj_property>
+         <obj_property name="ObjectShortName">wr_en</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/din" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">din[7:0]</obj_property>
+         <obj_property name="ObjectShortName">din[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/full" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">full</obj_property>
+         <obj_property name="ObjectShortName">full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/almost_full" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">almost_full</obj_property>
+         <obj_property name="ObjectShortName">almost_full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_dout" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_dout[7:0]</obj_property>
+         <obj_property name="ObjectShortName">fifo_dout[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_empty</obj_property>
+         <obj_property name="ObjectShortName">fifo_empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_rden" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_rden</obj_property>
+         <obj_property name="ObjectShortName">fifo_rden</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/will_update_middle" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">will_update_middle</obj_property>
+         <obj_property name="ObjectShortName">will_update_middle</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/will_update_dout" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">will_update_dout</obj_property>
+         <obj_property name="ObjectShortName">will_update_dout</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_din" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_din</obj_property>
+         <obj_property name="ObjectShortName">fifo_din</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_wren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_wren</obj_property>
+         <obj_property name="ObjectShortName">fifo_wren</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/fifo_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fifo_valid</obj_property>
+         <obj_property name="ObjectShortName">fifo_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/dout_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">dout_valid</obj_property>
+         <obj_property name="ObjectShortName">dout_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/dout" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">dout[7:0]</obj_property>
+         <obj_property name="ObjectShortName">dout[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/middle_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">middle_valid</obj_property>
+         <obj_property name="ObjectShortName">middle_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fwft/middle_dout" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">middle_dout[7:0]</obj_property>
+         <obj_property name="ObjectShortName">middle_dout[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>
