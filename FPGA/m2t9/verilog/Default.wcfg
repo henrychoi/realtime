@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="10" />
+   <WVObjectSize size="11" />
    <wvobject fp_name="group47" type="group">
       <obj_property name="label">sim</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -28,21 +28,109 @@
          <obj_property name="ObjectShortName">\simulate_xb.xb_wr_data_r [31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/clk_ref" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">clk_ref</obj_property>
+         <obj_property name="ObjectShortName">clk_ref</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/xb_wr_full" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">xb_wr_full</obj_property>
          <obj_property name="ObjectShortName">xb_wr_full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/xb_wr_overflow" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">xb_wr_overflow</obj_property>
+         <obj_property name="ObjectShortName">xb_wr_overflow</obj_property>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group23" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="group50" type="group">
+         <obj_property name="label">xb2dram fifo</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/xb2dram_wren" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2dram_wren</obj_property>
+            <obj_property name="ObjectShortName">xb2dram_wren</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram_full" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2dram_full</obj_property>
+            <obj_property name="ObjectShortName">xb2dram_full</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram_ack" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2dram_ack</obj_property>
+            <obj_property name="ObjectShortName">xb2dram_ack</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram_overflow" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2dram_overflow</obj_property>
+            <obj_property name="ObjectShortName">xb2dram_overflow</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/will_update_middle" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">will_update_middle</obj_property>
+            <obj_property name="ObjectShortName">will_update_middle</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/will_update_dout" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">will_update_dout</obj_property>
+            <obj_property name="ObjectShortName">will_update_dout</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/fifo_empty" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fifo_empty</obj_property>
+            <obj_property name="ObjectShortName">fifo_empty</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/fifo_rden" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fifo_rden</obj_property>
+            <obj_property name="ObjectShortName">fifo_rden</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/fifo_dout" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">fifo_dout[31:0]</obj_property>
+            <obj_property name="ObjectShortName">fifo_dout[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/fifo_valid" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fifo_valid</obj_property>
+            <obj_property name="ObjectShortName">fifo_valid</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/middle_valid" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">middle_valid</obj_property>
+            <obj_property name="ObjectShortName">middle_valid</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/middle_dout" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">middle_dout[31:0]</obj_property>
+            <obj_property name="ObjectShortName">middle_dout[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/dout_valid" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">dout_valid</obj_property>
+            <obj_property name="ObjectShortName">dout_valid</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram_empty" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2dram_empty</obj_property>
+            <obj_property name="ObjectShortName">xb2dram_empty</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2dram/dout" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">dout[31:0]</obj_property>
+            <obj_property name="ObjectShortName">dout[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
       <wvobject fp_name="group42" type="group">
          <obj_property name="label">xb</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/pc_msg_pending" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">pc_msg_pending</obj_property>
+            <obj_property name="ObjectShortName">pc_msg_pending</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/pc_msg_pending_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">pc_msg_pending_d</obj_property>
+            <obj_property name="ObjectShortName">pc_msg_pending_d</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
             <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/n_pc_dram_msg" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">n_pc_dram_msg[3:0]</obj_property>
+            <obj_property name="ObjectShortName">n_pc_dram_msg[3:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/pc_msg_d" type="array" db_ref_id="1">
@@ -58,9 +146,9 @@
             <obj_property name="ElementShortName">pc_msg_is_ds</obj_property>
             <obj_property name="ObjectShortName">pc_msg_is_ds</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/xb2dram_empty" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">xb2dram_empty</obj_property>
-            <obj_property name="ObjectShortName">xb2dram_empty</obj_property>
+         <wvobject fp_name="/simmain/main/app/pc_msg_is_ds_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">pc_msg_is_ds_d</obj_property>
+            <obj_property name="ObjectShortName">pc_msg_is_ds_d</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/dram_msg" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">dram_msg[31:0]</obj_property>
@@ -81,10 +169,22 @@
       <wvobject fp_name="group34" type="group">
          <obj_property name="label">Pixel</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/xb2pixel_wren" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2pixel_wren</obj_property>
+            <obj_property name="ObjectShortName">xb2pixel_wren</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/pixel_state" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pixel_state[2:0]</obj_property>
             <obj_property name="ObjectShortName">pixel_state[2:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2pixel_full" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2pixel_full</obj_property>
+            <obj_property name="ObjectShortName">xb2pixel_full</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/xb2pixel_ack" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">xb2pixel_ack</obj_property>
+            <obj_property name="ObjectShortName">xb2pixel_ack</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="group36" type="group">
@@ -139,6 +239,10 @@
    <wvobject fp_name="/simmain/main/fpga_msg_full" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">fpga_msg_full</obj_property>
       <obj_property name="ObjectShortName">fpga_msg_full</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/fpga_msg_overflow" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fpga_msg_overflow</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg_overflow</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/fpga_msg_valid" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">fpga_msg_valid</obj_property>

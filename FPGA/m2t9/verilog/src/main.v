@@ -655,12 +655,12 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , xb_rd_empty        //xb_rd_fifo -> xillybus
    , xb_rd_open         //xillybus -> xb_rd_fifo
    , fpga_msg_valid     //app -> xb_rd_fifo
-   , fpga_msg_full      //xb_rd_fifo -> app
+   , fpga_msg_full, fpga_msg_overflow//xb_rd_fifo -> app
    , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
    , pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
-   , xb_wr_full         // xb_wr_fifo -> xillybus
+   , xb_wr_full, xb_wr_overflow// xb_wr_fifo -> xillybus
    , xb_wr_open         // xillybus -> xb_wr_fifo
    , xb_loop_rden       // xillybus -> xb_loop_fifo
    , xb_loop_empty      // xb_loop_fifo -> xillybus
@@ -704,7 +704,8 @@ module main #(parameter SIMULATION=0, DELAY=1,
       always @(posedge bus_clk) begin
         case(sim_state)
           SIM_UNINITIALIZED:
-            if(rst || xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
+            if(rst /*|| !app_rdy */|| xb_wr_full)
+              xb_wr_wren_r <= #DELAY `FALSE;
             else begin
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
@@ -787,8 +788,9 @@ module main #(parameter SIMULATION=0, DELAY=1,
 
   xb_wr_bram_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(rst)
     , .din(xb_wr_data), .wr_en(xb_wr_wren)
+    , .full(), .almost_full(xb_wr_full), .overflow(xb_wr_overflow)
     , .rd_en(pc_msg_ack), .dout(pc_msg)
-    , .full(xb_wr_full), .empty(pc_msg_empty));
+    , .empty(pc_msg_empty));
 
   xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
     , .din(pc_msg), .wr_en(pc_msg_pending /*pc_msg_ack*/)
@@ -797,8 +799,8 @@ module main #(parameter SIMULATION=0, DELAY=1,
   
   xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
     , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
-    , .rd_en(xb_rd_rden), .dout(xb_rd_data)
-    , .full(fpga_msg_full), .empty(xb_rd_empty));
+    , .full(fpga_msg_full), .overflow(fpga_msg_overflow)
+    , .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
 `ifdef DEBUG  
   assign GPIO_LED[7:4] = {xb_rd_eof, `FALSE, `FALSE, rst};

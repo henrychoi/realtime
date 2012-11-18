@@ -23,8 +23,9 @@ module application#(parameter SIMULATION=0, DELAY=1
   wire[XB_SIZE-1:0] dram_msg;
   wire[2*XB_SIZE-1:0] pixel_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
-  wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty
-    , xb2pixel_ack, xb2dram_ack, xb2pixel_wren, xb2dram_wren;
+  wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty, xb2dram_valid
+    , xb2pixel_ack, xb2dram_ack, xb2dram_overflow;
+  reg xb2pixel_wren, xb2dram_wren; //Delay through register
 
   localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
     , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
@@ -121,22 +122,24 @@ module application#(parameter SIMULATION=0, DELAY=1
   assign xb2dram_ack = !xb2dram_empty
    && !(dramifc_state == DRAMIFC_WR1 || dramifc_state == DRAMIFC_WR2
         || dramifc_state == DRAMIFC_WR_WAIT);
-  assign xb2pixel_wren = !xb2pixel_full && pc_msg_pending_d &&  pc_msg_is_ds_d;
-  assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
+  //assign xb2pixel_wren = !xb2pixel_full && pc_msg_pending_d &&  pc_msg_is_ds_d;
+  //assign xb2dram_wren  = !xb2dram_full  && pc_msg_pending_d && !pc_msg_is_ds_d;
   assign pc_msg_is_ds = pc_msg[1:0] == 2'b00 && n_pc_dram_msg == 0;
   assign dramifc_overflow = patch_coeff_fifo_overflow || |row_coeff_fifo_overflow;
 
   // Builtin FIFO does NOT offer ALMOST_full port
-  xb2dram xb2dram(.clk(CLK), .rst(RESET)
-    , .din(pc_msg_d), .wr_en(xb2dram_wren)
-    , .rd_en(xb2dram_ack), .dout(dram_msg)
-    , .almost_full(xb2dram_full), .full(), .empty(xb2dram_empty)
-    , .sbiterr(), .dbiterr());
-  xb2pixel xb2pixel(.clk(CLK), .rst(RESET)
-    , .din(pc_msg_d), .wr_en(xb2pixel_wren)
-    , .rd_en(xb2pixel_ack), .dout(pixel_msg)
-    , .almost_full(xb2pixel_full), .full(), .empty(xb2pixel_empty)
-    , .sbiterr(), .dbiterr());
+  better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2dram")
+    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(XB_SIZE))
+    xb2dram(.RESET(RESET), .CLK(CLK)
+    , .wren(xb2dram_wren), .din(pc_msg_d)
+    , .full(xb2dram_full), .overflow(xb2dram_overflow)
+    , .rden(xb2dram_ack), .dout(dram_msg), .empty(xb2dram_empty), .valid(xb2dram_valid));
+
+  better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2pixel")
+    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(XB_SIZE))
+    xb2pixel (.RESET(RESET), .CLK(CLK)
+    , .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
+    , .rden(xb2pixel_ack), .dout(pixel_msg), .empty(xb2pixel_empty), .valid());
   
 `ifdef PROCESS_PIXELS
   patch_coeff_fifo patch_fifo(//.wr_clk(CLK), .rd_clk(CLK)

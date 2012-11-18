@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Tue Nov 13 14:22:45 2012
+# Date: Sun Nov 18 02:03:54 2012
 #
 ##############################################################
 #
@@ -151,7 +151,7 @@ CSET input_depth_wrch=16
 CSET interface_type=Native
 CSET output_data_width=32
 CSET output_depth=2048
-CSET overflow_flag=false
+CSET overflow_flag=true
 CSET overflow_flag_axi=false
 CSET overflow_sense=Active_High
 CSET overflow_sense_axi=Active_High
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: b51216a3
+# CRC: 27c8d878
