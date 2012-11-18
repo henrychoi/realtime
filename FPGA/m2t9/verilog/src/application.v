@@ -19,7 +19,7 @@ module application#(parameter SIMULATION=0, DELAY=1
   reg[3:0] n_pc_dram_msg;// = 2 * 256/32
   
   wire pc_msg_is_ds;
-  reg pc_msg_is_ds_d, pc_msg_pending_d;
+  //reg pc_msg_is_ds_d, pc_msg_pending_d;
   wire[XB_SIZE-1:0] dram_msg;
   wire[2*XB_SIZE-1:0] pixel_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
@@ -326,8 +326,10 @@ module application#(parameter SIMULATION=0, DELAY=1
 
   always @(posedge CLK)
     if(RESET) begin
+      xb2pixel_wren <= #DELAY `FALSE;
+      xb2dram_wren <= #DELAY `FALSE;
       n_pc_dram_msg <= #DELAY 0;
-      pc_msg_pending_d <= #DELAY `FALSE;
+      //pc_msg_pending_d <= #DELAY `FALSE;
   		app_addr <= #DELAY START_ADDR;
       end_addr <= #DELAY START_ADDR;
       app_en <= #DELAY `FALSE;
@@ -343,9 +345,12 @@ module application#(parameter SIMULATION=0, DELAY=1
       pixel_state <= #DELAY PIXEL_STANDBY;
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= #DELAY COEFFRD_OK;
     end else begin // normal operation
-      pc_msg_pending_d <= #DELAY pc_msg_pending;
+      xb2pixel_wren <= #DELAY !xb2pixel_full && pc_msg_pending &&  pc_msg_is_ds;
+      xb2dram_wren <= #DELAY !xb2dram_full  && pc_msg_pending && !pc_msg_is_ds;
+
+      //pc_msg_pending_d <= #DELAY pc_msg_pending;
       // Note how the delay through a sequential logic syncs up with pc_msg_d
-      pc_msg_is_ds_d <= #DELAY pc_msg_is_ds;
+      //pc_msg_is_ds_d <= #DELAY pc_msg_is_ds;
       if(pc_msg_ack) begin// Was this a real message?
         pc_msg_d <= #DELAY pc_msg;// delay this to match up against pc_msg_is_ds_d
         if(!pc_msg_is_ds) n_pc_dram_msg <= #DELAY n_pc_dram_msg + `TRUE;
