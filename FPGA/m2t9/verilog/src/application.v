@@ -9,7 +9,7 @@ module application#(parameter SIMULATION=0, DELAY=1
 , output reg[APP_DATA_WIDTH-1:0] app_wdf_data
 , input app_rd_data_valid, input[APP_DATA_WIDTH-1:0] app_rd_data
 , input pc_msg_pending, output pc_msg_ack, input[XB_SIZE-1:0] pc_msg
-, input fpga_msg_full, output reg fpga_msg_valid, output reg[APP_DATA_WIDTH-1:0] fpga_msg
+, input fpga_msg_full, output reg fpga_msg_valid, output reg[XB_SIZE-1:0] fpga_msg
 );
 `include "function.v"
   integer i;
@@ -130,16 +130,16 @@ module application#(parameter SIMULATION=0, DELAY=1
   // Builtin FIFO does NOT offer ALMOST_full port
   better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2dram")
     , .WR_WIDTH(XB_SIZE), .RD_WIDTH(XB_SIZE))
-    xb2dram(.RESET(RESET), .CLK(CLK)
-    , .wren(xb2dram_wren), .din(pc_msg_d)
+    xb2dram(.RESET(RESET)
+    , .WR_CLK(CLK), .wren(xb2dram_wren), .din(pc_msg_d)
     , .full(xb2dram_full), .overflow(xb2dram_overflow)
-    , .rden(xb2dram_ack), .dout(dram_msg), .empty(xb2dram_empty), .valid(xb2dram_valid));
+    , .RD_CLK(CLK), .rden(xb2dram_ack), .dout(dram_msg), .empty(xb2dram_empty));
 
   better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2pixel")
-    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(XB_SIZE))
-    xb2pixel (.RESET(RESET), .CLK(CLK)
-    , .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
-    , .rden(xb2pixel_ack), .dout(pixel_msg), .empty(xb2pixel_empty), .valid());
+    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(2*XB_SIZE))
+    xb2pixel (.RESET(RESET)
+    , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
+    , .RD_CLK(CLK), .rden(xb2pixel_ack), .dout(pixel_msg), .empty(xb2pixel_empty));
   
 `ifdef PROCESS_PIXELS
   patch_coeff_fifo patch_fifo(//.wr_clk(CLK), .rd_clk(CLK)
@@ -358,7 +358,7 @@ module application#(parameter SIMULATION=0, DELAY=1
 
       // For testing over xillybus
       fpga_msg_valid <= #DELAY app_rd_data_valid;
-      fpga_msg <= #DELAY app_rd_data;
+      fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
       
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid

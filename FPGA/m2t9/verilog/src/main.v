@@ -656,8 +656,10 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , xb_rd_open         //xillybus -> xb_rd_fifo
    , fpga_msg_valid     //app -> xb_rd_fifo
    , fpga_msg_full, fpga_msg_overflow//xb_rd_fifo -> app
-   , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
-   , pc_msg_pending
+   ;
+  reg fpga_msg_valid_d;
+  wire pc_msg_empty //xb_wr_fifo -> app; NOT of empty
+   //, pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
    , xb_wr_full, xb_wr_overflow// xb_wr_fifo -> xillybus
@@ -665,12 +667,14 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , xb_loop_rden       // xillybus -> xb_loop_fifo
    , xb_loop_empty      // xb_loop_fifo -> xillybus
    , xb_loop_full;      // xb_loop_fifo -> xillybus
-  reg xb_rd_eof;
+  reg xb_rd_eof, pc_msg_pending_d;
   wire[XB_SIZE-1:0] xb_rd_data //xb_rd_fifo -> xillybus
    , xb_loop_data       // xb_loopback_fifo -> xillybus
    , xb_wr_data         // xillybus -> xb_wr_fifo
    , pc_msg;
-  wire[APP_DATA_WIDTH-1:0] fpga_msg;//app -> xb_rd_fifo
+  reg [XB_SIZE-1:0] pc_msg_d;
+  wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
+  reg [XB_SIZE-1:0] fpga_msg_d;//app -> xb_rd_fifo
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -776,7 +780,8 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
     , .user_r_rd_eof(xb_rd_eof)
                      
-    , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full || xb_loop_full)
+    , .user_w_wr_wren(xb_wr_wren)
+    , .user_w_wr_full(xb_wr_full/*|| xb_loop_full*/)
     , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
     
     , .user_r_rd_loop_rden(xb_loop_rden)
@@ -786,21 +791,20 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
     );
 
-  xb_wr_bram_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(rst)
-    , .din(xb_wr_data), .wr_en(xb_wr_wren)
+  xb_wr_bram_fifo xb_wr_fifo(.rst(rst)
+    , .wr_clk(bus_clk), .din(xb_wr_data), .wr_en(xb_wr_wren)
     , .full(), .almost_full(xb_wr_full), .overflow(xb_wr_overflow)
-    , .rd_en(pc_msg_ack), .dout(pc_msg)
-    , .empty(pc_msg_empty));
-
+    , .rd_clk(clk), .rd_en(pc_msg_ack), .dout(pc_msg), .empty(pc_msg_empty));
+`ifdef PR_THIS
   xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
-    , .din(pc_msg), .wr_en(pc_msg_pending /*pc_msg_ack*/)
+    , .din(pc_msg_d), .wr_en(pc_msg_pending_d /*pc_msg_ack*/)
     , .rd_en(xb_loop_rden), .dout(xb_loop_data)
     , .full(xb_loop_full), .empty(xb_loop_empty));
-  
-  xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
-    , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
-    , .full(fpga_msg_full), .overflow(fpga_msg_overflow)
-    , .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
+`endif
+  xb_rd_fifo xb_rd_fifo(.rst(rst)
+    , .wr_clk(clk), .din(fpga_msg_d), .wr_en(fpga_msg_valid_d && xb_rd_open)
+    , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
+    , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
 `ifdef DEBUG  
   assign GPIO_LED[7:4] = {xb_rd_eof, `FALSE, `FALSE, rst};
@@ -817,13 +821,26 @@ module main #(parameter SIMULATION=0, DELAY=1,
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
       , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
       //xillybus signals
-      , .pc_msg_pending(pc_msg_pending), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
+      , .pc_msg_pending(!pc_msg_empty), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
       , .app_done(app_done)
       );
 `endif
+  always @(posedge clk)
+    if(rst) fpga_msg_valid_d <= #DELAY `FALSE;
+    else begin
+      fpga_msg_valid_d <= #DELAY fpga_msg_valid;
+      fpga_msg_d <= #DELAY fpga_msg;
+    end
 
-  assign pc_msg_pending = !pc_msg_empty;
-  always @(posedge bus_clk) xb_rd_eof <= #DELAY pc_msg_pending && (&pc_msg);
+  //assign pc_msg_pending = !pc_msg_empty;
+  always @(posedge bus_clk)
+    if(rst) begin
+      pc_msg_pending_d <= #DELAY `FALSE;
+    end else begin
+      xb_rd_eof <= #DELAY pc_msg_pending_d && (&pc_msg_d);
+      pc_msg_pending_d <= #DELAY !pc_msg_empty;
+      pc_msg_d <= #DELAY pc_msg;
+    end
 endmodule

@@ -61,6 +61,11 @@ DWORD WINAPI read_thread(LPVOID arg)
 DWORD WINAPI report_thread(LPVOID arg) {
   struct xillyinfo info;  
   struct xillyfifo *fifo = (struct xillyfifo*)arg;
+  FILE* of = fopen("reply.bin", "wb");//O_WRONLY | _O_BINARY);
+  if(!of) {
+    perror("Failed to create result file\n");
+    return errno;
+  }
   for(; ;) {
     int i, rd_bytes = fifo_request_drain(fifo, &info, 1);//block for reply
     //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvvvvv
@@ -75,8 +80,10 @@ DWORD WINAPI report_thread(LPVOID arg) {
       unsigned char msg = *(((unsigned char*)info.addr) + i);
       printf("%02X ", msg);
     }
+    fwrite(info.addr, 1, rd_bytes, of); //_write(of, info.addr, rd_bytes);
     fifo_drained(fifo, rd_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
   }
+  fclose(of);//_close(of);
   return 0;
 }
 
@@ -125,7 +132,7 @@ int __cdecl main(int argc, char *argv[]) {
   }
 
   if(bTalk2FPGA) {
-    printf("Connecting to FPGA...\n");
+    //printf("Press any key to connect to FPGA\n"); getchar();
     write_fd = _open(writefn, O_WRONLY | _O_BINARY);
     if (write_fd < 0) {
       if (errno == ENODEV)
@@ -171,13 +178,13 @@ int __cdecl main(int argc, char *argv[]) {
 
   for(; !feof(pixel_coeff_f); ) {
     rd = fread(&msg, sizeof(msg), 1, pixel_coeff_f);
-    //printf("0x%08X\n", msg);
+    printf("0x%08X\n", msg);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
   } //end for
 
   for(; !feof(ds_coeff_f); ) {
     rd = fread(&msg, sizeof(msg), 1, ds_coeff_f);
-    //printf("0x%08X\n", msg);
+    printf("0x%08X\n", msg);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
   } //end for
 
