@@ -656,9 +656,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , xb_rd_open         //xillybus -> xb_rd_fifo
    , fpga_msg_valid     //app -> xb_rd_fifo
    , fpga_msg_full, fpga_msg_overflow//xb_rd_fifo -> app
-   ;
-  reg fpga_msg_valid_d;
-  wire pc_msg_empty //xb_wr_fifo -> app; NOT of empty
+   , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
    //, pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
@@ -674,7 +672,6 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , pc_msg;
   reg [XB_SIZE-1:0] pc_msg_d;
   wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
-  reg [XB_SIZE-1:0] fpga_msg_d;//app -> xb_rd_fifo
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -802,7 +799,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .full(xb_loop_full), .empty(xb_loop_empty));
 `endif
   xb_rd_fifo xb_rd_fifo(.rst(rst)
-    , .wr_clk(clk), .din(fpga_msg_d), .wr_en(fpga_msg_valid_d && xb_rd_open)
+    , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
     , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
     , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
@@ -827,12 +824,6 @@ module main #(parameter SIMULATION=0, DELAY=1,
       , .app_done(app_done)
       );
 `endif
-  always @(posedge clk)
-    if(rst) fpga_msg_valid_d <= #DELAY `FALSE;
-    else begin
-      fpga_msg_valid_d <= #DELAY fpga_msg_valid;
-      fpga_msg_d <= #DELAY fpga_msg;
-    end
 
   //assign pc_msg_pending = !pc_msg_empty;
   always @(posedge bus_clk)

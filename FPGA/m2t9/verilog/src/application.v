@@ -357,8 +357,8 @@ module application#(parameter SIMULATION=0, DELAY=1
       end
 
       // For testing over xillybus
-      fpga_msg_valid <= #DELAY app_rd_data_valid;
-      fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
+      fpga_msg_valid <= #DELAY `FALSE; //app_rd_data_valid;
+      //fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
       
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid
@@ -423,14 +423,16 @@ module application#(parameter SIMULATION=0, DELAY=1
             app_addr <= #DELAY app_addr + ADDR_INC; // for next write
             app_en <= #DELAY `FALSE;
             app_wdf_data <= #DELAY tmp_data[0+:APP_DATA_WIDTH];
-            app_wdf_wren <= #DELAY `TRUE;
+            app_wdf_wren <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
+            fpga_msg <= #DELAY tmp_data[0+:XB_SIZE];
             app_wdf_end <= #DELAY `FALSE;
             dramifc_state <= #DELAY DRAMIFC_WR1;
           end
         DRAMIFC_WR1:
           if(app_wdf_rdy) begin
-            app_wdf_end <= #DELAY `TRUE;
+            app_wdf_end <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
             app_wdf_data <= #DELAY tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
+            fpga_msg <= #DELAY tmp_data[APP_DATA_WIDTH+:XB_SIZE];
             dramifc_state <= #DELAY DRAMIFC_WR2;
           end
         DRAMIFC_WR2: begin

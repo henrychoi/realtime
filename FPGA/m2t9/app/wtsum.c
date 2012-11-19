@@ -67,7 +67,8 @@ DWORD WINAPI report_thread(LPVOID arg) {
     return errno;
   }
   for(; ;) {
-    int i, rd_bytes = fifo_request_drain(fifo, &info, 1);//block for reply
+    int wc, i
+      , rd_bytes = fifo_request_drain(fifo, &info, 1);//block for reply
     //Loaned "rd_bytes" number of bytes from FIFO vvvvvvvvvvvvvvvvvvvvvvvvv
     if(rd_bytes < 0) continue;// Nothing to read! Not an error in this case
     if(!rd_bytes) break; //FIFO closed.  Do NOT check fifo->done
@@ -80,7 +81,12 @@ DWORD WINAPI report_thread(LPVOID arg) {
       unsigned char msg = *(((unsigned char*)info.addr) + i);
       printf("%02X ", msg);
     }
-    fwrite(info.addr, 1, rd_bytes, of); //_write(of, info.addr, rd_bytes);
+    for(wc = 0; wc < rd_bytes; ) {
+      int new_wc = fwrite((const char*)info.addr + wc, 1, (rd_bytes - wc)
+        , of); //_write(of, info.addr, rd_bytes);
+      // TODO: Should check for new_wc < 0 (error) and new_wc == 0 (EOF?)
+      wc += new_wc;
+    }
     fifo_drained(fifo, rd_bytes);//return ALL bytes I borrowed ^^^^^^^^^^^^
   }
   fclose(of);//_close(of);
@@ -118,7 +124,7 @@ int __cdecl main(int argc, char *argv[]) {
   unsigned int fifo_size = 4096*16;
   int write_fd, bTalk2FPGA = (int)(argc < 2);
   unsigned int n_frame = 0;
-  unsigned int msg;
+  unsigned int msg, n_msg;
   int rd;
   FILE* pixel_coeff_f = fopen("reducer_coeff_0.bin", "rb")
     , *ds_coeff_f = fopen("ds_0.bin", "rb");
@@ -176,15 +182,15 @@ int __cdecl main(int argc, char *argv[]) {
     }
   }//end if(bTalk2FPGA)
 
-  for(; !feof(pixel_coeff_f); ) {
+  for(n_msg = 0; !feof(pixel_coeff_f); getchar()) {
     rd = fread(&msg, sizeof(msg), 1, pixel_coeff_f);
-    printf("0x%08X\n", msg);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
+    printf("weights 0x%08X\n", msg);
   } //end for
 
-  for(; !feof(ds_coeff_f); ) {
+  for(; !feof(ds_coeff_f); getchar()) {
     rd = fread(&msg, sizeof(msg), 1, ds_coeff_f);
-    printf("0x%08X\n", msg);
+    printf("DS 0x%08X\n", msg);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
   } //end for
 
