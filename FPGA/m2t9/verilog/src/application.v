@@ -357,8 +357,8 @@ module application#(parameter SIMULATION=0, DELAY=1
       end
 
       // For testing over xillybus
-      fpga_msg_valid <= #DELAY `FALSE; //app_rd_data_valid;
-      //fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
+      fpga_msg_valid <= #DELAY app_rd_data_valid;
+      fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
       
       // Data always flows (fdn and fds is always available);
       // the question is whether it is valid
@@ -408,11 +408,14 @@ module application#(parameter SIMULATION=0, DELAY=1
         end
         DRAMIFC_MSG_WAIT: begin
           if(!xb2dram_empty) begin
+            //fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
+
             tmp_data[tmp_data_offset+:XB_SIZE] <= #DELAY dram_msg;
             // Is this the last of the tmp_data I was waiting for?
             if(tmp_data_offset == (2*APP_DATA_WIDTH - XB_SIZE)) begin
               app_en <= #DELAY `TRUE;
-              end_addr <= #DELAY end_addr + ADDR_INC;
+              //end_addr <= #DELAY end_addr + ADDR_INC;
               dramifc_state <= #DELAY DRAMIFC_WR_WAIT;
             end
             tmp_data_offset <= #DELAY tmp_data_offset + XB_SIZE;
@@ -420,6 +423,9 @@ module application#(parameter SIMULATION=0, DELAY=1
         end
         DRAMIFC_WR_WAIT:
           if(app_rdy && app_wdf_rdy) begin
+            //fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
+
             app_addr <= #DELAY app_addr + ADDR_INC; // for next write
             app_en <= #DELAY `FALSE;
             app_wdf_data <= #DELAY tmp_data[0+:APP_DATA_WIDTH];
@@ -430,20 +436,29 @@ module application#(parameter SIMULATION=0, DELAY=1
           end
         DRAMIFC_WR1:
           if(app_wdf_rdy) begin
-            app_wdf_end <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
+
             app_wdf_data <= #DELAY tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
+            app_wdf_end <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
             fpga_msg <= #DELAY tmp_data[APP_DATA_WIDTH+:XB_SIZE];
             dramifc_state <= #DELAY DRAMIFC_WR2;
           end
         DRAMIFC_WR2: begin
+          //fpga_msg_valid <= #DELAY `TRUE;
+          //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
+
           app_en <= #DELAY `FALSE;
           app_wdf_wren <= #DELAY `FALSE;
           tmp_data_offset <= #DELAY 0;//APP_DATA_WIDTH - XB_SIZE;
-          // Does the data I am writing mark the end of the coefficients?
-          if(dram_msg[1:0] == 2'b01) begin
+          // Am I writing the end of coefficient?
+          if(app_wdf_data[1:0] == 2'b01) begin
+            end_addr <= #DELAY app_addr;
             app_addr <= #DELAY START_ADDR;
             dram_read <= #DELAY `TRUE;
             app_en <= #DELAY `TRUE;
+            fpga_msg_valid <= #DELAY `TRUE;
+            fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
             dramifc_state <= #DELAY DRAMIFC_READING;
           end else
             dramifc_state <= #DELAY app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;

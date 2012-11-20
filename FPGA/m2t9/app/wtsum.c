@@ -182,13 +182,13 @@ int __cdecl main(int argc, char *argv[]) {
     }
   }//end if(bTalk2FPGA)
 
-  for(n_msg = 0; !feof(pixel_coeff_f); getchar()) {
+  for(n_msg = 0; !feof(pixel_coeff_f); ) {
     rd = fread(&msg, sizeof(msg), 1, pixel_coeff_f);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));
     printf("weights 0x%08X\n", msg);
   } //end for
 
-  for(; !feof(ds_coeff_f); getchar()) {
+  for(; !feof(ds_coeff_f); ) {
     rd = fread(&msg, sizeof(msg), 1, ds_coeff_f);
     printf("DS 0x%08X\n", msg);
     if(bTalk2FPGA) allwrite(write_fd, (unsigned char*)&msg, sizeof(msg));

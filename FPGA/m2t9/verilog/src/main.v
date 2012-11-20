@@ -675,7 +675,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
 
   generate
     if(SIMULATION) begin: simulate_xb
-      integer binf, idx, rc;
+      integer binf, idx, rc, n_msg = 0;
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] coeff_byte;
       
@@ -728,15 +728,20 @@ module main #(parameter SIMULATION=0, DELAY=1,
               xb_wr_wren_r <= #DELAY `FALSE;
               coeff_sync_ctr <= #DELAY 0;
               sim_state <= #DELAY SIM_DN_PLAY;//SIM_DN_WAIT;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+            end else begin
+              n_msg = n_msg + 1;
+              //if(n_msg%2 == 0) xb_wr_wren_r <= #DELAY `FALSE;
+              //else begin
+                if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
+                else begin
+                  for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                    rc = $fread(coeff_byte, binf);
+                    xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+                  end
+                  xb_wr_wren_r <= #DELAY `TRUE;
                 end
-                xb_wr_wren_r <= #DELAY `TRUE;
-              end
+              //end
+            end
           SIM_DN_WAIT: begin
             xb_wr_wren_r <= #DELAY `FALSE;
             //Doesn't have to be exact; just sufficient
@@ -749,15 +754,20 @@ module main #(parameter SIMULATION=0, DELAY=1,
               xb_wr_wren_r <= #DELAY `FALSE;
               $fclose(binf);
               sim_state <= #DELAY SIM_DONE;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+            end else begin
+              n_msg = n_msg + 1;
+              //if(n_msg%2 == 0) xb_wr_wren_r <= #DELAY `FALSE;
+              //else begin
+                if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
+                else begin
+                  for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                    rc = $fread(coeff_byte, binf);
+                    xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+                  end
+                  xb_wr_wren_r <= #DELAY `TRUE;
                 end
-                xb_wr_wren_r <= #DELAY `TRUE;
-              end
+              //end
+            end
           default: xb_wr_wren_r <= #DELAY `FALSE;
         endcase
       end //always

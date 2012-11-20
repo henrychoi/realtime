@@ -119,10 +119,6 @@
             <obj_property name="ElementShortName">pc_msg_pending</obj_property>
             <obj_property name="ObjectShortName">pc_msg_pending</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/pc_msg_pending_d" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">pc_msg_pending_d</obj_property>
-            <obj_property name="ObjectShortName">pc_msg_pending_d</obj_property>
-         </wvobject>
          <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
             <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
@@ -145,10 +141,6 @@
          <wvobject fp_name="/simmain/main/app/pc_msg_is_ds" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">pc_msg_is_ds</obj_property>
             <obj_property name="ObjectShortName">pc_msg_is_ds</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/pc_msg_is_ds_d" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">pc_msg_is_ds_d</obj_property>
-            <obj_property name="ObjectShortName">pc_msg_is_ds_d</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/dram_msg" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">dram_msg[31:0]</obj_property>
@@ -230,6 +222,11 @@
             <obj_property name="ElementShortName">dram_read</obj_property>
             <obj_property name="ObjectShortName">dram_read</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/end_addr" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">end_addr[26:0]</obj_property>
+            <obj_property name="ObjectShortName">end_addr[26:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
    </wvobject>
    <wvobject fp_name="group100" type="group">
@@ -249,8 +246,8 @@
       <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/fpga_msg" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">fpga_msg[255:0]</obj_property>
-      <obj_property name="ObjectShortName">fpga_msg[255:0]</obj_property>
+      <obj_property name="ElementShortName">fpga_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fpga_msg[31:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/xb_rd_empty" type="logic" db_ref_id="1">
