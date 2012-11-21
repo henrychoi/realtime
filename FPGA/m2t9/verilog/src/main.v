@@ -814,10 +814,20 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
 `ifdef DEBUG  
-  assign GPIO_LED[7:4] = {xb_rd_eof, `FALSE, `FALSE, rst};
+  reg [27:0] bus_clk_ctr, dram_clk_ctr;
+  assign GPIO_LED[7:4] = {xb_rd_eof, bus_clk_ctr[27], dram_clk_ctr[27], rst};
   assign pc_msg_ack = !pc_msg_empty;
   assign fpga_msg = pc_msg;  
   assign fpga_msg_valid = !pc_msg_empty;
+  
+  always @(posedge bus_clk)
+    if(rst) bus_clk_ctr <= #DELAY 0;
+    else bus_clk_ctr <= #DELAY bus_clk_ctr + `TRUE;
+
+  always @(posedge clk)
+    if(rst) dram_clk_ctr <= #DELAY 0;
+    else dram_clk_ctr <= #DELAY dram_clk_ctr + `TRUE;
+
 `else
   application#(.SIMULATION(SIMULATION), .DELAY(DELAY), .XB_SIZE(XB_SIZE)
     , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
