@@ -809,7 +809,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .full(xb_loop_full), .empty(xb_loop_empty));
 `endif
   xb_rd_fifo xb_rd_fifo(.rst(rst)
-    , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
+    , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
     , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
     , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 

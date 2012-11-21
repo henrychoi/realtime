@@ -140,8 +140,11 @@ module application#(parameter SIMULATION=0, DELAY=1
     xb2pixel (.RESET(RESET)
     , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
     , .RD_CLK(CLK), .rden(xb2pixel_ack), .dout(pixel_msg), .empty(xb2pixel_empty));
-  
-`ifdef PROCESS_PIXELS
+`define DEBUG
+`ifdef DEBUG
+  assign patch_coeff_fifo_empty = `FALSE;
+  assign row_coeff_fifo_empty = `FALSE;
+`else
   patch_coeff_fifo patch_fifo(//.wr_clk(CLK), .rd_clk(CLK)
     .clk(CLK), .rst(RESET)
     , .din(app_rd_data[4+:PATCH_COEFF_SIZE])
@@ -357,6 +360,8 @@ module application#(parameter SIMULATION=0, DELAY=1
       end
 
       // For testing over xillybus
+      //fpga_msg_valid <= #DELAY app_en && dram_read;
+      //fpga_msg <= #DELAY {`FALSE, app_addr, `FALSE, dramifc_state};
       fpga_msg_valid <= #DELAY app_rd_data_valid;
       fpga_msg <= #DELAY app_rd_data[0+:XB_SIZE];
       
@@ -429,7 +434,7 @@ module application#(parameter SIMULATION=0, DELAY=1
             app_addr <= #DELAY app_addr + ADDR_INC; // for next write
             app_en <= #DELAY `FALSE;
             app_wdf_data <= #DELAY tmp_data[0+:APP_DATA_WIDTH];
-            app_wdf_wren <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
+            app_wdf_wren <= #DELAY `TRUE; //fpga_msg_valid <= #DELAY `TRUE;
             fpga_msg <= #DELAY tmp_data[0+:XB_SIZE];
             app_wdf_end <= #DELAY `FALSE;
             dramifc_state <= #DELAY DRAMIFC_WR1;
@@ -440,8 +445,8 @@ module application#(parameter SIMULATION=0, DELAY=1
             //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
 
             app_wdf_data <= #DELAY tmp_data[APP_DATA_WIDTH+:APP_DATA_WIDTH];
-            app_wdf_end <= #DELAY `TRUE; fpga_msg_valid <= #DELAY `TRUE;
-            fpga_msg <= #DELAY tmp_data[APP_DATA_WIDTH+:XB_SIZE];
+            app_wdf_end <= #DELAY `TRUE; //fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg <= #DELAY tmp_data[APP_DATA_WIDTH+:XB_SIZE];
             dramifc_state <= #DELAY DRAMIFC_WR2;
           end
         DRAMIFC_WR2: begin
@@ -453,12 +458,12 @@ module application#(parameter SIMULATION=0, DELAY=1
           tmp_data_offset <= #DELAY 0;//APP_DATA_WIDTH - XB_SIZE;
           // Am I writing the end of coefficient?
           if(app_wdf_data[1:0] == 2'b01) begin
-            end_addr <= #DELAY app_addr;
+            end_addr <= #DELAY app_addr - ADDR_INC;
             app_addr <= #DELAY START_ADDR;
             dram_read <= #DELAY `TRUE;
             app_en <= #DELAY `TRUE;
-            fpga_msg_valid <= #DELAY `TRUE;
-            fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
+            //fpga_msg_valid <= #DELAY `TRUE;
+            //fpga_msg <= #DELAY dram_msg;//debug unintentional end of coeff
             dramifc_state <= #DELAY DRAMIFC_READING;
           end else
             dramifc_state <= #DELAY app_wdf_rdy ? DRAMIFC_MSG_WAIT : DRAMIFC_ERROR;

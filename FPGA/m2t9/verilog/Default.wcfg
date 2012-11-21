@@ -170,6 +170,11 @@
             <obj_property name="ObjectShortName">pixel_state[2:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/pixel_msg" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">pixel_msg[63:0]</obj_property>
+            <obj_property name="ObjectShortName">pixel_msg[63:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/xb2pixel_full" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">xb2pixel_full</obj_property>
             <obj_property name="ObjectShortName">xb2pixel_full</obj_property>
@@ -177,6 +182,14 @@
          <wvobject fp_name="/simmain/main/app/xb2pixel_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">xb2pixel_ack</obj_property>
             <obj_property name="ObjectShortName">xb2pixel_ack</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fval" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">fval</obj_property>
+            <obj_property name="ObjectShortName">fval</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/lval" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">lval</obj_property>
+            <obj_property name="ObjectShortName">lval</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="group36" type="group">
