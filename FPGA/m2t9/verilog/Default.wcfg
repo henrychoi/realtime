@@ -14,6 +14,10 @@
    <wvobject fp_name="group47" type="group">
       <obj_property name="label">sim</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/GPIO_LED" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
+         <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/\simulate_xb.sim_state " type="array" db_ref_id="1">
          <obj_property name="ElementShortName">\simulate_xb.sim_state [2:0]</obj_property>
          <obj_property name="ObjectShortName">\simulate_xb.sim_state [2:0]</obj_property>

@@ -10,6 +10,7 @@ module better_fifo#(parameter DELAY=1
   reg fifo_valid, middle_valid, dout_valid;
   wire fifo_empty, fifo_rden, will_update_middle, will_update_dout;
 
+  // Enumerate all supported FIFOs, with different ports //////////////////
   generate
     if(FIFO_CLASS == "xb2dram")
       xb2dram fifo(.clk(RD_CLK), .rst(RESET)
@@ -21,10 +22,29 @@ module better_fifo#(parameter DELAY=1
       xb2pixel fifo(.rst(RESET)
         , .wr_clk(WR_CLK), .din(din), .wr_en(wren)
         , .full(), .almost_full(full)//, .prog_full()
-        , .rd_clk(RD_CLK), .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+        , .rd_clk(RD_CLK), .rd_en(fifo_rden), .dout(fifo_dout)
+        , .empty(fifo_empty));
         //, .sbiterr(), .dbiterr()); No ECC support for asymmetric FIFO?
+    else if(FIFO_CLASS == "patch_coeff")
+      patch_coeff_fifo patch_fifo(.rst(RESET), .clk(WR_CLK)
+        , .din(din), .wr_en(wren)
+        , .full(), .prog_full(full), .overflow(overflow)
+        , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+        , .sbiterr(), .dbiterr());
+    else if(FIFO_CLASS == "row_coeff")
+      row_coeff_fifo row_coeff_fifo(.rst(RESET), .clk(WR_CLK)
+        , .din(din), .wr_en(wren)
+        , .full(), .prog_full(full), .overflow(overflow)
+        , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+        , .sbiterr(), .dbiterr());
+    else if(FIFO_CLASS == "interline")
+      interline_fifo interline_fifo(.rst(RESET), .clk(WR_CLK)
+        , .din(din), .wr_en(wren), .full(full), .overflow(overflow)
+        , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+        , .sbiterr(), .dbiterr());
   endgenerate
 
+  // Logic for better timing ///////////////////////////////////////////////
   assign will_update_middle = fifo_valid && (middle_valid == will_update_dout);
   assign will_update_dout = (middle_valid || fifo_valid)
                           && (rden || !dout_valid);

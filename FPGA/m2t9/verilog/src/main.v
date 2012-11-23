@@ -646,8 +646,6 @@ module main #(parameter SIMULATION=0, DELAY=1,
     end
   endgenerate
 
-  wire app_done;
-
   // Xillybus signals
   localparam XB_SIZE = 32;
   wire bus_clk, quiesce
@@ -672,6 +670,19 @@ module main #(parameter SIMULATION=0, DELAY=1,
    , pc_msg;
   reg [XB_SIZE-1:0] pc_msg_d;
   wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
+
+`define KEEP_IT_REGISTERED
+`ifdef KEEP_IT_REGISTERED
+  reg [APP_DATA_WIDTH-1:0] app_rd_data_d;
+  reg app_rd_data_valid_d;
+  reg RESET;
+
+  always @(posedge clk) begin// Keep it registered for better timing!
+    RESET <= #DELAY rst;
+    app_rd_data_d <= #DELAY app_rd_data;
+    app_rd_data_valid_d <= #DELAY app_rd_data_valid;
+  end
+`endif
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -808,14 +819,15 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .rd_en(xb_loop_rden), .dout(xb_loop_data)
     , .full(xb_loop_full), .empty(xb_loop_empty));
 `endif
-  xb_rd_fifo xb_rd_fifo(.rst(rst)
+  xb_rd_fifo xb_rd_fifo(.rst(rst) //RESET
     , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
     , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
     , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
-`ifdef DEBUG  
+//`define DEBUG_MAIN
+`ifdef DEBUG_MAIN
   reg [27:0] bus_clk_ctr, dram_clk_ctr;
-  assign GPIO_LED[7:4] = {xb_rd_eof, bus_clk_ctr[27], dram_clk_ctr[27], rst};
+  assign GPIO_LED[7:4] = {app_rdy, bus_clk_ctr[27], dram_clk_ctr[27], rst};
   assign pc_msg_ack = !pc_msg_empty;
   assign fpga_msg = pc_msg;  
   assign fpga_msg_valid = !pc_msg_empty;
@@ -833,15 +845,16 @@ module main #(parameter SIMULATION=0, DELAY=1,
     , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
       .CLK(clk), .RESET(rst), .error(error), .GPIO_LED(GPIO_LED[7:4])
-      , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0]), .app_addr(app_addr)
+      , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0])
+      , .app_addr(app_addr)
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
-      , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
+      , .app_rd_data_valid(app_rd_data_valid_d), .app_rd_data(app_rd_data_d)
       //xillybus signals
       , .pc_msg_pending(!pc_msg_empty), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
-      , .app_done(app_done)
+      , .PCIe_CLK(bus_clk)
       );
 `endif
 
