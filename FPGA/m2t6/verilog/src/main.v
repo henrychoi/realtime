@@ -1,8 +1,8 @@
-`timescale 1ps/1ps
+`timescale 1 ps/1 ps
 
-module main #(parameter SIMULATION = 0,
+module main #(parameter SIMULATION=0, DELAY=1,
    parameter REFCLK_FREQ             = 200,
-                                       // # = 200 when design frequency <= 533 MHz,
+                                       // # = 200 when design frequency <= #DELAY 533 MHz,
                                        //   = 300 when design frequency > 533 MHz.
    parameter IODELAY_GRP             = "IODELAY_MIG",
                                        // It is associated to a set of IODELAYs with
@@ -154,7 +154,7 @@ module main #(parameter SIMULATION = 0,
   localparam APP_DATA_WIDTH      = PAYLOAD_WIDTH * 4;
   localparam APP_MASK_WIDTH      = APP_DATA_WIDTH / 8;
 
-  wire error, phy_init_done, pll_lock, heartbeat;
+  wire error, phy_init_done, pll_lock;
   //wire clk_ref, sys_clk;
   wire                                mmcm_clk;
   wire                                iodelay_ctrl_rdy;
@@ -253,7 +253,7 @@ module main #(parameter SIMULATION = 0,
   wire [31:0]                         ddr3_cs4_sync_out;
 
   //***************************************************************************
-  assign GPIO_LED[7:4] = {error, phy_init_done, app_rdy, heartbeat};
+  //assign GPIO_LED[7:4] = {error, phy_init_done, app_rdy, heartbeat};
   assign app_hi_pri = 1'b0;
   assign app_wdf_mask = {APP_MASK_WIDTH{1'b0}};
 
@@ -261,7 +261,7 @@ module main #(parameter SIMULATION = 0,
   //assign sys_clk = 1'b0; 
   //ML605 200MHz clock sourced from BUFG within "idelay_ctrl" module.
   wire clk_200;
-  //wire math_clk;
+  //wire clk_120;
 
   iodelay_ctrl #
     (
@@ -309,7 +309,7 @@ module main #(parameter SIMULATION = 0,
        .clk_mem          (clk_mem),
        .clk              (clk),
        .clk_rd_base      (clk_rd_base),
-       //.math_clk(math_clk),
+       //.clk_120(clk_120),
        .pll_lock         (pll_lock), // ML605 GPIO LED output port
        .rstdiv0          (rst),
        .mmcm_clk(clk_200),//ML605 single input clock 200MHz from "iodelay_ctrl"
@@ -646,8 +646,6 @@ module main #(parameter SIMULATION = 0,
     end
   endgenerate
 
-  wire app_done;
-
   // Xillybus signals
   localparam XB_SIZE = 32;
   wire bus_clk, quiesce
@@ -655,173 +653,218 @@ module main #(parameter SIMULATION = 0,
    , xb_rd_empty        //xb_rd_fifo -> xillybus
    , xb_rd_open         //xillybus -> xb_rd_fifo
    , fpga_msg_valid     //app -> xb_rd_fifo
-   , fpga_msg_full      //xb_rd_fifo -> app
+   , fpga_msg_full, fpga_msg_overflow//xb_rd_fifo -> app
    , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
+   //, pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
    , xb_wr_wren         // xillybus -> xb_wr_fifo
-   , xb_wr_full         // xb_wr_fifo -> xillybus
+   , xb_wr_full, xb_wr_overflow// xb_wr_fifo -> xillybus
    , xb_wr_open         // xillybus -> xb_wr_fifo
    , xb_loop_rden       // xillybus -> xb_loop_fifo
    , xb_loop_empty      // xb_loop_fifo -> xillybus
    , xb_loop_full;      // xb_loop_fifo -> xillybus
+  reg xb_rd_eof, pc_msg_pending_d;
   wire[XB_SIZE-1:0] xb_rd_data //xb_rd_fifo -> xillybus
    , xb_loop_data       // xb_loopback_fifo -> xillybus
    , xb_wr_data         // xillybus -> xb_wr_fifo
-   , pc_msg
-   , fpga_msg;          //app -> xb_rd_fifo
+   , pc_msg;
+  reg [XB_SIZE-1:0] pc_msg_d;
+  wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
+
+`define KEEP_IT_REGISTERED
+`ifdef KEEP_IT_REGISTERED
+  reg [APP_DATA_WIDTH-1:0] app_rd_data_d;
+  reg app_rd_data_valid_d;
+  reg RESET;
+
+  always @(posedge clk) begin// Keep it registered for better timing!
+    RESET <= #DELAY rst;
+    app_rd_data_d <= #DELAY app_rd_data;
+    app_rd_data_valid_d <= #DELAY app_rd_data_valid;
+  end
+`endif
 
   generate
-    if(SIMULATION == 1) begin: simulate_xb
-      integer binf, idx, rc;
+    if(SIMULATION) begin: simulate_xb
+      integer binf, idx, rc, n_msg = 0;
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] coeff_byte;
       
       localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
       reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
-      reg bus_clk_r, xb_wr_wren_r;//pc_msg_empty_r;
+      reg bus_clk_r, xb_wr_wren_r;//wr_data_empty_r;
       localparam SIM_UNINITIALIZED = 0, SIM_READ_COEFF = 1
         , SIM_DN_WAIT = 2, SIM_DN_PLAY = 3, SIM_DONE = 4, N_SIM_STATE = 5;
       reg[log2(N_SIM_STATE)-1:0] sim_state;
       
-      xb_wr_bram_fifo xb_wr_bram_fifo(.clk(bus_clk)
-        //.wr_clk(bus_clk), .rd_clk(clk) //, .rst(rst)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren), .full()
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .almost_full(xb_wr_full), .empty(pc_msg_empty));
-
       always #4000 bus_clk_r = ~bus_clk_r;
       assign bus_clk = bus_clk_r;
       //assign pc_msg = pc_msg_r;
-      //assign pc_msg_empty = pc_msg_empty_r;
+      //assign pc_msg_empty = wr_data_empty_r;
       assign xb_wr_data = xb_wr_data_r;
       assign xb_wr_wren = xb_wr_wren_r;
-      
+      assign xb_rd_open = `TRUE;
+      assign xb_rd_rden = `TRUE;
+      assign xb_loop_rden = `TRUE;
       initial begin
-        binf = $fopen("/data/SanityTest/reducer_coeff_0.bin", "rb");
-        bus_clk_r <= `FALSE;
-        xb_wr_wren_r <= `FALSE;
-        sim_state <= SIM_UNINITIALIZED;
+        binf = $fopen("reducer_coeff_0.bin", "rb");
+        bus_clk_r <= #DELAY `FALSE;
+        xb_wr_wren_r <= #DELAY `FALSE;
+        sim_state <= #DELAY SIM_UNINITIALIZED;
       end
       
       always @(posedge bus_clk) begin
         case(sim_state)
           SIM_UNINITIALIZED:
-            if(rst) xb_wr_wren_r <= `FALSE;
+            if(rst /*|| !app_rdy */|| xb_wr_full)
+              xb_wr_wren_r <= #DELAY `FALSE;
             else begin
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
-                xb_wr_data_r[idx+:8] <= coeff_byte;
+                xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
               end
-              xb_wr_wren_r <= `TRUE;
-              sim_state <= SIM_READ_COEFF;
+              xb_wr_wren_r <= #DELAY `TRUE;
+              sim_state <= #DELAY SIM_READ_COEFF;
             end
           SIM_READ_COEFF:
             if($feof(binf)) begin
               $fclose(binf);
 
-              binf = $fopen("/data/SanityTest/ds_0.bin", "rb");
+              binf = $fopen("ds_0.bin", "rb");
               // Read the first message which must be !FVAL
               for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
                 rc = $fread(coeff_byte, binf);
-                xb_wr_data_r[idx+:8] <= coeff_byte;
+                xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
               end
-              xb_wr_wren_r <= `FALSE;
-              coeff_sync_ctr <= 0;
-              sim_state <= SIM_DN_PLAY;//SIM_DN_WAIT;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= coeff_byte;
+              xb_wr_wren_r <= #DELAY `FALSE;
+              coeff_sync_ctr <= #DELAY 0;
+              sim_state <= #DELAY SIM_DN_PLAY;//SIM_DN_WAIT;
+            end else begin
+              n_msg = n_msg + 1;
+              //if(n_msg%2 == 0) xb_wr_wren_r <= #DELAY `FALSE;
+              //else begin
+                if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
+                else begin
+                  for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                    rc = $fread(coeff_byte, binf);
+                    xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+                  end
+                  xb_wr_wren_r <= #DELAY `TRUE;
                 end
-                xb_wr_wren_r <= `TRUE;
-              end
+              //end
+            end
           SIM_DN_WAIT: begin
-            xb_wr_wren_r <= `FALSE;
+            xb_wr_wren_r <= #DELAY `FALSE;
             //Doesn't have to be exact; just sufficient
             if(coeff_sync_ctr == N_COEFF_SYNC)
-              sim_state <= SIM_DN_PLAY;
-            coeff_sync_ctr <= coeff_sync_ctr + `TRUE;
+              sim_state <= #DELAY SIM_DN_PLAY;
+            coeff_sync_ctr <= #DELAY coeff_sync_ctr + `TRUE;
           end
           SIM_DN_PLAY:
             if($feof(binf)) begin
-              xb_wr_wren_r <= `FALSE;
+              xb_wr_wren_r <= #DELAY `FALSE;
               $fclose(binf);
-              sim_state <= SIM_DONE;
-            end else
-              if(xb_wr_full) xb_wr_wren_r <= `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(coeff_byte, binf);
-                  xb_wr_data_r[idx+:8] <= coeff_byte;
+              sim_state <= #DELAY SIM_DONE;
+            end else begin
+              n_msg = n_msg + 1;
+              //if(n_msg%2 == 0) xb_wr_wren_r <= #DELAY `FALSE;
+              //else begin
+                if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
+                else begin
+                  for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+                    rc = $fread(coeff_byte, binf);
+                    xb_wr_data_r[idx+:8] <= #DELAY coeff_byte;
+                  end
+                  xb_wr_wren_r <= #DELAY `TRUE;
                 end
-                xb_wr_wren_r <= `TRUE;
-              end
-          default: xb_wr_wren_r <= `FALSE;
+              //end
+            end
+          default: xb_wr_wren_r <= #DELAY `FALSE;
         endcase
       end //always
-      
-    end else begin: instantiate_xb
-        
-      xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
-        , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
-        , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
-        , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
-        , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
-        , .bus_clk(bus_clk), .quiesce(quiesce)
-
-        , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
-        , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
-        , .user_r_rd_eof((pc_msg_pending && (pc_msg == ~0) && xb_rd_empty)
-                         || app_done)
-                         
-        , .user_w_wr_wren(xb_wr_wren), .user_w_wr_full(xb_wr_full)
-        , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
-        
-        , .user_r_rd_loop_rden(xb_loop_rden)
-        , .user_r_rd_loop_empty(xb_loop_empty)
-        , .user_r_rd_loop_data(xb_loop_data)
-        , .user_r_rd_loop_open(xb_loop_open)
-        , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
-        );
-
-      xb_wr_fifo xb_wr_fifo(.wr_clk(bus_clk), .rd_clk(clk), .rst(reset)
-        , .din(xb_wr_data), .wr_en(xb_wr_wren)
-        , .rd_en(pc_msg_ack), .dout(pc_msg)
-        , .full(xb_wr_full), .empty(pc_msg_empty));
-
-      // Data from dram lock clock domain to PCIe domain
-      xb_rd_fifo xb_rd_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(reset)
-        , .din(fpga_msg), .wr_en(fpga_msg_valid && xb_rd_open)
-        , .rd_en(xb_rd_rden), .dout(xb_rd_data)
-        , .full(fpga_msg_full), .empty(xb_rd_empty));
-
-      xb_loopback_fifo xb_loopback_fifo(.clk(bus_clk), .rst(reset)
-        , .din(pc_msg), .wr_en(pc_msg_ack)
-        , .rd_en(xb_loop_rden), .dout(xb_loop_data)
-        , .full(xb_loop_full), .empty(xb_loop_empty));
     end
   endgenerate
 
   assign app_cmd[2:1] = 2'b0;
   
-  application#(.ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH)
-    , .XB_SIZE(XB_SIZE))
+  xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
+    , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
+    , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
+    , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
+    , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
+    , .bus_clk(bus_clk), .quiesce(quiesce)
+
+    , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
+    , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
+    , .user_r_rd_eof(xb_rd_eof)
+                     
+    , .user_w_wr_wren(xb_wr_wren)
+    , .user_w_wr_full(xb_wr_full/*|| xb_loop_full*/)
+    , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
+    
+    , .user_r_rd_loop_rden(xb_loop_rden)
+    , .user_r_rd_loop_empty(xb_loop_empty)
+    , .user_r_rd_loop_data(xb_loop_data)
+    , .user_r_rd_loop_open(xb_loop_open)
+    , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
+    );
+
+  xb_wr_bram_fifo xb_wr_fifo(.rst(rst)
+    , .wr_clk(bus_clk), .din(xb_wr_data), .wr_en(xb_wr_wren)
+    , .full(), .almost_full(xb_wr_full), .overflow(xb_wr_overflow)
+    , .rd_clk(clk), .rd_en(pc_msg_ack), .dout(pc_msg), .empty(pc_msg_empty));
+`ifdef PR_THIS
+  xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
+    , .din(pc_msg_d), .wr_en(pc_msg_pending_d /*pc_msg_ack*/)
+    , .rd_en(xb_loop_rden), .dout(xb_loop_data)
+    , .full(xb_loop_full), .empty(xb_loop_empty));
+`endif
+  xb_rd_fifo xb_rd_fifo(.rst(rst) //RESET
+    , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
+    , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
+    , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
+
+//`define DEBUG_MAIN
+`ifdef DEBUG_MAIN
+  reg [27:0] bus_clk_ctr, dram_clk_ctr;
+  assign GPIO_LED[7:4] = {app_rdy, bus_clk_ctr[27], dram_clk_ctr[27], rst};
+  assign pc_msg_ack = !pc_msg_empty;
+  assign fpga_msg = pc_msg;  
+  assign fpga_msg_valid = !pc_msg_empty;
+  
+  always @(posedge bus_clk)
+    if(rst) bus_clk_ctr <= #DELAY 0;
+    else bus_clk_ctr <= #DELAY bus_clk_ctr + `TRUE;
+
+  always @(posedge clk)
+    if(rst) dram_clk_ctr <= #DELAY 0;
+    else dram_clk_ctr <= #DELAY dram_clk_ctr + `TRUE;
+
+`else
+  application#(.SIMULATION(SIMULATION), .DELAY(DELAY), .XB_SIZE(XB_SIZE)
+    , .ADDR_WIDTH(ADDR_WIDTH), .APP_DATA_WIDTH(APP_DATA_WIDTH))
     app(//dram signals
-      .dram_clk(clk), .reset(rst)
-      , .error(error), .heartbeat(heartbeat)
-      , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0]), .app_addr(app_addr)
+      .CLK(clk), .RESET(rst), .error(error), .GPIO_LED(GPIO_LED[7:4])
+      , .app_rdy(app_rdy), .app_en(app_en), .dram_read(app_cmd[0])
+      , .app_addr(app_addr)
       , .app_wdf_wren(app_wdf_wren), .app_wdf_end(app_wdf_end)
       , .app_wdf_rdy(app_wdf_rdy), .app_wdf_data(app_wdf_data)
-      , .app_rd_data_valid(app_rd_data_valid), .app_rd_data(app_rd_data)
+      , .app_rd_data_valid(app_rd_data_valid_d), .app_rd_data(app_rd_data_d)
       //xillybus signals
-      , .bus_clk(bus_clk)
-      , .pc_msg_empty(pc_msg_empty), .pc_msg_ack(pc_msg_ack)
-      , .pc_msg(pc_msg)
+      , .pc_msg_pending(!pc_msg_empty), .pc_msg_ack(pc_msg_ack), .pc_msg(pc_msg)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg_full(rd_fifo_full)
       , .fpga_msg(fpga_msg)
-      , .app_done(app_done)
+      , .PCIe_CLK(bus_clk)
       );
+`endif
 
+  //assign pc_msg_pending = !pc_msg_empty;
+  always @(posedge bus_clk)
+    if(rst) begin
+      pc_msg_pending_d <= #DELAY `FALSE;
+    end else begin
+      xb_rd_eof <= #DELAY pc_msg_pending_d && (&pc_msg_d);
+      pc_msg_pending_d <= #DELAY !pc_msg_empty;
+      pc_msg_d <= #DELAY pc_msg;
+    end
 endmodule
