@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Wed Nov 21 14:36:51 2012
+# Date: Sun Nov 25 21:05:23 2012
 #
 ##############################################################
 #
@@ -53,8 +53,8 @@ CSET c_has_overflow=false
 CSET c_has_rdy=true
 CSET c_has_sclr=false
 CSET c_has_underflow=false
-CSET c_latency=6
-CSET c_mult_usage=Full_Usage
+CSET c_latency=8
+CSET c_mult_usage=Max_Usage
 CSET c_optimization=Speed_Optimized
 CSET c_rate=1
 CSET c_result_exponent_width=8
@@ -69,4 +69,4 @@ CSET result_precision_type=Custom
 MISC pkg_timestamp=2011-10-13T13:13:05Z
 # END Extra information
 GENERATE
-# CRC: 946bfe7e
+# CRC: 19e8344a

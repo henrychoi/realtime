@@ -1,3 +1,5 @@
+`timescale 1 ps/1 ps
+
 module application#(parameter SIMULATION=0, DELAY=1
 , XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 (input RESET, CLK, output error, output[7:4] GPIO_LED
@@ -39,7 +41,7 @@ module application#(parameter SIMULATION=0, DELAY=1
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
     , PATCH_SIZE = 10//, PATCH_SIZE_MAX = 16
     , N_PATCH = 600000 //Can handle up to 1M
-    , N_PIXEL_PER_CLK = 2'd2
+    , N_PIXEL_PER_CLK = 2
     , N_ROW_REDUCER = 16;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
@@ -153,7 +155,7 @@ module application#(parameter SIMULATION=0, DELAY=1
   //assign init_a_reducer[0] = !row_coeff_fifo_empty[0] && |the_reducer_avail[0];
         
   assign interline_sum_out[0] = {FP_SIZE{`FALSE}}; //first row starts at 0.0f
-  
+
   genvar geni, genj;
   generate
     for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin: for_all_patch_rows
@@ -237,7 +239,7 @@ module application#(parameter SIMULATION=0, DELAY=1
       //  && !row_coeff_fifo_empty[geni] && |the_reducer_avail[geni];
     end//for geni
   endgenerate
-  
+
   always @(posedge RESET, posedge fds_val)
     if(RESET) hb_ctr <= #DELAY 0;
     else hb_ctr <= #DELAY hb_ctr + `TRUE;

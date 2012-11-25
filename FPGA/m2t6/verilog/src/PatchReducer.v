@@ -1,3 +1,5 @@
+`timescale 1 ps/1 ps
+
 module PatchRowReducer
 #(parameter N_PATCH=1, PATCH_SIZE=1, N_COL_SIZE=1, N_ROW_SIZE=1, FP_SIZE=1
 , N_PIXEL_PER_CLK=1, DELAY=1)
@@ -28,51 +30,25 @@ module PatchRowReducer
   wire[FP_SIZE-1:0] weighted_fds[N_PIXEL_PER_CLK-1:0], sum2, running_sum;
   reg[FP_SIZE-1:0] weight[PATCH_SIZE-1:0];
   reg[log2(PATCH_SIZE)-1:0] n_ds, n_ds_p1, n_sum;
-
-`ifdef USE_COMBINATIONAL_LOGIC
-  wire fromWAITtoMATCHED;
-  wire[N_PIXEL_PER_CLK-1:0] fds_val;
-  wire[log2(N_PIXEL_PER_CLK):0] n_valid_ds;
-  
-  //assign r_col = l_col + N_PIXEL_PER_CLK;
-  assign fromWAITtoMATCHED = (state == MATCH_WAIT)
-    && (cur_row == matcher_row) && fds_val_in && (l_col == start_col);
-  //assign fds_valid = fromWAITtoMATCHED || state == MATCHED;
-  assign fds_val[0] = (fromWAITtoMATCHED && start_col[0]) || (state == MATCHED);
-  assign fds_val[1] = fromWAITtoMATCHED
-    || (state == MATCHED && (n_ds < (PATCH_SIZE - `TRUE)));
-  assign n_valid_ds = fds_val == 2'b11 ? 2'd2
-                   : (fds_val == 2'b00 ? 2'd0
-                                       : 2'd1);
-
-  fmult fmult0(.clk(CLK)
-    , .operation_nd(fds_val[0]), .a(fds0), .b(weight[n_ds])
-    , .result(weighted_fds[0]), .rdy(weighted_fds_valid[0]));
-  fmult fmult1(.clk(CLK)
-    , .operation_nd(fds_val[1]), .a(fds1), .b(weight[n_ds_p1])
-    , .result(weighted_fds[1]), .rdy(weighted_fds_valid[1]));
-`else
   reg fromWAITtoMATCHED;
   reg [N_PIXEL_PER_CLK-1:0] fds_val;
   reg [log2(N_PIXEL_PER_CLK):0] n_valid_ds;
   reg [FP_SIZE-1:0] fds[N_PIXEL_PER_CLK-1:0];
 
+`ifdef DEBUG_ISIM_CRASH
   fmult fmult0(.clk(CLK)
     , .operation_nd(fds_val[0]), .a(fds[0]), .b(weight[n_ds])
     , .result(weighted_fds[0]), .rdy(weighted_fds_valid[0]));
+
   fmult fmult1(.clk(CLK)
     , .operation_nd(fds_val[1]), .a(fds[1]), .b(weight[n_ds_p1])
     , .result(weighted_fds[1]), .rdy(weighted_fds_valid[1]));
-`endif
-    
-  //PatchRowMatcher_fifo fifo(.wr_clk(pixel_clk), .rd_clk(math_clk)
-  //  , .din(fds0), .wr_en(fds_valid), .full()
-  //  , .rd_en(matched_ds_ack), .empty(fifo_empty), .dout(matched_fds));
 
   fadd add2(.clk(CLK), .operation_nd(|weighted_fds_valid)
     , .a(weighted_fds_valid[0] ? weighted_fds[0] : {FP_SIZE{`FALSE}})
-    , .b(weighted_fds_valid[0] ? weighted_fds[1] : {FP_SIZE{`FALSE}})
+    , .b(weighted_fds_valid[1] ? weighted_fds[1] : {FP_SIZE{`FALSE}})
     , .result(sum2), .rdy(sum2_valid));
+`endif
 
   fadd increment(.clk(CLK), .operation_nd(sum2_valid)
     , .a(sum), .b(sum2), .result(running_sum)
@@ -80,7 +56,7 @@ module PatchRowReducer
     
   assign done = state == SUM_RDY;
   assign available = state == CONFIG_WAIT;
-  
+
   always @(posedge CLK)
     if(RESET) begin
       fds[0] <= #DELAY 0; fds[1] <= #DELAY 0;
@@ -92,9 +68,7 @@ module PatchRowReducer
       n_sum <= #DELAY 0;
       for(i=0; i < PATCH_SIZE; i=i+1) weight[i] <= #DELAY {FP_SIZE{`FALSE}};
       state <= #DELAY CONFIG_WAIT;
-    end else begin
-    
-`ifndef USE_COMBINATIONAL_LOGIC
+    end else begin    
       fds[0] <= #DELAY fds0; fds[1] <= #DELAY fds1;
       fromWAITtoMATCHED <= #DELAY (state == MATCH_WAIT)
         && (cur_row == matcher_row) && fds_val_in && (l_col == start_col);
@@ -107,8 +81,6 @@ module PatchRowReducer
       n_valid_ds <= #DELAY fds_val == 2'b11 ? 2'd2
                         : (fds_val == 2'b00 ? 2'd0
                                             : 2'd1);
-`endif
-
       case(state)
         CONFIG_WAIT:
           if(init) begin

@@ -1,3 +1,5 @@
+`timescale 1 ps/1 ps
+
 module main #(parameter SIMULATION=0, DELAY=1,
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= #DELAY 533 MHz,
