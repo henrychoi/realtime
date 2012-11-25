@@ -22,7 +22,7 @@ module application#(parameter SIMULATION=0, DELAY=1
   wire pc_msg_is_ds;
   //reg pc_msg_is_ds_d, pc_msg_pending_d;
   wire[XB_SIZE-1:0] dram_msg;
-  wire[2*XB_SIZE-1:0] pixel_msg;
+  wire[2*(XB_SIZE-4)-1:0] pixel_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
   wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty, xb2dram_valid
     , xb2pixel_ack, xb2dram_ack, xb2dram_overflow;
@@ -100,15 +100,15 @@ module application#(parameter SIMULATION=0, DELAY=1
   reg[ADDR_WIDTH-1:0] end_addr;
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 4'd8;// BL8
-  localparam DRAMIFC_ERROR = 0
+  localparam DRAMIFC_N_STATE = 8
+    , DRAMIFC_ERROR = 3'd0
     , DRAMIFC_WR1 = 3'd1
     , DRAMIFC_WR2 = 3'd2
     , DRAMIFC_MSG_WAIT = 3'd3
     , DRAMIFC_WR_WAIT = 3'd4
     , DRAMIFC_READING = 3'd5
     , DRAMIFC_THROTTLED = 3'd6
-    , DRAMIFC_INTERFRAME = 3'd7
-    , DRAMIFC_N_STATE = 3'd8;
+    , DRAMIFC_INTERFRAME = 3'd7;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
   //Note: designed deliberately 1 bit short to wrap automatically even when I

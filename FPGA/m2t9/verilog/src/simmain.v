@@ -1,4 +1,4 @@
-`timescale 1ps/100fs
+`timescale 1 ps/1 ps
 
 module simmain;
   parameter REFCLK_FREQ           = 200;
