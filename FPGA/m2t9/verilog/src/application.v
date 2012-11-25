@@ -181,19 +181,10 @@ module application#(parameter SIMULATION=0, DELAY=1
       //This is only used in sequential logic that decides which reducer to
       //grab, so it's probably OK to leave it as a combinational logic
       assign avail_reducer_idx[geni]
-        = the_reducer_avail[geni][0] ? 0
-        : the_reducer_avail[geni][1] ? 1
-        : the_reducer_avail[geni][2] ? 2
-        /*: the_reducer_avail[geni][3] ? 3
-        : the_reducer_avail[geni][4] ? 4
-        : the_reducer_avail[geni][5] ? 5
-        : the_reducer_avail[geni][6] ? 6
-        : the_reducer_avail[geni][7] ? 7
-        : the_reducer_avail[geni][8] ? 8
-        : the_reducer_avail[geni][9] ? 9
-        : the_reducer_avail[geni][10] ? 10
-        : the_reducer_avail[geni][11] ? 11
-        : the_reducer_avail[geni][12] ? 12*/
+        = the_reducer_avail[geni][0] ? 2'd0
+        : the_reducer_avail[geni][1] ? 2'd1
+        : the_reducer_avail[geni][2] ? 2'd2
+        //: the_reducer_avail[geni][3] ? 3'd3
         :                              (N_ROW_REDUCER - 1);
 
       better_fifo#(.DELAY(DELAY), .FIFO_CLASS("row_coeff")
@@ -326,61 +317,25 @@ module application#(parameter SIMULATION=0, DELAY=1
             the_reducer_done[i-1][0] ? reducer_sum[i-1][0]
           : the_reducer_done[i-1][1] ? reducer_sum[i-1][1]
           : the_reducer_done[i-1][2] ? reducer_sum[i-1][2]
-          /*: the_reducer_done[i-1][3] ? reducer_sum[i-1][3]
-          : the_reducer_done[i-1][4] ? reducer_sum[i-1][4]
-          : the_reducer_done[i-1][5] ? reducer_sum[i-1][5]
-          : the_reducer_done[i-1][6] ? reducer_sum[i-1][6]
-          : the_reducer_done[i-1][7] ? reducer_sum[i-1][7]
-          : the_reducer_done[i-1][8] ? reducer_sum[i-1][8]
-          : the_reducer_done[i-1][9] ? reducer_sum[i-1][9]
-          : the_reducer_done[i-1][10] ? reducer_sum[i-1][10]
-          : the_reducer_done[i-1][11] ? reducer_sum[i-1][11]
-          : the_reducer_done[i-1][12] ? reducer_sum[i-1][12]*/
+          //: the_reducer_done[i-1][3] ? reducer_sum[i-1][3]
           :                             reducer_sum[i-1][N_ROW_REDUCER-1];
         interline_num_in[i] <= #DELAY
             the_reducer_done[i-1][0] ? reducer_num[i-1][0]
           : the_reducer_done[i-1][1] ? reducer_num[i-1][1]
           : the_reducer_done[i-1][2] ? reducer_num[i-1][2]
-          /*: the_reducer_done[i-1][3] ? reducer_num[i-1][3]
-          : the_reducer_done[i-1][4] ? reducer_num[i-1][4]
-          : the_reducer_done[i-1][5] ? reducer_num[i-1][5]
-          : the_reducer_done[i-1][6] ? reducer_num[i-1][6]
-          : the_reducer_done[i-1][7] ? reducer_num[i-1][7]
-          : the_reducer_done[i-1][8] ? reducer_num[i-1][8]
-          : the_reducer_done[i-1][9] ? reducer_num[i-1][9]
-          : the_reducer_done[i-1][10] ? reducer_num[i-1][10]
-          : the_reducer_done[i-1][11] ? reducer_num[i-1][11]
-          : the_reducer_done[i-1][12] ? reducer_num[i-1][12]*/
+          //: the_reducer_done[i-1][3] ? reducer_num[i-1][3]
           :                             reducer_num[i-1][N_ROW_REDUCER-1];
         interline_row_in[i] <= #DELAY
            (the_reducer_done[i-1][0] ? reducer_row[i-1][0]
           : the_reducer_done[i-1][1] ? reducer_row[i-1][1]
           : the_reducer_done[i-1][2] ? reducer_row[i-1][2]
-          /*: the_reducer_done[i-1][3] ? reducer_row[i-1][3]
-          : the_reducer_done[i-1][4] ? reducer_row[i-1][4]
-          : the_reducer_done[i-1][5] ? reducer_row[i-1][5]
-          : the_reducer_done[i-1][6] ? reducer_row[i-1][6]
-          : the_reducer_done[i-1][7] ? reducer_row[i-1][7]
-          : the_reducer_done[i-1][8] ? reducer_row[i-1][8]
-          : the_reducer_done[i-1][9] ? reducer_row[i-1][9]
-          : the_reducer_done[i-1][10] ? reducer_row[i-1][10]
-          : the_reducer_done[i-1][11] ? reducer_row[i-1][11]
-          : the_reducer_done[i-1][12] ? reducer_row[i-1][12]*/
+          //: the_reducer_done[i-1][3] ? reducer_row[i-1][3]
           :                        reducer_row[i-1][N_ROW_REDUCER-1]) + `TRUE;
         interline_col_in[i] <= #DELAY
             the_reducer_done[i-1][0] ? reducer_col[i-1][0]
           : the_reducer_done[i-1][1] ? reducer_col[i-1][1]
           : the_reducer_done[i-1][2] ? reducer_col[i-1][2]
-          /*: the_reducer_done[i-1][3] ? reducer_col[i-1][3]
-          : the_reducer_done[i-1][4] ? reducer_col[i-1][4]
-          : the_reducer_done[i-1][5] ? reducer_col[i-1][5]
-          : the_reducer_done[i-1][6] ? reducer_col[i-1][6]
-          : the_reducer_done[i-1][7] ? reducer_col[i-1][7]
-          : the_reducer_done[i-1][8] ? reducer_col[i-1][8]
-          : the_reducer_done[i-1][9] ? reducer_col[i-1][9]
-          : the_reducer_done[i-1][10] ? reducer_col[i-1][10]
-          : the_reducer_done[i-1][11] ? reducer_col[i-1][11]
-          : the_reducer_done[i-1][12] ? reducer_col[i-1][12]*/
+          //: the_reducer_done[i-1][3] ? reducer_col[i-1][3]
           :                             reducer_col[i-1][N_ROW_REDUCER-1];
       end//for(i)
 
@@ -394,31 +349,13 @@ module application#(parameter SIMULATION=0, DELAY=1
           the_reducer_done[PATCH_SIZE-1][0] ? reducer_sum[PATCH_SIZE-1][0]
         : the_reducer_done[PATCH_SIZE-1][1] ? reducer_sum[PATCH_SIZE-1][1]
         : the_reducer_done[PATCH_SIZE-1][2] ? reducer_sum[PATCH_SIZE-1][2]
-        /*: the_reducer_done[PATCH_SIZE-1][3] ? reducer_sum[PATCH_SIZE-1][3]
-        : the_reducer_done[PATCH_SIZE-1][4] ? reducer_sum[PATCH_SIZE-1][4]
-        : the_reducer_done[PATCH_SIZE-1][5] ? reducer_sum[PATCH_SIZE-1][5]
-        : the_reducer_done[PATCH_SIZE-1][6] ? reducer_sum[PATCH_SIZE-1][6]
-        : the_reducer_done[PATCH_SIZE-1][7] ? reducer_sum[PATCH_SIZE-1][7]
-        : the_reducer_done[PATCH_SIZE-1][8] ? reducer_sum[PATCH_SIZE-1][8]
-        : the_reducer_done[PATCH_SIZE-1][9] ? reducer_sum[PATCH_SIZE-1][9]
-        : the_reducer_done[PATCH_SIZE-1][10] ? reducer_sum[PATCH_SIZE-1][10]
-        : the_reducer_done[PATCH_SIZE-1][11] ? reducer_sum[PATCH_SIZE-1][11]
-        : the_reducer_done[PATCH_SIZE-1][12] ? reducer_sum[PATCH_SIZE-1][12]*/
+        //: the_reducer_done[PATCH_SIZE-1][3] ? reducer_sum[PATCH_SIZE-1][3]
         :                         reducer_sum[PATCH_SIZE-1][N_ROW_REDUCER-1];
       result_patch_num <= #DELAY
           the_reducer_done[PATCH_SIZE-1][0] ? reducer_num[PATCH_SIZE-1][0]
         : the_reducer_done[PATCH_SIZE-1][1] ? reducer_num[PATCH_SIZE-1][1]
         : the_reducer_done[PATCH_SIZE-1][2] ? reducer_num[PATCH_SIZE-1][2]
-        /*: the_reducer_done[PATCH_SIZE-1][3] ? reducer_num[PATCH_SIZE-1][3]
-        : the_reducer_done[PATCH_SIZE-1][4] ? reducer_num[PATCH_SIZE-1][4]
-        : the_reducer_done[PATCH_SIZE-1][5] ? reducer_num[PATCH_SIZE-1][5]
-        : the_reducer_done[PATCH_SIZE-1][6] ? reducer_num[PATCH_SIZE-1][6]
-        : the_reducer_done[PATCH_SIZE-1][7] ? reducer_num[PATCH_SIZE-1][7]
-        : the_reducer_done[PATCH_SIZE-1][8] ? reducer_num[PATCH_SIZE-1][8]
-        : the_reducer_done[PATCH_SIZE-1][9] ? reducer_num[PATCH_SIZE-1][9]
-        : the_reducer_done[PATCH_SIZE-1][10] ? reducer_num[PATCH_SIZE-1][10]
-        : the_reducer_done[PATCH_SIZE-1][11] ? reducer_num[PATCH_SIZE-1][11]
-        : the_reducer_done[PATCH_SIZE-1][12] ? reducer_num[PATCH_SIZE-1][12]*/
+        //: the_reducer_done[PATCH_SIZE-1][3] ? reducer_num[PATCH_SIZE-1][3]
         :                         reducer_num[PATCH_SIZE-1][N_ROW_REDUCER-1];
 
       //pc_msg_pending_d <= #DELAY pc_msg_pending;

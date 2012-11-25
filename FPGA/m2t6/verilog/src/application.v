@@ -1,5 +1,3 @@
-`timescale 1 ps/1 ps
-
 module application#(parameter SIMULATION=0, DELAY=1
 , XB_SIZE=1,ADDR_WIDTH=1, APP_DATA_WIDTH=1)
 (input RESET, CLK, output error, output[7:4] GPIO_LED

@@ -1,5 +1,3 @@
-`timescale 1 ps/1 ps
-
 module main #(parameter SIMULATION=0, DELAY=1,
    parameter REFCLK_FREQ             = 200,
                                        // # = 200 when design frequency <= #DELAY 533 MHz,
@@ -819,7 +817,7 @@ module main #(parameter SIMULATION=0, DELAY=1,
     end//!SIMULATION
   endgenerate
 
-  assign app_cmd[2:1] = 2'b0;
+  assign app_cmd[2:1] = 2'b00;
   
   xb_wr_bram_fifo xb_wr_fifo(.rst(rst)
     , .wr_clk(bus_clk), .din(xb_wr_data), .wr_en(xb_wr_wren)
