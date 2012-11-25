@@ -28,24 +28,27 @@ module application#(parameter SIMULATION=0, DELAY=1
     , xb2pixel_ack, xb2dram_ack, xb2dram_overflow;
   reg xb2pixel_wren, xb2dram_wren; //Delay through register
 
-  localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
-    , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
+  localparam N_PIXEL_STATE = 5
+    , PIXEL_ERROR = 3'd0
+    , PIXEL_STANDBY = 3'd1
+    , PIXEL_INTRALINE = 3'd2
+    , PIXEL_INTERLINE = 3'd3
+    , PIXEL_INTERFRAME = 3'd4;
   reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
 
   localparam FP_SIZE=20
     , N_FRAME_SIZE = 20
     , N_COL_MAX = 2048, N_ROW_MAX = 2064 //2k rows + 8 dark pixels top and btm
-    , PATCH_SIZE = 9//, PATCH_SIZE_MAX = 16
+    , PATCH_SIZE = 12//, PATCH_SIZE_MAX = 16
     , N_PATCH = 600000 //Can handle up to 1M
     , N_PIXEL_PER_CLK = 2'd2
-    , N_ROW_REDUCER = 12;
+    , N_ROW_REDUCER = 4;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] l_col;//, n_col_d[N_FADD_LATENCY-1:0];
   //reg[0:0] init_reducer_d;
-  reg [PATCH_SIZE-1:0] init_a_reducer;
+  reg [PATCH_SIZE-1:0] init_a_reducer, a_reducer_done;
   reg [N_ROW_REDUCER-1:0] init_the_reducer[PATCH_SIZE-1:0];
-  wire[PATCH_SIZE-1:0] a_reducer_done;
   wire[N_ROW_REDUCER-1:0] the_reducer_avail[PATCH_SIZE-1:0]
                         , the_reducer_done[PATCH_SIZE-1:0];
   wire[log2(N_ROW_REDUCER)-1:0] avail_reducer_idx[PATCH_SIZE-1:0];
@@ -53,22 +56,19 @@ module application#(parameter SIMULATION=0, DELAY=1
 
   localparam INTERLINE_DATA_SIZE
     = log2(N_PATCH) + log2(N_ROW_MAX) + log2(N_COL_MAX) + FP_SIZE;
-  wire[FP_SIZE-1:0] interline_sum_in[PATCH_SIZE-1:1]
-                  , interline_sum_out[PATCH_SIZE-1:1]
-                  , reducer_sum[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0]
-                  , patch_sum; //The final answer
-  wire[log2(N_PATCH)-1:0] conf_num
-                        , interline_num_in[PATCH_SIZE-1:1]
-                        , interline_num_out[PATCH_SIZE-1:1]
-                        , reducer_num[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0]
-                        , patch_num; //The ID of the final answer
-  wire[log2(N_ROW_MAX)-1:0] conf_row
-                          , interline_row_in[PATCH_SIZE-1:1]
-                          , interline_row_out[PATCH_SIZE-1:1]
+  reg [FP_SIZE-1:0] result_patch_sum //The final answer
+                  , interline_sum_in[PATCH_SIZE-1:1];
+  wire[FP_SIZE-1:0] interline_sum_out[PATCH_SIZE-1:0]
+                  , reducer_sum[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
+  reg [log2(N_PATCH)-1:0] result_patch_num //The ID of the final answer
+                        , interline_num_in[PATCH_SIZE-1:1];
+  wire[log2(N_PATCH)-1:0] interline_num_out[PATCH_SIZE-1:0]
+                        , reducer_num[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
+  reg [log2(N_ROW_MAX)-1:0] interline_row_in[PATCH_SIZE-1:1];
+  wire[log2(N_ROW_MAX)-1:0] interline_row_out[PATCH_SIZE-1:0]
                           , reducer_row[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
-  wire[log2(N_COL_MAX)-1:0] conf_col
-                          , interline_col_in[PATCH_SIZE-1:1]
-                          , interline_col_out[PATCH_SIZE-1:1]
+  reg [log2(N_COL_MAX)-1:0] interline_col_in[PATCH_SIZE-1:1];
+  wire[log2(N_COL_MAX)-1:0] interline_col_out[PATCH_SIZE-1:0]
                           , reducer_col[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
   wire[PATCH_SIZE-1:1] interline_fifo_overflow, interline_fifo_empty;
   wire[PATCH_SIZE-1:0] row_coeff_fifo_overflow, row_coeff_fifo_high
@@ -101,10 +101,14 @@ module application#(parameter SIMULATION=0, DELAY=1
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 4'd8;// BL8
   localparam DRAMIFC_ERROR = 0
-    , DRAMIFC_WR1 = 1, DRAMIFC_WR2 = 2, DRAMIFC_MSG_WAIT = 3
-    , DRAMIFC_WR_WAIT = 4
-    , DRAMIFC_READING = 5, DRAMIFC_THROTTLED = 6, DRAMIFC_INTERFRAME = 7
-    , DRAMIFC_N_STATE = 8;
+    , DRAMIFC_WR1 = 3'd1
+    , DRAMIFC_WR2 = 3'd2
+    , DRAMIFC_MSG_WAIT = 3'd3
+    , DRAMIFC_WR_WAIT = 3'd4
+    , DRAMIFC_READING = 3'd5
+    , DRAMIFC_THROTTLED = 3'd6
+    , DRAMIFC_INTERFRAME = 3'd7
+    , DRAMIFC_N_STATE = 3'd8;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
   //Note: designed deliberately 1 bit short to wrap automatically even when I
@@ -120,9 +124,9 @@ module application#(parameter SIMULATION=0, DELAY=1
     || (pixel_state == PIXEL_ERROR);
   //assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = pc_msg_pending && !xb2pixel_full && !xb2dram_full;  
-  assign {fval, lval} = pixel_msg[4+:2];
-  assign fds[0] = pixel_msg[(XB_SIZE+12)+:FP_SIZE];//Note: throw away the 4 LSB
-  assign fds[1] = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
+  assign {fval, lval} = pixel_msg[0+:2];
+  assign fds[0] = pixel_msg[(XB_SIZE-4+8)+:FP_SIZE];//Note: throw away the 4 LSB
+  assign fds[1] = pixel_msg[8+:FP_SIZE];//Note: throw away the 4 LSB
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
   // Using combinational logic to ack FIFO is necessary for the FWFT feature
   assign xb2pixel_ack = !patch_coeff_fifo_empty && !row_coeff_fifo_empty;
@@ -146,10 +150,10 @@ module application#(parameter SIMULATION=0, DELAY=1
     , .empty(xb2dram_empty));
 
   better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2pixel")
-    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(2*XB_SIZE))
+    , .WR_WIDTH(XB_SIZE-4), .RD_WIDTH(2*(XB_SIZE-4)))
     xb2pixel (.RESET(RESET)
-    , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
-    , .overflow()
+    , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d[XB_SIZE-1:4])
+    , .full(xb2pixel_full), .overflow()
     , .RD_CLK(CLK), .rden(xb2pixel_ack), .dout(pixel_msg)
     , .empty(xb2pixel_empty));
 
@@ -159,25 +163,28 @@ module application#(parameter SIMULATION=0, DELAY=1
     , .WR_CLK(CLK), .din(patch_conf), .wren(patch_conf_valid)
     , .full(patch_coeff_fifo_high), .overflow(patch_coeff_fifo_overflow)
     , .RD_CLK(CLK), .rden(init_a_reducer[0]) //If I just used a coeff, get more
-    , .dout({conf_col, conf_row, conf_num}), .empty(patch_coeff_fifo_empty));
+    , .dout({interline_col_out[0], interline_row_out[0], interline_num_out[0]})
+    , .empty(patch_coeff_fifo_empty));
 
   assign GPIO_LED[7:4] = {app_rdy, dramifc_state};
-  //assign patch_coeff_fifo_empty = `FALSE;
-  //assign row_coeff_fifo_empty = {PATCH_SIZE{`FALSE}};
   
   //assign init_a_reducer[0] = !patch_coeff_fifo_empty
   //  && !row_coeff_fifo_empty[0] && |the_reducer_avail[0];
       
+  assign interline_sum_out[0] = {FP_SIZE{`FALSE}}; //first row starts at 0.0f
+
   genvar geni, genj;
   generate
     for(geni=0; geni < PATCH_SIZE; geni=geni+1) begin: for_all_patch_rows
-      // Note: I do not check whether the last reducer is actually available
-      // (|the_reducer_avail[geni]) tells me if no reducer is available at all.
+      //Note: I do not check whether the last reducer is actually available
+      //(|the_reducer_avail[geni]) would tell if no reducer is available at all
+      //This is only used in sequential logic that decides which reducer to
+      //grab, so it's probably OK to leave it as a combinational logic
       assign avail_reducer_idx[geni]
         = the_reducer_avail[geni][0] ? 0
         : the_reducer_avail[geni][1] ? 1
         : the_reducer_avail[geni][2] ? 2
-        : the_reducer_avail[geni][3] ? 3
+        /*: the_reducer_avail[geni][3] ? 3
         : the_reducer_avail[geni][4] ? 4
         : the_reducer_avail[geni][5] ? 5
         : the_reducer_avail[geni][6] ? 6
@@ -185,9 +192,9 @@ module application#(parameter SIMULATION=0, DELAY=1
         : the_reducer_avail[geni][8] ? 8
         : the_reducer_avail[geni][9] ? 9
         : the_reducer_avail[geni][10] ? 10
+        : the_reducer_avail[geni][11] ? 11
+        : the_reducer_avail[geni][12] ? 12*/
         :                              (N_ROW_REDUCER - 1);
-
-      assign a_reducer_done[geni] = |the_reducer_done[geni];
 
       better_fifo#(.DELAY(DELAY), .FIFO_CLASS("row_coeff")
         , .WR_WIDTH(ROW_REDUCER_CONFIG_SIZE)
@@ -199,35 +206,29 @@ module application#(parameter SIMULATION=0, DELAY=1
         , .RD_CLK(CLK), .rden(init_a_reducer[geni])
         , .dout(conf_weights[geni]), .empty(row_coeff_fifo_empty[geni]));
 
-`ifdef USE_COMBINATIONAL_LOGIC
-      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1)
-        //Tell the chosen reducer to initialize
-        assign init_the_reducer[geni][genj] = init_a_reducer[geni]
-          && genj == avail_reducer_idx[geni];
-`endif      
+      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: row_reducers
+        PatchRowReducer#(.DELAY(DELAY)
+            , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
+            , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
+            , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
+          row_reducer(.CLK(CLK), .RESET(RESET)
+          , .available(the_reducer_avail[geni][genj])
+          , .init(init_the_reducer[geni][genj])
+          , .conf_row(interline_row_out[geni])
+          , .conf_col(interline_col_out[geni])
+          , .conf_sum(interline_sum_out[geni])
+          , .conf_patch_num(interline_num_out[geni])
+          , .conf_weights(conf_weights[geni])
+          , .cur_row(n_row), .l_col(l_col)
+          , .fds_val_in(lval /*lval_d*/), .fds0(fds[0]), .fds1(fds[1])
+          , .done(the_reducer_done[geni][genj])
+          , .patch_num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])
+          , .matcher_row(reducer_row[geni][genj])
+          , .start_col(reducer_col[geni][genj]));
+      end//for genj
     end//for geni
 
-    for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: init_1st_row_reducer
-      PatchRowReducer#(.DELAY(DELAY)
-          , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
-          , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
-          , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-        fst_row_reducer(.CLK(CLK), .RESET(RESET)
-        , .available(the_reducer_avail[0][genj])
-        , .init(init_the_reducer[0][genj])
-        , .conf_row(conf_row), .conf_col(conf_col)
-        //First row starts with the running sum = 0 of course
-        , .conf_sum({FP_SIZE{`FALSE}}) 
-        , .conf_num(conf_num), .conf_weights(conf_weights[0])
-        , .cur_row(n_row), .l_col(l_col)
-        , .fds_val_in(lval/*lval_d*/), .fds0(fds[0]), .fds1(fds[1])
-        , .done(the_reducer_done[0][genj])
-        , .num(reducer_num[0][genj]), .sum(reducer_sum[0][genj])
-        , .matcher_row(reducer_row[0][genj])
-        , .start_col(reducer_col[0][genj]));
-    end//genj
-
-    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin//: for_all_non_1st_rows
+    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin: interline
       better_fifo#(.DELAY(DELAY), .FIFO_CLASS("interline")
         , .WR_WIDTH(INTERLINE_DATA_SIZE), .RD_WIDTH(INTERLINE_DATA_SIZE))
         interline_fifo(.RESET(RESET), .WR_CLK(CLK)
@@ -240,116 +241,10 @@ module application#(parameter SIMULATION=0, DELAY=1
         , .dout({interline_num_out[geni], interline_row_out[geni]
                , interline_sum_out[geni], interline_col_out[geni]})
         , .empty(interline_fifo_empty[geni]));
-      
-      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin//: for_row_reducers_on_non_1st
-        PatchRowReducer#(.DELAY(DELAY)
-            , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
-            , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
-            , .N_COL_SIZE(log2(N_COL_MAX)), .N_ROW_SIZE(log2(N_ROW_MAX)))
-          row_reducer(.CLK(CLK), .RESET(RESET)
-          , .available(the_reducer_avail[geni][genj])
-          , .init(init_the_reducer[geni][genj])
-          , .conf_row(interline_row_out[geni])
-          , .conf_col(interline_col_out[geni])
-          , .conf_sum(interline_sum_out[geni])
-          , .conf_num(interline_num_out[geni])
-          , .conf_weights(conf_weights[geni])
-          , .cur_row(n_row), .l_col(l_col)
-          , .fds_val_in(lval /*lval_d*/), .fds0(fds[0]), .fds1(fds[1])
-          , .done(the_reducer_done[geni][genj])
-          , .num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])
-          , .matcher_row(reducer_row[geni][genj])
-          , .start_col(reducer_col[geni][genj]));
-      end//for genj
-      
+            
       //assign init_a_reducer[geni] = !interline_fifo_empty[geni]
       //  && !row_coeff_fifo_empty[geni] && |the_reducer_avail[geni];
-
-      // This assumes that 2 reducers will not be done in the same clock cycle
-      assign interline_sum_in[geni]
-        = the_reducer_done[geni-1][0] ? reducer_sum[geni-1][0]
-        : the_reducer_done[geni-1][1] ? reducer_sum[geni-1][1]
-        : the_reducer_done[geni-1][2] ? reducer_sum[geni-1][2]
-        : the_reducer_done[geni-1][3] ? reducer_sum[geni-1][3]
-        : the_reducer_done[geni-1][4] ? reducer_sum[geni-1][4]
-        : the_reducer_done[geni-1][5] ? reducer_sum[geni-1][5]
-        : the_reducer_done[geni-1][6] ? reducer_sum[geni-1][6]
-        : the_reducer_done[geni-1][7] ? reducer_sum[geni-1][7]
-        : the_reducer_done[geni-1][8] ? reducer_sum[geni-1][8]
-        : the_reducer_done[geni-1][9] ? reducer_sum[geni-1][9]
-        : the_reducer_done[geni-1][10] ? reducer_sum[geni-1][10]
-        :                               reducer_sum[geni-1][N_ROW_REDUCER-1];
-
-      assign interline_num_in[geni]
-        = the_reducer_done[geni-1][0] ? reducer_num[geni-1][0]
-        : the_reducer_done[geni-1][1] ? reducer_num[geni-1][1]
-        : the_reducer_done[geni-1][2] ? reducer_num[geni-1][2]
-        : the_reducer_done[geni-1][3] ? reducer_num[geni-1][3]
-        : the_reducer_done[geni-1][4] ? reducer_num[geni-1][4]
-        : the_reducer_done[geni-1][5] ? reducer_num[geni-1][5]
-        : the_reducer_done[geni-1][6] ? reducer_num[geni-1][6]
-        : the_reducer_done[geni-1][7] ? reducer_num[geni-1][7]
-        : the_reducer_done[geni-1][8] ? reducer_num[geni-1][8]
-        : the_reducer_done[geni-1][9] ? reducer_num[geni-1][9]
-        : the_reducer_done[geni-1][10] ? reducer_num[geni-1][10]
-        :                               reducer_num[geni-1][N_ROW_REDUCER-1];
-
-      assign interline_row_in[geni]
-       = (the_reducer_done[geni-1][0] ? reducer_row[geni-1][0]
-        : the_reducer_done[geni-1][1] ? reducer_row[geni-1][1]
-        : the_reducer_done[geni-1][2] ? reducer_row[geni-1][2]
-        : the_reducer_done[geni-1][3] ? reducer_row[geni-1][3]
-        : the_reducer_done[geni-1][4] ? reducer_row[geni-1][4]
-        : the_reducer_done[geni-1][5] ? reducer_row[geni-1][5]
-        : the_reducer_done[geni-1][6] ? reducer_row[geni-1][6]
-        : the_reducer_done[geni-1][7] ? reducer_row[geni-1][7]
-        : the_reducer_done[geni-1][8] ? reducer_row[geni-1][8]
-        : the_reducer_done[geni-1][9] ? reducer_row[geni-1][9]
-        : the_reducer_done[geni-1][10] ? reducer_row[geni-1][10]
-        :             reducer_row[geni-1][N_ROW_REDUCER-1]) + `TRUE;
-
-      assign interline_col_in[geni]
-        = the_reducer_done[geni-1][0] ? reducer_col[geni-1][0]
-        : the_reducer_done[geni-1][1] ? reducer_col[geni-1][1]
-        : the_reducer_done[geni-1][2] ? reducer_col[geni-1][2]
-        : the_reducer_done[geni-1][3] ? reducer_col[geni-1][3]
-        : the_reducer_done[geni-1][4] ? reducer_col[geni-1][4]
-        : the_reducer_done[geni-1][5] ? reducer_col[geni-1][5]
-        : the_reducer_done[geni-1][6] ? reducer_col[geni-1][6]
-        : the_reducer_done[geni-1][7] ? reducer_col[geni-1][7]
-        : the_reducer_done[geni-1][8] ? reducer_col[geni-1][8]
-        : the_reducer_done[geni-1][9] ? reducer_col[geni-1][9]
-        : the_reducer_done[geni-1][10] ? reducer_col[geni-1][10]
-        :                               reducer_col[geni-1][N_ROW_REDUCER-1];
     end//for geni
-
-    assign patch_sum // The last row answer!
-      = the_reducer_done[geni-1][0] ? reducer_sum[geni-1][0]
-      : the_reducer_done[geni-1][1] ? reducer_sum[geni-1][1]
-      : the_reducer_done[geni-1][2] ? reducer_sum[geni-1][2]
-      : the_reducer_done[geni-1][3] ? reducer_sum[geni-1][3]
-      : the_reducer_done[geni-1][4] ? reducer_sum[geni-1][4]
-      : the_reducer_done[geni-1][5] ? reducer_sum[geni-1][5]
-      : the_reducer_done[geni-1][6] ? reducer_sum[geni-1][6]
-      : the_reducer_done[geni-1][7] ? reducer_sum[geni-1][7]
-      : the_reducer_done[geni-1][8] ? reducer_sum[geni-1][8]
-      : the_reducer_done[geni-1][9] ? reducer_sum[geni-1][9]
-      : the_reducer_done[geni-1][10] ? reducer_sum[geni-1][10]
-      :                               reducer_sum[geni-1][N_ROW_REDUCER-1];
-
-    assign patch_num // The last row answer!
-      = the_reducer_done[geni-1][0] ? reducer_num[geni-1][0]
-      : the_reducer_done[geni-1][1] ? reducer_num[geni-1][1]
-      : the_reducer_done[geni-1][2] ? reducer_num[geni-1][2]
-      : the_reducer_done[geni-1][3] ? reducer_num[geni-1][3]
-      : the_reducer_done[geni-1][4] ? reducer_num[geni-1][4]
-      : the_reducer_done[geni-1][5] ? reducer_num[geni-1][5]
-      : the_reducer_done[geni-1][6] ? reducer_num[geni-1][6]
-      : the_reducer_done[geni-1][7] ? reducer_num[geni-1][7]
-      : the_reducer_done[geni-1][8] ? reducer_num[geni-1][8]
-      : the_reducer_done[geni-1][9] ? reducer_num[geni-1][9]
-      : the_reducer_done[geni-1][10] ? reducer_num[geni-1][10]
-      :                               reducer_num[geni-1][N_ROW_REDUCER-1];
   endgenerate
   
   always @(posedge RESET, posedge fds_val)
@@ -382,13 +277,18 @@ module application#(parameter SIMULATION=0, DELAY=1
         init_a_reducer[i] <= #DELAY `FALSE;
         for(j=0; j < N_ROW_REDUCER; j=j+1)
           init_the_reducer[i][j] <= #DELAY `FALSE;
+        a_reducer_done[i] <= #DELAY `FALSE;
       end//for(i)
 
       fpga_msg_valid <= #DELAY `FALSE;
       fpga_msg <= #DELAY 0;
 
+      n_row <= #DELAY 0; l_col <= #DELAY 0; n_frame <= #DELAY 0;
       pixel_state <= #DELAY PIXEL_STANDBY;
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= #DELAY COEFFRD_OK;
+
+      result_patch_num <= #DELAY 0;
+      result_patch_sum <= #DELAY 0;
     end else begin // normal operation
       xb2pixel_wren <= #DELAY !xb2pixel_full && pc_msg_pending &&  pc_msg_is_ds;
       xb2dram_wren  <= #DELAY !xb2dram_full  && pc_msg_pending && !pc_msg_is_ds;
@@ -420,7 +320,106 @@ module application#(parameter SIMULATION=0, DELAY=1
           init_the_reducer[i][j] <= #DELAY
             j == avail_reducer_idx[i] && the_reducer_avail[i][j]
             && !interline_fifo_empty[i] && !row_coeff_fifo_empty[i];
+
+        // This assumes that 2 reducers will not be done in the same clock cycle
+        interline_sum_in[i] <= #DELAY
+            the_reducer_done[i-1][0] ? reducer_sum[i-1][0]
+          : the_reducer_done[i-1][1] ? reducer_sum[i-1][1]
+          : the_reducer_done[i-1][2] ? reducer_sum[i-1][2]
+          /*: the_reducer_done[i-1][3] ? reducer_sum[i-1][3]
+          : the_reducer_done[i-1][4] ? reducer_sum[i-1][4]
+          : the_reducer_done[i-1][5] ? reducer_sum[i-1][5]
+          : the_reducer_done[i-1][6] ? reducer_sum[i-1][6]
+          : the_reducer_done[i-1][7] ? reducer_sum[i-1][7]
+          : the_reducer_done[i-1][8] ? reducer_sum[i-1][8]
+          : the_reducer_done[i-1][9] ? reducer_sum[i-1][9]
+          : the_reducer_done[i-1][10] ? reducer_sum[i-1][10]
+          : the_reducer_done[i-1][11] ? reducer_sum[i-1][11]
+          : the_reducer_done[i-1][12] ? reducer_sum[i-1][12]*/
+          :                             reducer_sum[i-1][N_ROW_REDUCER-1];
+        interline_num_in[i] <= #DELAY
+            the_reducer_done[i-1][0] ? reducer_num[i-1][0]
+          : the_reducer_done[i-1][1] ? reducer_num[i-1][1]
+          : the_reducer_done[i-1][2] ? reducer_num[i-1][2]
+          /*: the_reducer_done[i-1][3] ? reducer_num[i-1][3]
+          : the_reducer_done[i-1][4] ? reducer_num[i-1][4]
+          : the_reducer_done[i-1][5] ? reducer_num[i-1][5]
+          : the_reducer_done[i-1][6] ? reducer_num[i-1][6]
+          : the_reducer_done[i-1][7] ? reducer_num[i-1][7]
+          : the_reducer_done[i-1][8] ? reducer_num[i-1][8]
+          : the_reducer_done[i-1][9] ? reducer_num[i-1][9]
+          : the_reducer_done[i-1][10] ? reducer_num[i-1][10]
+          : the_reducer_done[i-1][11] ? reducer_num[i-1][11]
+          : the_reducer_done[i-1][12] ? reducer_num[i-1][12]*/
+          :                             reducer_num[i-1][N_ROW_REDUCER-1];
+        interline_row_in[i] <= #DELAY
+           (the_reducer_done[i-1][0] ? reducer_row[i-1][0]
+          : the_reducer_done[i-1][1] ? reducer_row[i-1][1]
+          : the_reducer_done[i-1][2] ? reducer_row[i-1][2]
+          /*: the_reducer_done[i-1][3] ? reducer_row[i-1][3]
+          : the_reducer_done[i-1][4] ? reducer_row[i-1][4]
+          : the_reducer_done[i-1][5] ? reducer_row[i-1][5]
+          : the_reducer_done[i-1][6] ? reducer_row[i-1][6]
+          : the_reducer_done[i-1][7] ? reducer_row[i-1][7]
+          : the_reducer_done[i-1][8] ? reducer_row[i-1][8]
+          : the_reducer_done[i-1][9] ? reducer_row[i-1][9]
+          : the_reducer_done[i-1][10] ? reducer_row[i-1][10]
+          : the_reducer_done[i-1][11] ? reducer_row[i-1][11]
+          : the_reducer_done[i-1][12] ? reducer_row[i-1][12]*/
+          :                        reducer_row[i-1][N_ROW_REDUCER-1]) + `TRUE;
+        interline_col_in[i] <= #DELAY
+            the_reducer_done[i-1][0] ? reducer_col[i-1][0]
+          : the_reducer_done[i-1][1] ? reducer_col[i-1][1]
+          : the_reducer_done[i-1][2] ? reducer_col[i-1][2]
+          /*: the_reducer_done[i-1][3] ? reducer_col[i-1][3]
+          : the_reducer_done[i-1][4] ? reducer_col[i-1][4]
+          : the_reducer_done[i-1][5] ? reducer_col[i-1][5]
+          : the_reducer_done[i-1][6] ? reducer_col[i-1][6]
+          : the_reducer_done[i-1][7] ? reducer_col[i-1][7]
+          : the_reducer_done[i-1][8] ? reducer_col[i-1][8]
+          : the_reducer_done[i-1][9] ? reducer_col[i-1][9]
+          : the_reducer_done[i-1][10] ? reducer_col[i-1][10]
+          : the_reducer_done[i-1][11] ? reducer_col[i-1][11]
+          : the_reducer_done[i-1][12] ? reducer_col[i-1][12]*/
+          :                             reducer_col[i-1][N_ROW_REDUCER-1];
       end//for(i)
+
+      for(i=0; i < PATCH_SIZE; i=i+1)
+        a_reducer_done[i] <= #DELAY (|the_reducer_done[i]);
+
+      // Pick up the result from the last row
+      // TODO: use a_reducer_done[PATCH_SIZE-1] to drive output from weighted
+      // summer
+      result_patch_sum <= #DELAY
+          the_reducer_done[PATCH_SIZE-1][0] ? reducer_sum[PATCH_SIZE-1][0]
+        : the_reducer_done[PATCH_SIZE-1][1] ? reducer_sum[PATCH_SIZE-1][1]
+        : the_reducer_done[PATCH_SIZE-1][2] ? reducer_sum[PATCH_SIZE-1][2]
+        /*: the_reducer_done[PATCH_SIZE-1][3] ? reducer_sum[PATCH_SIZE-1][3]
+        : the_reducer_done[PATCH_SIZE-1][4] ? reducer_sum[PATCH_SIZE-1][4]
+        : the_reducer_done[PATCH_SIZE-1][5] ? reducer_sum[PATCH_SIZE-1][5]
+        : the_reducer_done[PATCH_SIZE-1][6] ? reducer_sum[PATCH_SIZE-1][6]
+        : the_reducer_done[PATCH_SIZE-1][7] ? reducer_sum[PATCH_SIZE-1][7]
+        : the_reducer_done[PATCH_SIZE-1][8] ? reducer_sum[PATCH_SIZE-1][8]
+        : the_reducer_done[PATCH_SIZE-1][9] ? reducer_sum[PATCH_SIZE-1][9]
+        : the_reducer_done[PATCH_SIZE-1][10] ? reducer_sum[PATCH_SIZE-1][10]
+        : the_reducer_done[PATCH_SIZE-1][11] ? reducer_sum[PATCH_SIZE-1][11]
+        : the_reducer_done[PATCH_SIZE-1][12] ? reducer_sum[PATCH_SIZE-1][12]*/
+        :                         reducer_sum[PATCH_SIZE-1][N_ROW_REDUCER-1];
+      result_patch_num <= #DELAY
+          the_reducer_done[PATCH_SIZE-1][0] ? reducer_num[PATCH_SIZE-1][0]
+        : the_reducer_done[PATCH_SIZE-1][1] ? reducer_num[PATCH_SIZE-1][1]
+        : the_reducer_done[PATCH_SIZE-1][2] ? reducer_num[PATCH_SIZE-1][2]
+        /*: the_reducer_done[PATCH_SIZE-1][3] ? reducer_num[PATCH_SIZE-1][3]
+        : the_reducer_done[PATCH_SIZE-1][4] ? reducer_num[PATCH_SIZE-1][4]
+        : the_reducer_done[PATCH_SIZE-1][5] ? reducer_num[PATCH_SIZE-1][5]
+        : the_reducer_done[PATCH_SIZE-1][6] ? reducer_num[PATCH_SIZE-1][6]
+        : the_reducer_done[PATCH_SIZE-1][7] ? reducer_num[PATCH_SIZE-1][7]
+        : the_reducer_done[PATCH_SIZE-1][8] ? reducer_num[PATCH_SIZE-1][8]
+        : the_reducer_done[PATCH_SIZE-1][9] ? reducer_num[PATCH_SIZE-1][9]
+        : the_reducer_done[PATCH_SIZE-1][10] ? reducer_num[PATCH_SIZE-1][10]
+        : the_reducer_done[PATCH_SIZE-1][11] ? reducer_num[PATCH_SIZE-1][11]
+        : the_reducer_done[PATCH_SIZE-1][12] ? reducer_num[PATCH_SIZE-1][12]*/
+        :                         reducer_num[PATCH_SIZE-1][N_ROW_REDUCER-1];
 
       //pc_msg_pending_d <= #DELAY pc_msg_pending;
       // Note how the delay through a sequential logic syncs up with pc_msg_d

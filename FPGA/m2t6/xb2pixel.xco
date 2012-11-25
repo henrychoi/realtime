@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Wed Nov 21 14:52:07 2012
+# Date: Sat Nov 24 20:29:33 2012
 #
 ##############################################################
 #
@@ -140,7 +140,7 @@ CSET inject_sbit_error_rdch=false
 CSET inject_sbit_error_wach=false
 CSET inject_sbit_error_wdch=false
 CSET inject_sbit_error_wrch=false
-CSET input_data_width=32
+CSET input_data_width=28
 CSET input_depth=512
 CSET input_depth_axis=1024
 CSET input_depth_rach=16
@@ -149,8 +149,8 @@ CSET input_depth_wach=16
 CSET input_depth_wdch=1024
 CSET input_depth_wrch=16
 CSET interface_type=Native
-CSET output_data_width=64
-CSET output_depth=256
+CSET output_data_width=28
+CSET output_depth=512
 CSET overflow_flag=false
 CSET overflow_flag_axi=false
 CSET overflow_sense=Active_High
@@ -174,7 +174,7 @@ CSET rach_type=FIFO
 CSET rdch_type=FIFO
 CSET read_clock_frequency=1
 CSET read_data_count=false
-CSET read_data_count_width=8
+CSET read_data_count_width=9
 CSET register_slice_mode_axis=Fully_Registered
 CSET register_slice_mode_rach=Fully_Registered
 CSET register_slice_mode_rdch=Fully_Registered
@@ -197,7 +197,7 @@ CSET underflow_flag_axi=false
 CSET underflow_sense=Active_High
 CSET underflow_sense_axi=Active_High
 CSET use_clock_enable=false
-CSET use_dout_reset=true
+CSET use_dout_reset=false
 CSET use_embedded_registers=false
 CSET use_extra_logic=false
 CSET valid_flag=false
@@ -216,4 +216,4 @@ CSET wuser_width=1
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: f7d3768c
+# CRC: 883d07d1

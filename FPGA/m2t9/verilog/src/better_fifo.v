@@ -57,8 +57,8 @@ module better_fifo#(parameter DELAY=1
       fifo_valid <= #DELAY `FALSE;
       middle_valid <= #DELAY `FALSE;
       dout_valid <= #DELAY `FALSE;
-      dout <= #DELAY 0;
-      middle_dout <= #DELAY 0;
+      dout <= #DELAY {RD_WIDTH{`FALSE}};
+      middle_dout <= #DELAY {RD_WIDTH{`FALSE}};
     end else begin
       if(will_update_middle) middle_dout <= #DELAY fifo_dout;
       if(will_update_dout) dout <= #DELAY

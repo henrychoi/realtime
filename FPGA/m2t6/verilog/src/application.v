@@ -20,14 +20,18 @@ module application#(parameter SIMULATION=0, DELAY=1
   wire pc_msg_is_ds;
   //reg pc_msg_is_ds_d, pc_msg_pending_d;
   wire[XB_SIZE-1:0] dram_msg;
-  wire[2*XB_SIZE-1:0] pixel_msg;
+  wire[2*(XB_SIZE-4)-1:0] pixel_msg;
   reg[XB_SIZE-1:0] pc_msg_d;
   wire xb2pixel_full, xb2dram_full, xb2pixel_empty, xb2dram_empty, xb2dram_valid
     , xb2pixel_ack, xb2dram_ack, xb2dram_overflow;
   reg xb2pixel_wren, xb2dram_wren; //Delay through register
 
-  localparam PIXEL_ERROR = 0, PIXEL_STANDBY = 1, PIXEL_INTRALINE = 2
-    , PIXEL_INTERLINE = 3, PIXEL_INTERFRAME = 4, N_PIXEL_STATE = 5;
+  localparam N_PIXEL_STATE = 5
+    , PIXEL_ERROR = 3'd0
+    , PIXEL_STANDBY = 3'd1
+    , PIXEL_INTRALINE = 3'd2
+    , PIXEL_INTERLINE = 3'd3
+    , PIXEL_INTERFRAME = 3'd4;
   reg[log2(N_PIXEL_STATE)-1:0] pixel_state;
 
   localparam FP_SIZE=20
@@ -36,7 +40,7 @@ module application#(parameter SIMULATION=0, DELAY=1
     , PATCH_SIZE = 10//, PATCH_SIZE_MAX = 16
     , N_PATCH = 600000 //Can handle up to 1M
     , N_PIXEL_PER_CLK = 2'd2
-    , N_ROW_REDUCER = 14;
+    , N_ROW_REDUCER = 16;
   reg[N_FRAME_SIZE-1:0] n_frame;
   reg[log2(N_ROW_MAX)-1:0] n_row;//, n_row_d[N_FADD_LATENCY-1:0];
   reg[log2(N_COL_MAX)-1:0] l_col;//, n_col_d[N_FADD_LATENCY-1:0];
@@ -49,11 +53,10 @@ module application#(parameter SIMULATION=0, DELAY=1
   wire[log2(N_ROW_REDUCER)-1:0] avail_reducer_idx[PATCH_SIZE-1:0];
   wire dramifc_overflow;
 
-  localparam INTERLINE_DATA_SIZE
-    = log2(N_PATCH) + log2(N_ROW_MAX) + log2(N_COL_MAX) + FP_SIZE;
+  localparam INTERLINE_DATA_SIZE = FP_SIZE;
 
-  reg [FP_SIZE-1:0] result_patch_sum; //The final answer
-  reg [FP_SIZE-1:0] interline_sum_in[PATCH_SIZE-1:1];
+  reg [FP_SIZE-1:0] result_patch_sum //The final answer
+                  , interline_sum_in[PATCH_SIZE-1:1];
   wire[FP_SIZE-1:0] interline_sum_out[PATCH_SIZE-1:0]
                   , reducer_sum[PATCH_SIZE-1:0][N_ROW_REDUCER-1:0];
   reg [log2(N_PATCH)-1:0] result_patch_num; //The ID of the final answer
@@ -68,8 +71,10 @@ module application#(parameter SIMULATION=0, DELAY=1
                      , row_coeff_fifo_empty/*, row_coeff_fifo_full*/;
 
   // Config variables
-  localparam PATCH_CONF_SIZE = 43 // l_col, row, patch #
-     , ROW_REDUCER_CONFIG_SIZE = PATCH_SIZE * FP_SIZE + PATCH_CONF_SIZE;
+  localparam ROW_REDUCER_CONFIG_SIZE = (PATCH_SIZE * FP_SIZE)
+                                     + log2(N_COL_MAX)
+                                     + log2(N_ROW_MAX)
+                                     + log2(N_PATCH);
   reg [ROW_REDUCER_CONFIG_SIZE-1:0] row_conf;
   reg [PATCH_SIZE-1:0] row_conf_valid;
   wire[(PATCH_SIZE * FP_SIZE)-1:0] conf_weights[PATCH_SIZE-1:0];
@@ -89,11 +94,15 @@ module application#(parameter SIMULATION=0, DELAY=1
   reg[ADDR_WIDTH-1:0] end_addr;
   localparam START_ADDR = 27'h000_0000//, END_ADDR = 27'h3ff_fffc;
     , ADDR_INC = 4'd8;// BL8
-  localparam DRAMIFC_ERROR = 0
-    , DRAMIFC_WR1 = 1, DRAMIFC_WR2 = 2, DRAMIFC_MSG_WAIT = 3
-    , DRAMIFC_WR_WAIT = 4
-    , DRAMIFC_READING = 5, DRAMIFC_THROTTLED = 6, DRAMIFC_INTERFRAME = 7
-    , DRAMIFC_N_STATE = 8;
+  localparam DRAMIFC_N_STATE = 8
+    , DRAMIFC_ERROR = 3'd0
+    , DRAMIFC_WR1 = 3'd1
+    , DRAMIFC_WR2 = 3'd2
+    , DRAMIFC_MSG_WAIT = 3'd3
+    , DRAMIFC_WR_WAIT = 3'd4
+    , DRAMIFC_READING = 3'd5
+    , DRAMIFC_THROTTLED = 3'd6
+    , DRAMIFC_INTERFRAME = 3'd7;
   reg[log2(DRAMIFC_N_STATE)-1:0] dramifc_state;
   reg[APP_DATA_WIDTH*2-1:0] tmp_data;
   //Note: designed deliberately 1 bit short to wrap automatically even when I
@@ -109,9 +118,9 @@ module application#(parameter SIMULATION=0, DELAY=1
     || (pixel_state == PIXEL_ERROR);
   //assign heartbeat = hb_ctr[HB_CTR_SIZE-1];
   assign pc_msg_ack = pc_msg_pending && !xb2pixel_full && !xb2dram_full;  
-  assign {fval, lval} = pixel_msg[4+:2];
-  assign fds[0] = pixel_msg[(XB_SIZE+12)+:FP_SIZE];//Note: throw away the 4 LSB
-  assign fds[1] = pixel_msg[12+:FP_SIZE];//Note: throw away the 4 LSB
+  assign {fval, lval} = pixel_msg[0+:2];
+  assign fds[0] = pixel_msg[(XB_SIZE-4+8)+:FP_SIZE];//Note: throw away the 4 LSB
+  assign fds[1] = pixel_msg[8+:FP_SIZE];//Note: throw away the 4 LSB
   // This works only if I ack the xb2pixel fifo as soon as it is !empty
   // Using combinational logic to ack FIFO is necessary for the FWFT feature
   assign xb2pixel_ack = !row_coeff_fifo_empty;
@@ -133,10 +142,10 @@ module application#(parameter SIMULATION=0, DELAY=1
     , .empty(xb2dram_empty));
 
   better_fifo#(.DELAY(DELAY), .FIFO_CLASS("xb2pixel")
-    , .WR_WIDTH(XB_SIZE), .RD_WIDTH(2*XB_SIZE))
+    , .WR_WIDTH(XB_SIZE-4), .RD_WIDTH(2*(XB_SIZE-4)))
     xb2pixel (.RESET(RESET)
-    , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d), .full(xb2pixel_full)
-    , .overflow()
+    , .WR_CLK(CLK), .wren(xb2pixel_wren), .din(pc_msg_d[XB_SIZE-1:4])
+    , .full(xb2pixel_full), .overflow()
     , .RD_CLK(CLK), .rden(xb2pixel_ack), .dout(pixel_msg)
     , .empty(xb2pixel_empty));
 
@@ -152,21 +161,23 @@ module application#(parameter SIMULATION=0, DELAY=1
       //(|the_reducer_avail[geni]) would tell if no reducer is available at all
       //This is only used in sequential logic that decides which reducer to
       //grab, so it's probably OK to leave it as a combinational logic
-      assign avail_reducer_idx[geni]
-        = the_reducer_avail[geni][0] ? 0
-        : the_reducer_avail[geni][1] ? 1
-        : the_reducer_avail[geni][2] ? 2
-        : the_reducer_avail[geni][3] ? 3
-        : the_reducer_avail[geni][4] ? 4
-        : the_reducer_avail[geni][5] ? 5
-        : the_reducer_avail[geni][6] ? 6
-        : the_reducer_avail[geni][7] ? 7
-        : the_reducer_avail[geni][8] ? 8
-        : the_reducer_avail[geni][9] ? 9
-        : the_reducer_avail[geni][10] ? 10
-        : the_reducer_avail[geni][11] ? 11
-        : the_reducer_avail[geni][12] ? 12
-        :                              (N_ROW_REDUCER - 1);
+      assign avail_reducer_idx[geni] =
+          the_reducer_avail[geni][0] ? 4'd0
+        : the_reducer_avail[geni][1] ? 4'd1
+        : the_reducer_avail[geni][2] ? 4'd2
+        : the_reducer_avail[geni][3] ? 4'd3
+        : the_reducer_avail[geni][4] ? 4'd4
+        : the_reducer_avail[geni][5] ? 4'd5
+        : the_reducer_avail[geni][6] ? 4'd6
+        : the_reducer_avail[geni][7] ? 4'd7
+        : the_reducer_avail[geni][8] ? 4'd8
+        : the_reducer_avail[geni][9] ? 4'd9
+        : the_reducer_avail[geni][10] ? 4'd10
+        : the_reducer_avail[geni][11] ? 4'd11
+        : the_reducer_avail[geni][12] ? 4'd12
+        : the_reducer_avail[geni][13] ? 4'd13
+        : the_reducer_avail[geni][14] ? 4'd14
+        :                               N_ROW_REDUCER - 1;
 
       // XB msg #	Bytes on PC	32 bit Xillybus payload content [little endian]
       //        7	      31:28	zzzz ZLef t_co lumn  row_ numb ber_ patc
@@ -185,11 +196,12 @@ module application#(parameter SIMULATION=0, DELAY=1
         , .full(row_coeff_fifo_high[geni])
         , .overflow(row_coeff_fifo_overflow[geni])
         , .RD_CLK(CLK), .rden(init_a_reducer[geni])
+        // Note how the output are wired to each row's reducers (plaural)
         , .dout({conf_col[geni], conf_row[geni], conf_num[geni]
                , conf_weights[geni]})
         , .empty(row_coeff_fifo_empty[geni]));
 
-      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin
+      for(genj=0; genj < N_ROW_REDUCER; genj=genj+1) begin: row_reducers
         PatchRowReducer#(.DELAY(DELAY)
             , .N_PATCH(N_PATCH), .PATCH_SIZE(PATCH_SIZE)
             , .FP_SIZE(FP_SIZE), .N_PIXEL_PER_CLK(N_PIXEL_PER_CLK)
@@ -198,18 +210,18 @@ module application#(parameter SIMULATION=0, DELAY=1
           , .available(the_reducer_avail[geni][genj])
           , .init(init_the_reducer[geni][genj])
           , .conf_row(conf_row[geni]), .conf_col(conf_col[geni])
-          , .conf_sum(interline_sum_out[geni]), .conf_num(conf_num[geni])
+          , .conf_sum(interline_sum_out[geni]), .conf_patch_num(conf_num[geni])
           , .conf_weights(conf_weights[geni])
           , .cur_row(n_row), .l_col(l_col)
           , .fds_val_in(lval /*lval_d*/), .fds0(fds[0]), .fds1(fds[1])
           , .done(the_reducer_done[geni][genj])
-          , .num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])
+          , .patch_num(reducer_num[geni][genj]), .sum(reducer_sum[geni][genj])
           , .matcher_row(reducer_row[geni][genj])
           , .start_col(reducer_col[geni][genj]));
       end//for genj
     end//for geni
 
-    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin//: for_all_non_1st_rows
+    for(geni=1; geni < PATCH_SIZE; geni=geni+1) begin: interline
       better_fifo#(.DELAY(DELAY), .FIFO_CLASS("interline")
         , .WR_WIDTH(INTERLINE_DATA_SIZE), .RD_WIDTH(INTERLINE_DATA_SIZE))
         interline_fifo(.RESET(RESET), .WR_CLK(CLK)
@@ -254,11 +266,13 @@ module application#(parameter SIMULATION=0, DELAY=1
         init_a_reducer[i] <= #DELAY `FALSE;
         for(j=0; j < N_ROW_REDUCER; j=j+1)
           init_the_reducer[i][j] <= #DELAY `FALSE;
+        a_reducer_done[i] <= #DELAY `FALSE;
       end//for(i)
 
       fpga_msg_valid <= #DELAY `FALSE;
       fpga_msg <= #DELAY 0;
 
+      n_row <= #DELAY 0; l_col <= #DELAY 0; n_frame <= #DELAY 0;
       pixel_state <= #DELAY PIXEL_STANDBY;
       //for(i=0; i < PATCH_SIZE; i=i+1) coeffrd_state[i] <= #DELAY COEFFRD_OK;
       
@@ -307,13 +321,17 @@ module application#(parameter SIMULATION=0, DELAY=1
           : the_reducer_done[i-1][10] ? reducer_sum[i-1][10]
           : the_reducer_done[i-1][11] ? reducer_sum[i-1][11]
           : the_reducer_done[i-1][12] ? reducer_sum[i-1][12]
+          : the_reducer_done[i-1][13] ? reducer_sum[i-1][13]
+          : the_reducer_done[i-1][14] ? reducer_sum[i-1][14]
           :                             reducer_sum[i-1][N_ROW_REDUCER-1];
       end//for(i=1)
 
       for(i=0; i < PATCH_SIZE; i=i+1)
-        a_reducer_done[i] <= #DELAY |the_reducer_done[i];
+        a_reducer_done[i] <= #DELAY (|the_reducer_done[i]);
 
       // Pick up the result from the last row
+      // TODO: use a_reducer_done[PATCH_SIZE-1] to drive output from weighted
+      // summer
       result_patch_sum <= #DELAY
           the_reducer_done[PATCH_SIZE-1][0] ? reducer_sum[PATCH_SIZE-1][0]
         : the_reducer_done[PATCH_SIZE-1][1] ? reducer_sum[PATCH_SIZE-1][1]
@@ -328,6 +346,8 @@ module application#(parameter SIMULATION=0, DELAY=1
         : the_reducer_done[PATCH_SIZE-1][10] ? reducer_sum[PATCH_SIZE-1][10]
         : the_reducer_done[PATCH_SIZE-1][11] ? reducer_sum[PATCH_SIZE-1][11]
         : the_reducer_done[PATCH_SIZE-1][12] ? reducer_sum[PATCH_SIZE-1][12]
+        : the_reducer_done[PATCH_SIZE-1][13] ? reducer_sum[PATCH_SIZE-1][13]
+        : the_reducer_done[PATCH_SIZE-1][14] ? reducer_sum[PATCH_SIZE-1][14]
         :                         reducer_sum[PATCH_SIZE-1][N_ROW_REDUCER-1];
       result_patch_num <= #DELAY
           the_reducer_done[PATCH_SIZE-1][0] ? reducer_num[PATCH_SIZE-1][0]
@@ -343,6 +363,8 @@ module application#(parameter SIMULATION=0, DELAY=1
         : the_reducer_done[PATCH_SIZE-1][10] ? reducer_num[PATCH_SIZE-1][10]
         : the_reducer_done[PATCH_SIZE-1][11] ? reducer_num[PATCH_SIZE-1][11]
         : the_reducer_done[PATCH_SIZE-1][12] ? reducer_num[PATCH_SIZE-1][12]
+        : the_reducer_done[PATCH_SIZE-1][13] ? reducer_num[PATCH_SIZE-1][13]
+        : the_reducer_done[PATCH_SIZE-1][14] ? reducer_num[PATCH_SIZE-1][14]
         :                         reducer_num[PATCH_SIZE-1][N_ROW_REDUCER-1];
 
       //pc_msg_pending_d <= #DELAY pc_msg_pending;
