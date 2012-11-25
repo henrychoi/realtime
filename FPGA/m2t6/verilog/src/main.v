@@ -782,47 +782,49 @@ module main #(parameter SIMULATION=0, DELAY=1,
           default: xb_wr_wren_r <= #DELAY `FALSE;
         endcase
       end //always
-    end
+    end else begin// !SIMULATION
+      xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
+        , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
+        , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
+        , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
+        , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
+        , .bus_clk(bus_clk), .quiesce(quiesce)
+
+        , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
+        , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
+        , .user_r_rd_eof(xb_rd_eof)
+                         
+        , .user_w_wr_wren(xb_wr_wren)
+        , .user_w_wr_full(xb_wr_full/*|| xb_loop_full*/)
+        , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
+        
+        , .user_r_rd_loop_rden(xb_loop_rden)
+        , .user_r_rd_loop_empty(xb_loop_empty)
+        , .user_r_rd_loop_data(xb_loop_data)
+        , .user_r_rd_loop_open(xb_loop_open)
+        , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
+        );
+
+    `ifdef PR_THIS
+      xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
+        , .din(pc_msg_d), .wr_en(pc_msg_pending_d /*pc_msg_ack*/)
+        , .rd_en(xb_loop_rden), .dout(xb_loop_data)
+        , .full(xb_loop_full), .empty(xb_loop_empty));
+    `endif
+      xb_rd_fifo xb_rd_fifo(.rst(rst) //RESET
+        , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
+        , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
+        , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data)
+        , .empty(xb_rd_empty));
+    end//!SIMULATION
   endgenerate
 
   assign app_cmd[2:1] = 2'b0;
   
-  xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
-    , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
-    , .PCIE_REFCLK_N(PCIE_REFCLK_N), .PCIE_REFCLK_P(PCIE_REFCLK_P)
-    , .PCIE_RX_N(PCIE_RX_N), .PCIE_RX_P(PCIE_RX_P)
-    , .PCIE_TX_N(PCIE_TX_N), .PCIE_TX_P(PCIE_TX_P)
-    , .bus_clk(bus_clk), .quiesce(quiesce)
-
-    , .user_r_rd_rden(xb_rd_rden), .user_r_rd_empty(xb_rd_empty)
-    , .user_r_rd_data(xb_rd_data), .user_r_rd_open(xb_rd_open)
-    , .user_r_rd_eof(xb_rd_eof)
-                     
-    , .user_w_wr_wren(xb_wr_wren)
-    , .user_w_wr_full(xb_wr_full/*|| xb_loop_full*/)
-    , .user_w_wr_data(xb_wr_data), .user_w_wr_open(xb_wr_open)
-    
-    , .user_r_rd_loop_rden(xb_loop_rden)
-    , .user_r_rd_loop_empty(xb_loop_empty)
-    , .user_r_rd_loop_data(xb_loop_data)
-    , .user_r_rd_loop_open(xb_loop_open)
-    , .user_r_rd_loop_eof(!xb_wr_open && xb_loop_empty)
-    );
-
   xb_wr_bram_fifo xb_wr_fifo(.rst(rst)
     , .wr_clk(bus_clk), .din(xb_wr_data), .wr_en(xb_wr_wren)
     , .full(), .almost_full(xb_wr_full), .overflow(xb_wr_overflow)
     , .rd_clk(clk), .rd_en(pc_msg_ack), .dout(pc_msg), .empty(pc_msg_empty));
-`ifdef PR_THIS
-  xb_loopback_fifo xb_loopback_fifo(.wr_clk(clk), .rd_clk(bus_clk), .rst(rst)
-    , .din(pc_msg_d), .wr_en(pc_msg_pending_d /*pc_msg_ack*/)
-    , .rd_en(xb_loop_rden), .dout(xb_loop_data)
-    , .full(xb_loop_full), .empty(xb_loop_empty));
-`endif
-  xb_rd_fifo xb_rd_fifo(.rst(rst) //RESET
-    , .wr_clk(clk), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
-    , .full(), .almost_full(fpga_msg_full), .overflow(fpga_msg_overflow)
-    , .rd_clk(bus_clk), .rd_en(xb_rd_rden), .dout(xb_rd_data), .empty(xb_rd_empty));
 
 //`define DEBUG_MAIN
 `ifdef DEBUG_MAIN

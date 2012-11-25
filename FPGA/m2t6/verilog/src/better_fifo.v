@@ -18,7 +18,7 @@ module better_fifo#(parameter DELAY=1
         , .full(), .almost_full(full), .overflow(overflow)
         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
         , .sbiterr(), .dbiterr());
-    else if(FIFO_CLASS == "xb2pixel")
+    else if(FIFO_CLASS == "xb2pixel") begin
       assign overflow = `FALSE;
       xb2pixel fifo(.rst(RESET)
         , .wr_clk(WR_CLK), .din(din), .wr_en(wren)
@@ -26,7 +26,7 @@ module better_fifo#(parameter DELAY=1
         , .rd_clk(RD_CLK), .rd_en(fifo_rden), .dout(fifo_dout)
         , .empty(fifo_empty));
         //, .sbiterr(), .dbiterr()); No ECC support for asymmetric FIFO?
-    else if(FIFO_CLASS == "row_coeff")
+    end else if(FIFO_CLASS == "row_coeff")
       row_coeff_fifo row_coeff_fifo(.rst(RESET), .clk(WR_CLK)
         , .din(din), .wr_en(wren)
         , .full(), .prog_full(full), .overflow(overflow)
