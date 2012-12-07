@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/rand/simmain_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simmain" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="14" />
+   <wvobject fp_name="/simmain/main/GPIO_LED" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">GPIO_LED[7:0]</obj_property>
+      <obj_property name="ObjectShortName">GPIO_LED[7:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="group17" type="group">
+      <obj_property name="label">app</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_combined_rand" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_combined_rand[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_combined_rand[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_rand" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_rand[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_rand[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_seed" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_seed[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_seed[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/tausworth_seed[2]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[2,31:0]</obj_property>
+         <obj_property name="ObjectShortName">tausworth_seed[2,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/tausworth_seed[1]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[1,31:0]</obj_property>
+         <obj_property name="ObjectShortName">tausworth_seed[1,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/tausworth_seed[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">tausworth_seed[0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_seed_d" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_seed_d[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_seed_d[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_seed_s" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_seed_s[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_seed_s[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_temp_l" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_temp_l[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_temp_l[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_temp_r" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_temp_r[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_temp_r[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_temp_ls" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_temp_ls[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_temp_ls[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_temp_rs" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_temp_rs[2:0,31:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_temp_rs[2:0,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_state" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_state[0:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_state[0:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/tausworth_ctr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">tausworth_ctr[1:0]</obj_property>
+      <obj_property name="ObjectShortName">tausworth_ctr[1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
