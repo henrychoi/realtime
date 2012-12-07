@@ -35,7 +35,8 @@ module PatchRowReducer
   reg [log2(N_PIXEL_PER_CLK):0] n_valid_ds;
   reg [FP_SIZE-1:0] fds[N_PIXEL_PER_CLK-1:0];
 
-`ifdef DEBUG_ISIM_CRASH
+`define HAVE_ENOUGH_MEMORY_FOR_ISIM
+`ifdef HAVE_ENOUGH_MEMORY_FOR_ISIM
   fmult fmult0(.clk(CLK)
     , .operation_nd(fds_val[0]), .a(fds[0]), .b(weight[n_ds])
     , .result(weighted_fds[0]), .rdy(weighted_fds_valid[0]));
