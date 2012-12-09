@@ -1,69 +1,69 @@
 module application#(parameter DELAY=1)
 ( input CLK, RESET, output[7:0] GPIO_LED);
 `include "function.v"
-  reg [31:0] tausworth_combined_rand, tausworth_seed[2:0];
-  wire[31:0] tausworth_seed_s[2:0]
-    , tausworth_temp_l[2:0], tausworth_temp_r[2:0]
-    , tausworth_temp_ls[2:0], tausworth_temp_rs[2:0]
-    , tausworth_rand[2:0];
-  
   integer i;
   genvar geni;
   
-  localparam TAUSWORTH_Q0 = 13, TAUSWORTH_D0 = 32'hDEADBEE0
-    , TAUSWORTH_SEED0 = ((TAUSWORTH_D0 ^ (TAUSWORTH_D0 << TAUSWORTH_Q0)) >> 31)
-                      ^ TAUSWORTH_D0
-    , TAUSWORTH_Q1 = 2, TAUSWORTH_D1 = 32'hCAFEBAB0
-    , TAUSWORTH_SEED1 = ((TAUSWORTH_D1 ^ (TAUSWORTH_D1 << TAUSWORTH_Q1)) >> 29)
-                      ^ TAUSWORTH_D1
-    , TAUSWORTH_Q2 = 3, TAUSWORTH_D2 = 32'hACDC0000
-    , TAUSWORTH_SEED2 = ((TAUSWORTH_D2 ^ (TAUSWORTH_D2 << TAUSWORTH_Q2)) >> 28)
-                      ^ TAUSWORTH_D2;
-
-  assign #DELAY GPIO_LED = tausworth_combined_rand[7:0];
+  localparam N_GENERATOR = 3;
+  localparam ERROR = 0, INITIAL1 = 1, INITIAL2 = 2, VALID = 3, N_STATE = 4;
+  reg [log2(N_STATE)-1:0] state;
   
-  assign #DELAY tausworth_seed_s[0] = tausworth_seed[0] << TAUSWORTH_Q0;
-  assign #DELAY tausworth_seed_s[1] = tausworth_seed[1] << TAUSWORTH_Q1;
-  assign #DELAY tausworth_seed_s[2] = tausworth_seed[2] << TAUSWORTH_Q2;
+  reg [31:0] frand, combined_rand, seed[N_GENERATOR-1:0];
+  wire[31:0] seed_s[N_GENERATOR-1:0]
+    , temp_l[N_GENERATOR-1:0], temp_r[N_GENERATOR-1:0]
+    , temp_ls[N_GENERATOR-1:0], temp_rs[N_GENERATOR-1:0]
+    , rand[N_GENERATOR-1:0];
 
-  for(geni=0; geni < 3; geni=geni+1)
-    assign #DELAY tausworth_temp_l[geni] =
-      tausworth_seed_s[geni] ^ tausworth_seed[geni];
+  localparam Q0 = 13,D0 = 32'hDEADBEE0, SEED0 = ((D0 ^ (D0 << Q0)) >> 31)^D0
+           , Q1 = 2, D1 = 32'hCAFEBAB0, SEED1 = ((D1 ^ (D1 << Q1)) >> 29)^D1
+           , Q2 = 3, D2 = 32'hACDC0000, SEED2 = ((D2 ^ (D2 << Q2)) >> 28)^D2;
 
-  assign #DELAY tausworth_temp_r[0] = tausworth_seed[0] & 32'hFFFFFFFE;//k=31
-  assign #DELAY tausworth_temp_r[1] = tausworth_seed[1] & 32'hFFFFFFF8;//k=29
-  assign #DELAY tausworth_temp_r[2] = tausworth_seed[2] & 32'hFFFFFFF0;//k=28
+  assign #DELAY GPIO_LED[0+:log2(N_STATE)] = state;
+  assign #DELAY GPIO_LED[7:log2(N_STATE)] = frand[7:log2(N_STATE)];
+  
+  assign #DELAY seed_s[0] = seed[0] << Q0;
+  assign #DELAY seed_s[1] = seed[1] << Q1;
+  assign #DELAY seed_s[2] = seed[2] << Q2;
 
-  assign #DELAY tausworth_temp_ls[0] = tausworth_temp_l[0] >> 19;
-  assign #DELAY tausworth_temp_rs[0] = tausworth_temp_r[0] << 12;
-  assign #DELAY tausworth_temp_ls[1] = tausworth_temp_l[1] >> 25;
-  assign #DELAY tausworth_temp_rs[1] = tausworth_temp_r[1] << 4;
-  assign #DELAY tausworth_temp_ls[2] = tausworth_temp_l[2] >> 11;
-  assign #DELAY tausworth_temp_rs[2] = tausworth_temp_r[2] << 17;
+  for(geni=0; geni < N_GENERATOR; geni=geni+1)
+    assign #DELAY temp_l[geni] = seed_s[geni] ^ seed[geni];
 
-  for(geni=0; geni < 3; geni=geni+1)
-    assign #DELAY tausworth_rand[geni] =
-      tausworth_temp_ls[geni] ^ tausworth_temp_rs[geni];
+  assign #DELAY temp_r[0] = seed[0] & 32'hFFFFFFFE;//k=31
+  assign #DELAY temp_r[1] = seed[1] & 32'hFFFFFFF8;//k=29
+  assign #DELAY temp_r[2] = seed[2] & 32'hFFFFFFF0;//k=28
+
+  assign #DELAY temp_ls[0] = temp_l[0] >> 19;
+  assign #DELAY temp_rs[0] = temp_r[0] << 12;
+  assign #DELAY temp_ls[1] = temp_l[1] >> 25;
+  assign #DELAY temp_rs[1] = temp_r[1] << 4;
+  assign #DELAY temp_ls[2] = temp_l[2] >> 11;
+  assign #DELAY temp_rs[2] = temp_r[2] << 17;
+
+  for(geni=0; geni < N_GENERATOR; geni=geni+1)
+    assign #DELAY rand[geni] = temp_ls[geni] ^ temp_rs[geni];
 
   always @(posedge CLK)
     if(RESET) begin
       // Initialize the seed
-      tausworth_seed[0] <= TAUSWORTH_SEED0;
-      tausworth_seed[1] <= TAUSWORTH_SEED1;
-      tausworth_seed[2] <= TAUSWORTH_SEED2;
-      tausworth_state <= TAUSWORTH_INVALID;
-      tausworth_ctr <= 0;
+      seed[0] <= SEED0;
+      seed[1] <= SEED1;
+      seed[2] <= SEED2;
+      combined_rand <= #DELAY rand[0] ^ rand[1] ^ rand[2];
+      state <= INITIAL1;
     end else begin
-      tausworth_ctr <= tausworth_ctr + `TRUE;
-      
-      // Result will be valid next cycle
-      if(tausworth_state == TAUSWORTH_INVALID
-         && tausworth_ctr == TAUSWORTH_DELAY)
-         tausworth_state <= TAUSWORTH_VALID;
-      
-      for(i=0; i < 3; i=i+1) tausworth_seed[i] <= #DELAY tausworth_rand[i];
-
-      tausworth_combined_rand <= #DELAY
-        tausworth_rand[0] ^ tausworth_rand[1] ^ tausworth_rand[2];
+      combined_rand <= #DELAY rand[0] ^ rand[1] ^ rand[2];
+      frand <= #DELAY {`FALSE//sign
+                      , `FALSE, combined_rand[24+:6], `FALSE //exponent
+                      , combined_rand[0+:23]};//fraction
+      for(i=0; i < N_GENERATOR; i=i+1) seed[i] <= #DELAY rand[i];
+      case(state)
+        INITIAL1: state <= #DELAY INITIAL2;
+        INITIAL2: state <= #DELAY VALID;
+        VALID: //new number the same as old?
+          for(i=0; i < N_GENERATOR; i=i+1)
+            if(rand[i] == seed[i]) state <= #DELAY ERROR;
+        default: begin //If error state, stay there!
+        end
+      endcase
     end
 endmodule
