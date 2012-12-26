@@ -15,62 +15,100 @@ Output is displayed on the screen and also sent to the file tests.out.
 #include <math.h>
 #include <stdlib.h>
 
-# define dg(m,k) ((m>>(30-6*k))&63)  /* gets kth digit of m (base 64) */
+#define dg(m,k) ((m >> (30-6*k)) & 0x3F) /* gets kth digit of m (base 64) */
 
-static int *P;   /* Probabilities as an array of 30-bit integers*/
+static int *P;// Probabilities as an array of 30-bit integers: # of samples out of 2^30
 static int size,t1,t2,t3,t4,offset,last;  /* size of P[], limits for table lookups */
 static unsigned long jxr=182736531; /* Xorshift RNG */
 static short int *AA,*BB,*CC,*DD,*EE;      /* Tables for condensed table-lookup */
 static FILE *fp;
 
-void get5tbls() /* Creates the 5 tables after array P[size] has been created */
-{ int i,j,k,m,na=0,nb=0,nc=0,nd=0,ne=0;
-    /* get table sizes, malloc */
-for(i=0;i<size;i++){m=P[i];na+=dg(m,1);nb+=dg(m,2);nc+=dg(m,3);nd+=dg(m,4);ne+=dg(m,5);}
-AA=malloc(na*sizeof(int));BB=malloc(nb*sizeof(int));
-CC=malloc(nc*sizeof(int));DD=malloc(nd*sizeof(int));EE=malloc(ne*sizeof(int));
-printf(" Table sizes:%d,%d,%d,%d,%d,total=%d\n",na,nb,nc,nd,ne,na+nb+nc+nd+ne);
-fprintf(fp," Table sizes:%d,%d,%d,%d,%d,total=%d\n",na,nb,nc,nd,ne,na+nb+nc+nd+ne);
-t1=na<<24; t2=t1+(nb<<18); t3=t2+(nc<<12); t4=t3+(nd<<6);
-na=nb=nc=nd=ne=0;
-   /* Fill tables AA,BB,CC,DD,EE */
-for(i=0;i<size;i++){m=P[i]; k=i+offset;
-         for(j=0;j<dg(m,1);j++) AA[na+j]=k; na+=dg(m,1);
-         for(j=0;j<dg(m,2);j++) BB[nb+j]=k; nb+=dg(m,2);
-         for(j=0;j<dg(m,3);j++) CC[nc+j]=k; nc+=dg(m,3);
-         for(j=0;j<dg(m,4);j++) DD[nd+j]=k; nd+=dg(m,4);
-         for(j=0;j<dg(m,5);j++) EE[ne+j]=k; ne+=dg(m,5);
-                   }
+void get5tbls() { /* Creates the 5 tables after array P[size] has been created */
+  int i,j,k,m,na=0,nb=0,nc=0,nd=0,ne=0;
+
+  // size is the non-nil sample out of total trials; e.g. 35 for Pois(10), 2^30 trials
+  for(i=0;i<size;i++) {
+    m=P[i];
+	na+=dg(m,1); nb+=dg(m,2); nc+=dg(m,3); nd+=dg(m,4); ne+=dg(m,5);
+  }
+  AA=malloc(na*sizeof(int)); //na number of most significant
+  BB=malloc(nb*sizeof(int)); //nb number of next significant
+  CC=malloc(nc*sizeof(int));
+  DD=malloc(nd*sizeof(int));
+  EE=malloc(ne*sizeof(int)); //ne number of least significant
+ 
+  printf(" Table sizes:%d,%d,%d,%d,%d,total=%d\n"
+        ,na,nb,nc,nd,ne,na+nb+nc+nd+ne);
+  fprintf(fp," Table sizes:%d,%d,%d,%d,%d,total=%d\n"
+         ,na,nb,nc,nd,ne,na+nb+nc+nd+ne);
+
+  t1=na<<24; t2=t1+(nb<<18); t3=t2+(nc<<12); t4=t3+(nd<<6); //leave ne alone
+  na=nb=nc=nd=ne=0;
+  
+  for(i=0;i<size;i++) { /* Fill tables AA,BB,CC,DD,EE */
+    m=P[i]; k=i+offset; //offset is an optimization for large lambda
+	
+    for(j=0;j<dg(m,1);j++) AA[na+j]=k;
+	na+=dg(m,1);
+    for(j=0;j<dg(m,2);j++) BB[nb+j]=k;
+	nb+=dg(m,2);
+    for(j=0;j<dg(m,3);j++) CC[nc+j]=k;
+	nc+=dg(m,3);
+    for(j=0;j<dg(m,4);j++) DD[nd+j]=k;
+	nd+=dg(m,4);
+    for(j=0;j<dg(m,5);j++) EE[ne+j]=k;
+	ne+=dg(m,5);
+  }
 }// end get5tbls
 
-void PoissP(double lam)  /* Creates Poisson Probabilites */
-{int i,j=-1,nlam;        /* P's are 30-bit integers, assumed denominator 2^30 */
-double p=1,c,t=1.;
-    /* generate  P's from 0 if lam<21.4 */
-if(lam<21.4){p=t=exp(-lam); for(i=1;t*2147483648.>1;i++) t*=(lam/i);
-          size=i-1; last=i-2;
-          /* Given size, malloc and fill P array, (30-bit integers) */
-          P=malloc(size*sizeof(int)); P[0]=exp(-lam)*(1<<30)+.5;
-          for(i=1;i<size;i++) {p*=(lam/i); P[i]=p*(1<<30)+.5; }
-            }
-    /* If lam>=21.4, generate from largest P up,then largest down */
-if(lam>=21.4)
-{nlam=lam;      /*first find size */
-c=lam*exp(-lam/nlam);
-for(i=1;i<=nlam;i++) t*=(c/i);
-p=t;
-for(i=nlam+1;t*2147483648.>1;i++) t*=(lam/i);
-last=i-2;
-t=p; j=-1;
-for(i=nlam-1;i>=0;i--){t*=((i+1)/lam); if(t*2147483648.<1){j=i;break;} }
-offset=j+1;  size=last-offset+1;
-   /* malloc and fill P array as 30-bit integers */
-P=malloc(size*sizeof(int));
-t=p; P[nlam-offset]=p*(1<<30)+0.5;
-for(i=nlam+1;i<=last;i++){t*=(lam/i); P[i-offset]=t*(64<<24)+.5;}
-t=p;
-for(i=nlam-1;i>=offset;i--){t*=((i+1)/lam);P[i-offset]=t*(1<<30)+0.5;}
-} // end lam>=21.4
+void PoissP(double lam) { /* Creates Poisson Probabilites */
+  int i,j=-1,nlam;        /* P's are 30-bit integers, assumed denominator 2^30 */
+  double p=1,c,t=1.;
+  if(lam < 21.4) { /* generate  P's from 0 if lam<21.4 */
+    p=t=exp(-lam);
+	for(i=1; t*2147483648.>1; i++) t*=(lam/i);
+    size=i-1; // size is big enough to reach out to the last non-zero P(x) * 2^30
+	last=i-2;
+    /* Given size, malloc and fill P array, (30-bit integers) */
+    P = malloc(size*sizeof(int));
+	P[0]=exp(-lam)*(1<<30)+.5;
+    for(i=1;i<size;i++) {
+	  p*=(lam/i);
+	  P[i]=p*(1<<30)+.5;
+	}
+  } else { /* If lam>=21.4, generate from largest P up,then largest down */
+    nlam=lam;      /*first find size */
+    c=lam*exp(-lam/nlam);
+    for(i=1;i<=nlam;i++) t*=(c/i);
+    p=t;
+    for(i=nlam+1;t*2147483648.>1;i++) t*=(lam/i);
+    last=i-2;
+    t=p;
+	j=-1;
+    for(i=nlam-1;i>=0;i--) {
+	  t*=((i+1)/lam);
+	  if(t*2147483648.<1) {
+	    j=i;
+		break;
+      }
+	}
+
+    offset=j+1;
+	size=last-offset+1;
+    /* malloc and fill P array as 30-bit integers */
+    P=malloc(size*sizeof(int));
+    t=p;
+	P[nlam-offset]=p*(1<<30)+0.5;
+    for(i=nlam+1;i<=last;i++){
+	  t*=(lam/i);
+	  P[i-offset]=t*(64<<24)+.5;
+	}
+    t=p;
+    for(i=nlam-1;i>=offset;i--) {
+	  t*=((i+1)/lam);
+	  P[i-offset]=t*(1<<30)+0.5;
+	}
+  } // end lam>=21.4
 } //end PoissP
 
 void BinomP(int n, double p)  /*Creates Binomial Probabilities */
@@ -102,14 +140,14 @@ i=n*p-offset; P[i]+=(s-1073741824);
 
 /* Discrete random variable generating function */
 
-int Dran() /* Uses 5 compact tables */
-{unsigned long j;
- jxr^=jxr<<13; jxr^=jxr>>17; jxr^=jxr<<5; j=(jxr>>2);
-if(j<t1) return AA[j>>24];
-if(j<t2) return BB[(j-t1)>>18];
-if(j<t3) return CC[(j-t2)>>12];
-if(j<t4) return DD[(j-t3)>>6];
-return EE[j-t4];
+int Dran() { /* Uses 5 compact tables */
+  unsigned long j;
+  jxr^=jxr<<13; jxr^=jxr>>17; jxr^=jxr<<5; j=(jxr>>2);
+  if(j<t1) return AA[j>>24];
+  if(j<t2) return BB[(j-t1)>>18];
+  if(j<t3) return CC[(j-t2)>>12];
+  if(j<t4) return DD[(j-t3)>>6];
+  return EE[j-t4];
 }
 
 

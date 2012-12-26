@@ -79,5 +79,45 @@
     <state_diagram size="93,25"/>
    </statechart>
   </class>
+  <class name="PulseProjector" superclass="qpn::QHsm">
+   <statechart>
+    <initial target="../1">
+     <initial_glyph conn="9,4,5,3,3">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="READY">
+     <initial target="../2">
+      <initial_glyph conn="29,7,5,3,4">
+       <action box="0,-2,6,2"/>
+      </initial_glyph>
+     </initial>
+     <tran trig="CLK">
+      <action brief="^insert result into calculation machinery"/>
+      <tran_glyph conn="12,6,5,-1,3">
+       <action box="0,1,17,4"/>
+      </tran_glyph>
+     </tran>
+     <state name="AVAILABLE">
+      <tran trig="INIT(pulse)" target="../../3">
+       <tran_glyph conn="43,7,1,3,13">
+        <action box="1,-2,9,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="33,5,10,6"/>
+     </state>
+     <state name="TAKEN">
+      <tran trig="t1+dt &gt;= T_frame" target="../../2">
+       <tran_glyph conn="56,10,3,1,-13">
+        <action box="-11,-2,11,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="56,5,7,6"/>
+     </state>
+     <state_glyph node="12,2,52,10"/>
+    </state>
+    <state_diagram size="94,27"/>
+   </statechart>
+  </class>
  </package>
 </model>
