@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Sun Dec 30 00:40:05 2012
+# Date: Sun Dec 30 00:59:56 2012
 #
 ##############################################################
 #
@@ -43,7 +43,7 @@ CSET a_precision_type=Single
 CSET add_sub_value=Both
 CSET c_a_exponent_width=8
 CSET c_a_fraction_width=24
-CSET c_compare_operation=Programmable
+CSET c_compare_operation=Less_Than
 CSET c_has_ce=false
 CSET c_has_divide_by_zero=false
 CSET c_has_invalid_op=false
@@ -53,20 +53,20 @@ CSET c_has_overflow=false
 CSET c_has_rdy=true
 CSET c_has_sclr=false
 CSET c_has_underflow=false
-CSET c_latency=6
+CSET c_latency=2
 CSET c_mult_usage=No_Usage
 CSET c_optimization=Speed_Optimized
 CSET c_rate=1
-CSET c_result_exponent_width=6
+CSET c_result_exponent_width=1
 CSET c_result_fraction_width=0
 CSET c_speed=Maximum_speed
-CSET component_name=fint
+CSET component_name=fless
 CSET maximum_latency=true
-CSET operation_type=Float_to_fixed
+CSET operation_type=Compare
 CSET result_precision_type=Custom
 # END Parameters
 # BEGIN Extra information
 MISC pkg_timestamp=2011-10-13T13:13:05Z
 # END Extra information
 GENERATE
-# CRC: e94cce15
+# CRC: 98bb5309

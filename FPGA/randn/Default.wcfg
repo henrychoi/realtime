@@ -10,31 +10,32 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="2" />
+   <WVObjectSize size="6" />
    <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
    </wvobject>
+   <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/\simulate_xb.sim_state " type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">\simulate_xb.sim_state [1:0]</obj_property>
+      <obj_property name="ObjectShortName">\simulate_xb.sim_state [1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg_empty</obj_property>
+      <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
+   </wvobject>
    <wvobject fp_name="group17" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/app/valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">valid</obj_property>
-         <obj_property name="ObjectShortName">valid</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/error" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">error</obj_property>
-         <obj_property name="ObjectShortName">error</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/rand" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">rand[31:0]</obj_property>
-         <obj_property name="ObjectShortName">rand[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/frand" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">frand[31:0]</obj_property>
-         <obj_property name="ObjectShortName">frand[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
    </wvobject>
 </wave_config>
