@@ -22,115 +22,143 @@
       <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="main.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="24"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="3"/>
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="27"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="24"/>
     </file>
     <file xil_pn:name="simmain.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="25"/>
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="28"/>
       <association xil_pn:name="PostMapSimulation" xil_pn:seqID="92"/>
       <association xil_pn:name="PostRouteSimulation" xil_pn:seqID="92"/>
       <association xil_pn:name="PostTranslateSimulation" xil_pn:seqID="92"/>
     </file>
     <file xil_pn:name="application.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="23"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="2"/>
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="26"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="23"/>
     </file>
     <file xil_pn:name="tausworth.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="17"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="17"/>
     </file>
     <file xil_pn:name="xillybus.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="20"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="64"/>
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="23"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="20"/>
     </file>
     <file xil_pn:name="xillybus_core.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="16"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="65"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="16"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/gtx_drp_chanalign_fix_3752_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="4"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="66"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="4"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/gtx_rx_valid_filter_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="3"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="67"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="3"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/gtx_tx_sync_rate_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="2"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="68"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="2"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/gtx_wrapper_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="8"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="69"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="8"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_2_0_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="15"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="70"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="15"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_bram_top_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="12"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="71"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="12"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_bram_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="1"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="72"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="1"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_brams_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="7"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="73"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="7"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_clocking_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="14"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="74"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="14"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_gtx_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="11"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="75"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="11"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_pipe_lane_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="6"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="76"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="6"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_pipe_misc_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="5"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="77"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="5"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_pipe_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="10"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="78"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="10"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_reset_delay_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="13"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="79"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="13"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_upconfig_fix_3451_v6.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="9"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="80"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="9"/>
     </file>
     <file xil_pn:name="pcie_core/pcie_v6_4x/source/pcie_v6_4x.v" xil_pn:type="FILE_VERILOG">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="18"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="81"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="18"/>
     </file>
     <file xil_pn:name="ml605_xillybus.ucf" xil_pn:type="FILE_UCF">
-      <association xil_pn:name="Implementation" xil_pn:seqID="82"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="ipcore_dir/xb_rd_fifo.xco" xil_pn:type="FILE_COREGEN">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="21"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="83"/>
-    </file>
-    <file xil_pn:name="better_fifo.v" xil_pn:type="FILE_VERILOG">
-      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="22"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="91"/>
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="24"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="21"/>
     </file>
     <file xil_pn:name="ipcore_dir/standard32.xco" xil_pn:type="FILE_COREGEN">
       <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="19"/>
-      <association xil_pn:name="Implementation" xil_pn:seqID="92"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="19"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/bram.xco" xil_pn:type="FILE_COREGEN">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="0"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fadd.xco" xil_pn:type="FILE_COREGEN">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="22"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="119"/>
+    </file>
+    <file xil_pn:name="better_fifo.v" xil_pn:type="FILE_VERILOG">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="25"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="125"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fsub.xco" xil_pn:type="FILE_COREGEN">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="20"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="126"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fmult.xco" xil_pn:type="FILE_COREGEN">
+      <association xil_pn:name="BehavioralSimulation" xil_pn:seqID="21"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="134"/>
     </file>
     <file xil_pn:name="ipcore_dir/xb_rd_fifo.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="84"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
     </file>
     <file xil_pn:name="ipcore_dir/standard32.xise" xil_pn:type="FILE_COREGENISE">
-      <association xil_pn:name="Implementation" xil_pn:seqID="93"/>
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/bram.xise" xil_pn:type="FILE_COREGENISE">
+      <association xil_pn:name="Implementation" xil_pn:seqID="0"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fadd.xise" xil_pn:type="FILE_COREGENISE">
+      <association xil_pn:name="Implementation" xil_pn:seqID="120"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fsub.xise" xil_pn:type="FILE_COREGENISE">
+      <association xil_pn:name="Implementation" xil_pn:seqID="127"/>
+    </file>
+    <file xil_pn:name="ipcore_dir/fmult.xise" xil_pn:type="FILE_COREGENISE">
+      <association xil_pn:name="Implementation" xil_pn:seqID="135"/>
     </file>
   </files>
 
@@ -282,6 +310,7 @@
     <property xil_pn:name="Launch SDK after Export" xil_pn:value="true" xil_pn:valueState="default"/>
     <property xil_pn:name="Library for Verilog Sources" xil_pn:value="" xil_pn:valueState="default"/>
     <property xil_pn:name="Load glbl" xil_pn:value="true" xil_pn:valueState="default"/>
+    <property xil_pn:name="Macro Search Path" xil_pn:value="xillybus_core" xil_pn:valueState="non-default"/>
     <property xil_pn:name="Manual Implementation Compile Order" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Map Slice Logic into Unused Block RAMs" xil_pn:value="false" xil_pn:valueState="default"/>
     <property xil_pn:name="Max Fanout" xil_pn:value="100000" xil_pn:valueState="default"/>

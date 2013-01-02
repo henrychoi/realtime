@@ -1,5 +1,9 @@
 module main#(parameter SIMULATION=0, DELAY=1)
-(input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED);
+(input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED
+, input PCIE_PERST_B_LS //The host's master bus reset
+, input PCIE_REFCLK_N, PCIE_REFCLK_P
+, input[3:0] PCIE_RX_N, PCIE_RX_P
+, output[3:0] PCIE_TX_N, PCIE_TX_P);
 `include "function.v"
   wire CLK;
   localparam XB_SIZE = 32;
@@ -33,9 +37,6 @@ module main#(parameter SIMULATION=0, DELAY=1)
       integer binf, idx, rc, n_msg = 0;
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] pool_byte;
-
-      localparam COEFF_SYNC_SIZE = 6, N_COEFF_SYNC = {COEFF_SYNC_SIZE{`TRUE}};
-      reg[COEFF_SYNC_SIZE-1:0] coeff_sync_ctr;
       reg bus_clk_r, xb_wr_wren_r;//wr_data_empty_r;
       localparam SIM_UNINITIALIZED = 0, SIM_READ_POOL = 1, SIM_DONE = 2
                , N_SIM_STATE = 3;
@@ -136,6 +137,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
              , .RD_CLK(CLK), .rden(pc_msg_ack), .dout(pc_msg)
              , .empty(pc_msg_empty));
 
-  application#(.DELAY(DELAY))
-    app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED));
+  application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE))
+    app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4])
+      , .pc_msg_valid(!pc_msg_empty), .pc_msg(pc_msg), .pc_msg_ack(pc_msg_ack)
+      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg(fpga_msg));
 endmodule

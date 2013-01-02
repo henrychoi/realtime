@@ -37,5 +37,94 @@
    <wvobject fp_name="group17" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[0:0]</obj_property>
+         <obj_property name="ObjectShortName">state[0:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pool_start" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pool_start[9:0]</obj_property>
+         <obj_property name="ObjectShortName">pool_start[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pool_stride" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pool_stride[9:0]</obj_property>
+         <obj_property name="ObjectShortName">pool_stride[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pool_mask" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pool_mask[9:0]</obj_property>
+         <obj_property name="ObjectShortName">pool_mask[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/p_wr_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">p_wr_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">p_wr_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/q_wr_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">q_wr_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">q_wr_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/r_wr_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">r_wr_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">r_wr_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/s_wr_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">s_wr_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">s_wr_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/p_rd_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">p_rd_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">p_rd_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/q_rd_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">q_rd_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">q_rd_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/r_rd_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">r_rd_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">r_rd_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/s_rd_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">s_rd_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">s_rd_addr[9:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/p_out" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">p_out[31:0]</obj_property>
+         <obj_property name="ObjectShortName">p_out[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/q_out" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">q_out[31:0]</obj_property>
+         <obj_property name="ObjectShortName">q_out[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/r_out" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">r_out[31:0]</obj_property>
+         <obj_property name="ObjectShortName">r_out[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/s_out" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">s_out[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_out[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/delayed_2nd_half_flag" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">delayed_2nd_half_flag[27:0]</obj_property>
+         <obj_property name="ObjectShortName">delayed_2nd_half_flag[27:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/intrapass_ctr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">intrapass_ctr[7:0]</obj_property>
+         <obj_property name="ObjectShortName">intrapass_ctr[7:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
    </wvobject>
 </wave_config>
