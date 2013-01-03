@@ -1,5 +1,7 @@
 // From http://www.billauer.co.il/reg_fifo.html
-module better_fifo#(parameter WIDTH=1, DELAY=1)
+// When using this, do NOT use embedded registers in BRAM or FIFO, because
+// that will add another read latency cycle, and invalidate the logic below
+module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
 (input RESET, RD_CLK, WR_CLK, rden, wren, input[WIDTH-1:0] din
 , output empty, full, almost_full, output reg[WIDTH-1:0] dout);
 `include "function.v"
@@ -9,11 +11,15 @@ module better_fifo#(parameter WIDTH=1, DELAY=1)
   wire fifo_empty, fifo_rden, will_update_middle, will_update_dout;
 
   generate
-    if(WIDTH == 32)
-      standard32 fifo(.rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
-                    , .din(din), .wr_en(wren), .full(full)
-                    , .almost_full(almost_full)
-                    , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+    if(TYPE == "POOLADDR") standard10 fifo(
+        .clk(RD_CLK), .rst(RESET)
+      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+      , .sbiterr(), .dbiterr());
+    else if(TYPE == "XILLYBUS") standard32 fifo(
+        .rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
+      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
   endgenerate
   
   assign #DELAY will_update_middle = fifo_valid

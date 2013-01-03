@@ -130,7 +130,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
     end//!SIMULATION
   endgenerate
 
-  better_fifo#(.WIDTH(XB_SIZE), .DELAY(DELAY))
+  better_fifo#(.TYPE("XILLYBUS"), .WIDTH(XB_SIZE), .DELAY(DELAY))
     xb_wr_fifo(.RESET(RESET)
              , .WR_CLK(BUS_CLK), .din(xb_wr_data), .wren(xb_wr_wren)
              , .full(), .almost_full(xb_wr_full)
