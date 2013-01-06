@@ -10,7 +10,15 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="2" />
+   <WVObjectSize size="17" />
+   <wvobject fp_name="/simmain/main/clk" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/reset" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">reset</obj_property>
+      <obj_property name="ObjectShortName">reset</obj_property>
+   </wvobject>
    <wvobject fp_name="group14" type="group">
       <obj_property name="label">simmain</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -70,6 +78,65 @@
          <obj_property name="ElementShortName">sub_en</obj_property>
          <obj_property name="ObjectShortName">sub_en</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">x[31:0]</obj_property>
+      <obj_property name="ObjectShortName">x[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/fadd_rfd" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fadd_rfd</obj_property>
+      <obj_property name="ObjectShortName">fadd_rfd</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/badd" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">badd</obj_property>
+      <obj_property name="ObjectShortName">badd</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x_new_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">x_new_rdy</obj_property>
+      <obj_property name="ObjectShortName">x_new_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x_new" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">x_new[31:0]</obj_property>
+      <obj_property name="ObjectShortName">x_new[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x_int_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">x_int_rdy</obj_property>
+      <obj_property name="ObjectShortName">x_int_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x_int" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">x_int[31:0]</obj_property>
+      <obj_property name="ObjectShortName">x_int[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/xp1_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">xp1_rdy</obj_property>
+      <obj_property name="ObjectShortName">xp1_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/xp1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">xp1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">xp1[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/xp1d" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">xp1d[31:0]</obj_property>
+      <obj_property name="ObjectShortName">xp1d[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/fx_int_p1_rdy" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">fx_int_p1_rdy</obj_property>
+      <obj_property name="ObjectShortName">fx_int_p1_rdy</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/fx_int_p1" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">fx_int_p1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">fx_int_p1[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/x_new_d[11]" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">[11,31:0]</obj_property>
+      <obj_property name="ObjectShortName">x_new_d[11,31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="group13" type="group">
       <obj_property name="label">main</obj_property>

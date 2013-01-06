@@ -1,4 +1,4 @@
-`timescale 100ps/1ps
+`timescale 1 ns/ 1 ns
 module simmain;
 `include "function.v"
   reg clk, reset;
@@ -29,17 +29,17 @@ module simmain;
     , .a(top_0), .result(ftop_0));
   mult mult20(.clk(clk), .rdy(mult_rdy), .a(ftop_0), .b(f20_0)
     , .result(f20_result));
-  main#(.N_MULT(10)) main(.clk(clk), .reset(reset), .error(error));
+
+  main#(.DELAY(1), .N_MULT(10))
+  main(.clk(clk), .reset(reset), .error(error));
   
   initial begin
-    reset = `FALSE;
+    reset = `TRUE;
     clk = `TRUE;
-    
     // See http://gregstoll.dyndns.org/~gregstoll/floattohex/
-#50 reset = `TRUE;
-#100 reset = `FALSE;
+#6 reset = `FALSE;
   end
-  always clk = #25 ~clk;
+  always clk = #2 ~clk;
   always @(posedge reset, posedge clk) begin
     if(reset) begin
       f32_1 <= 'h40400000;//3.0
