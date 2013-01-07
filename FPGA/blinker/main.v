@@ -5,7 +5,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
 
   reg  [29:0] ctr;
-  assign #DELAY GPIO_LED = {ctr[29-:4], 'b0000};
+  assign #DELAY GPIO_LED = {'b0000, ctr[29-:4]};
   
   always @(posedge CLK)
     if(RESET) ctr <= #DELAY 0;
