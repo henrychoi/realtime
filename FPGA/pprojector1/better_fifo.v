@@ -11,12 +11,7 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
   wire fifo_empty, fifo_rden, will_update_middle, will_update_dout;
 
   generate
-    if(TYPE == "POOLADDR") standard10 fifo(
-        .clk(RD_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
-      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
-      , .sbiterr(), .dbiterr());
-    else if(TYPE == "XILLYBUS") standard32 fifo(
+    if(TYPE == "XILLYBUS") standard32x512_bram_fifo fifo(
         .rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
       , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));

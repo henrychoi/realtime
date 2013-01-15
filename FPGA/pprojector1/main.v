@@ -15,6 +15,7 @@ CLKOUT_DIVIDE = 3,
 nCK_PER_CLK = 2, // # of memory CKs per fabric clock. # = 2, 1.
 tCK = 2500, // memory tCK paramter. # = Clock Period.
 DEBUG_PORT = "OFF", // "ON": Enable debug signals/controls.
+
 // "OFF" -  Complete memory init & calibration sequence
 // "SKIP" - Skip memory init & calibration sequence
 // "FAST" - Skip memory init & use abbreviated calib sequence

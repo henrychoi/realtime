@@ -1,4 +1,4 @@
-`timescale 1 ps / 1 ps
+`timescale 1 ns / 1 ns
 module simmain;
 `include "function.v"
   localparam REFCLK_FREQ = 200, SIM_BYPASS_INIT_CAL = "SKIP"
