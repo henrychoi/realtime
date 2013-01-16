@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="C:/private/realtime/FPGA/pprojector2/simmain_isim_beh.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="simmain" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <WVObjectSize size="7" />
+   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
+      <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/\simulate_xb.sim_state " type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">\simulate_xb.sim_state [1:0]</obj_property>
+      <obj_property name="ObjectShortName">\simulate_xb.sim_state [1:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">pc_msg_empty</obj_property>
+      <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
+   </wvobject>
+   <wvobject fp_name="group17" type="group">
+      <obj_property name="label">app</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">state[1:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pulses_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pulses_addr[1:0,6:0]</obj_property>
+         <obj_property name="ObjectShortName">pulses_addr[1:0,6:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pulses_src" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pulses_src</obj_property>
+         <obj_property name="ObjectShortName">pulses_src</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pulses_wren" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pulses_wren[1:0]</obj_property>
+         <obj_property name="ObjectShortName">pulses_wren[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pulses_out" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pulses_out[1:0,255:0]</obj_property>
+         <obj_property name="ObjectShortName">pulses_out[1:0,255:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/pulses_out[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1,255:0]</obj_property>
+            <obj_property name="ObjectShortName">pulses_out[1,255:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/pulses_out[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0,255:0]</obj_property>
+            <obj_property name="ObjectShortName">pulses_out[0,255:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/zmw_num" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">zmw_num[6:0]</obj_property>
+      <obj_property name="ObjectShortName">zmw_num[6:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>
