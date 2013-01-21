@@ -32,10 +32,12 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
   
-  application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE), .DRAM_DATA_SIZE(256))
+  wire app_running, app_error, msg_error;
+  application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE), .RAM_DATA_SIZE(256))
     app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4])
       , .pc_msg_valid(!pc_msg_empty), .pc_msg(pc_msg), .pc_msg_ack(pc_msg_ack)
-      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg(fpga_msg));
+      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg(fpga_msg)
+      , .app_running(app_running), .app_error(app_error), .msg_error(msg_error));
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -43,9 +45,6 @@ module main#(parameter SIMULATION=0, DELAY=1)
       reg[XB_SIZE-1:0] xb_wr_data_r;//pc_msg_r;
       reg[7:0] pool_byte;
       reg bus_clk_r, xb_wr_wren_r;//wr_data_empty_r;
-      localparam SIM_UNINITIALIZED = 0, SIM_READ_POOL = 1, SIM_DONE = 2
-               , N_SIM_STATE = 3;
-      reg [log2(N_SIM_STATE)-1:0] sim_state;
 
       always #4 bus_clk_r = ~bus_clk_r;
       assign BUS_CLK = bus_clk_r;
@@ -59,45 +58,44 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
       initial begin
         binf = $fopen("pulse.bin", "rb");
-        bus_clk_r <= #DELAY `FALSE;
-        xb_wr_wren_r <= #DELAY `FALSE;
-        sim_state <= #DELAY SIM_UNINITIALIZED;
+        bus_clk_r = #DELAY `FALSE;
+        xb_wr_wren_r = #DELAY `FALSE;
+        
+#36     xb_wr_wren_r = `TRUE;
+        //A valid STOP message is {'h0000_0000, 'h0000_0000, 'h0000_0000}
+        xb_wr_data_r = 0;
+#8      xb_wr_data_r = 0;
+#8      xb_wr_data_r = 0;
+#8      xb_wr_wren_r = `FALSE;
+
+#16      xb_wr_wren_r = `TRUE;
+        //A valid START message is {'h3c23d70a,'h0012_0000,'h0000_0140}
+        xb_wr_data_r = 'h0000_0140;
+#8      xb_wr_data_r = 'h0012_0000;
+#8      xb_wr_data_r = 'h3c23_d70a;
+#8      xb_wr_wren_r = `FALSE;
+
+#32     xb_wr_wren_r = `TRUE;
+        //A valid STOP message is {'h0000_0000, 'h0000_0000, 'h0000_0000}
+        xb_wr_data_r = 0;
+#8      xb_wr_data_r = 0;
+#8      xb_wr_data_r = 0;
+#8      xb_wr_wren_r = `FALSE;
+
+#24      xb_wr_wren_r = `TRUE;
+        //A valid START message is {'h3c23d70a,'h0012_0000,'h0000_0140}
+        xb_wr_data_r = 'h0000_0240;
+#8      xb_wr_data_r = 'h0010_0000;
+#8      xb_wr_data_r = 'h3c23_d70a;
+#8      xb_wr_wren_r = `FALSE;
       end
 
-      always @(posedge BUS_CLK) begin
-        case(sim_state)
-          SIM_UNINITIALIZED:
-            if(RESET /*|| !app_rdy */|| xb_wr_full)
-              xb_wr_wren_r <= #DELAY `FALSE;
-            else begin
-              for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                rc = $fread(pool_byte, binf);
-                xb_wr_data_r[idx+:8] <= #DELAY pool_byte;
-              end
-              xb_wr_wren_r <= #DELAY `TRUE;
-              sim_state <= #DELAY SIM_READ_POOL;
-            end
-
-          SIM_READ_POOL:
-            if($feof(binf)) begin
-              xb_wr_wren_r <= #DELAY `FALSE;
-              $fclose(binf);
-              sim_state <= #DELAY SIM_DONE;
-            end else begin
-              n_msg = n_msg + 1;
-              if(xb_wr_full) xb_wr_wren_r <= #DELAY `FALSE;
-              else begin
-                for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
-                  rc = $fread(pool_byte, binf);
-                  xb_wr_data_r[idx+:8] <= #DELAY pool_byte;
-                end
-                xb_wr_wren_r <= #DELAY `TRUE;
-              end
-            end
-            
-          default: xb_wr_wren_r <= #DELAY `FALSE;
-        endcase
-      end //always
+      always @(posedge BUS_CLK)
+        if(app_running)
+          for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
+            rc = $fread(pool_byte, binf);
+            xb_wr_data_r[idx+:8] <= #DELAY pool_byte;
+          end
     end else begin// !SIMULATION
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
         , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:
@@ -135,10 +133,19 @@ module main#(parameter SIMULATION=0, DELAY=1)
     end//!SIMULATION
   endgenerate
 
+`define BETTER_FIFO
+`ifdef BETTER_FIFO
   better_fifo#(.TYPE("XILLYBUS"), .WIDTH(XB_SIZE), .DELAY(DELAY))
     xb_wr_fifo(.RESET(RESET)
              , .WR_CLK(BUS_CLK), .din(xb_wr_data), .wren(xb_wr_wren)
              , .full(), .almost_full(xb_wr_full)
              , .RD_CLK(CLK), .rden(pc_msg_ack), .dout(pc_msg)
              , .empty(pc_msg_empty));
+`else
+  standard32x512_bram_fifo xb_wr_fifo(.rst(RESET)
+             , .wr_clk(BUS_CLK), .din(xb_wr_data), .wr_en(xb_wr_wren)
+             , .full(), .almost_full(xb_wr_full)
+             , .rd_clk(CLK), .rd_en(pc_msg_ack), .dout(pc_msg)
+             , .empty(pc_msg_empty));
+`endif
 endmodule
