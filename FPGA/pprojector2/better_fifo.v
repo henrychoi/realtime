@@ -3,7 +3,7 @@
 // that will add another read latency cycle, and invalidate the logic below
 module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
 (input RESET, RD_CLK, WR_CLK, rden, wren, input[WIDTH-1:0] din
-, output empty, full, almost_full, output reg[WIDTH-1:0] dout);
+, output empty, almost_empty, full, almost_full, output reg[WIDTH-1:0] dout);
 `include "function.v"
   reg [WIDTH-1:0] middle_dout;
   wire[WIDTH-1:0] fifo_dout;
@@ -15,10 +15,11 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
       standard32x512_bram_fifo fifo(.rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
       , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
-    else if(TYPE == "ToRAM")
+    else if(TYPE == "ToRAM" || TYPE == "FromRAM")
       standard256_fifo fifo(.clk(RD_CLK), .rst(RESET)
       , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
-      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+      , .almost_empty(fifo_almost_empty));
   endgenerate
   
   assign #DELAY will_update_middle = fifo_valid

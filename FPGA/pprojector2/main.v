@@ -32,12 +32,12 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
   
-  wire app_running, app_error, msg_error;
+  wire app_running, app_error;
   application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE), .RAM_DATA_SIZE(256))
     app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4])
       , .pc_msg_valid(!pc_msg_empty), .pc_msg(pc_msg), .pc_msg_ack(pc_msg_ack)
       , .fpga_msg_valid(fpga_msg_valid), .fpga_msg(fpga_msg)
-      , .app_running(app_running), .app_error(app_error), .msg_error(msg_error));
+      , .app_running(app_running), .app_error(app_error));
 
   generate
     if(SIMULATION) begin: simulate_xb
@@ -140,12 +140,12 @@ module main#(parameter SIMULATION=0, DELAY=1)
              , .WR_CLK(BUS_CLK), .din(xb_wr_data), .wren(xb_wr_wren)
              , .full(), .almost_full(xb_wr_full)
              , .RD_CLK(CLK), .rden(pc_msg_ack), .dout(pc_msg)
-             , .empty(pc_msg_empty));
+             , .empty(pc_msg_empty), .almost_empty());
 `else
   standard32x512_bram_fifo xb_wr_fifo(.rst(RESET)
              , .wr_clk(BUS_CLK), .din(xb_wr_data), .wr_en(xb_wr_wren)
              , .full(), .almost_full(xb_wr_full)
              , .rd_clk(CLK), .rd_en(pc_msg_ack), .dout(pc_msg)
-             , .empty(pc_msg_empty));
+             , .empty(pc_msg_empty), .almost_empty());
 `endif
 endmodule
