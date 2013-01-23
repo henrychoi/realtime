@@ -11,13 +11,13 @@
       </db_ref>
    </db_ref_list>
    <WVObjectSize size="7" />
-   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">CLK</obj_property>
-      <obj_property name="ObjectShortName">CLK</obj_property>
-   </wvobject>
    <wvobject fp_name="/simmain/main/BUS_CLK" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">BUS_CLK</obj_property>
       <obj_property name="ObjectShortName">BUS_CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/xb_wr_wren" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">xb_wr_wren</obj_property>
@@ -68,8 +68,8 @@
          <obj_property name="ObjectShortName">whole_pc_msg_valid</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/pacer_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pacer_state[2:0]</obj_property>
-         <obj_property name="ObjectShortName">pacer_state[2:0]</obj_property>
+         <obj_property name="ElementShortName">pacer_state[3:0]</obj_property>
+         <obj_property name="ObjectShortName">pacer_state[3:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/max_clock_per_frame" type="array" db_ref_id="1">
@@ -92,11 +92,6 @@
          <obj_property name="ObjectShortName">exposure[29:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/ram_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">ram_state[1:0,3:0]</obj_property>
-         <obj_property name="ObjectShortName">ram_state[1:0,3:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
       <wvobject fp_name="/simmain/main/app/to_ram_fifo_wren" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">to_ram_fifo_wren[1:0]</obj_property>
          <obj_property name="ObjectShortName">to_ram_fifo_wren[1:0]</obj_property>
@@ -114,6 +109,28 @@
          <obj_property name="ElementShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
          <obj_property name="ObjectShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/to_ram_fifo_ack" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">to_ram_fifo_ack[1:0]</obj_property>
+         <obj_property name="ObjectShortName">to_ram_fifo_ack[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_state[1:0,3:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_state[1:0,3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_addr[1:0,6:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_addr[1:0,6:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_wdf_wren" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_wdf_wren[1:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_wdf_wren[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_en" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_en[1:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_en[1:0]</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
