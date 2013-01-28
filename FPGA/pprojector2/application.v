@@ -4,7 +4,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 , output reg fpga_msg_valid, output reg [XB_SIZE-1:0] fpga_msg
 , output app_running, app_error);
 `include "function.v"
-  localparam FP_SIZE = 30
+  localparam RAM_HEADER_SIZE = 4, ZMW_DATA_SIZE = RAM_DATA_SIZE - RAM_HEADER_SIZE
+           , FP_SIZE = 30
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
            , MAX_FRAME = 2**24 - 1;
   reg [log2(MAX_STRIDE)-1:0] max_stride, n_stride;
@@ -21,9 +22,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   reg whole_pc_msg_valid;
 
   localparam PACER_ERROR = 0, PACER_STOPPED = 1, PACER_STOPPING = 2
-           , PACER_STARTING = 3, PACER_INIT = 4, PACER_INIT_PAUSED = 5
-           , STARTING_POST = 6, PACER_POSTING = 7
-           , PACER_INTRAFRAME = 8, PACER_INTERFRAME = 9
+           , PACER_STARTING = 3, PACER_INIT = 4, PACER_INIT_THROTTLED = 5
+           , PACER_STARTING_POST = 6, PACER_POSTING = 7
+           , PACER_INTERFRAME = 8, PACER_INTRAFRAME = 9
            , PACER_N_STATE = 10;
   reg [log2(PACER_N_STATE)-1:0] pacer_state;
   assign #DELAY app_running = pacer_state == PACER_INTRAFRAME
@@ -33,52 +34,54 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   localparam RAM_ERROR = 0, RAM_IDLE = 1
            , RAM_MSG_WAIT1 = 2, RAM_MSG_WAIT2 = 3, RAM_WR_WAIT = 4
-           , RAM_WR1 = 5, RAM_WR2 = 6
-           , RAM_READING = 7, RAM_THROTTLED = 8, RAM_FINISHING_RD = 9
-           , RAM_N_STATE = 10;
+           , RAM_WR1 = 5, RAM_WR2 = 6, RAM_READING = 7, RAM_THROTTLED = 8
+           , RAM_N_STATE = 9;
   reg [log2(RAM_N_STATE)-1:0] ram_state[1:0];
   
-  localparam N_ZMW = 128, BRAM_READ_DELAY = 3;
+  localparam N_ZMW = 128, BRAM_READ_LATENCY = 3;
 
   //simulate DRAM interface until we build our own board
   localparam RAM_ADDR_INCR = `TRUE;
-  wire[1:0] ram_rdy, ram_wdf_rdy, ram_rd_data_valid;
-  reg [1:0] ram_en, ram_read, ram_wdf_wren, ram_wdf_end;
+  wire[1:0] ram_rdy, ram_wdf_rdy;
+  reg [1:0] ram_en, ram_read, ram_wdf_wren, ram_wdf_end
+          , ram_en_and_read[BRAM_READ_LATENCY-2:0], ram_rd_data_valid;
   assign ram_rdy = {`TRUE, `TRUE};
   assign ram_wdf_rdy = {`TRUE, `TRUE};
-  assign #(4*DELAY) ram_rd_data_valid = ram_en & ram_read;//bitwise
-  
-  reg [log2(N_ZMW)-1:0] ram_addr[1:0], wr_zmw;
+
+  reg [log2(N_ZMW)-1:0] ram_addr[1:0], wr_zmw, rd_zmw;
   //reg [1:0] ram_wren;
   wire[RAM_DATA_SIZE-1:0] ram_rd_data[1:0], to_ram_fifo_dout[1:0]
                         , from_ram_fifo_dout;
-  reg [RAM_DATA_SIZE-1:0] to_ram_fifo_din, from_ram_fifo_din
-                        , to_ram_cache[1:0], ram_wdf_data;
+  reg [RAM_DATA_SIZE-1:0] to_ram_cache[1:0], ram_wdf_data;
+  reg [RAM_HEADER_SIZE-1:0] to_ram_fifo_header[1:0];  
+  reg [ZMW_DATA_SIZE-1:0]   to_ram_fifo_data;
   reg[1:0] to_ram_fifo_wren;
   wire[1:0] to_ram_fifo_ack //Need Karnaugh logic for ACK, arrrg!
           , to_ram_fifo_full, to_ram_fifo_almost_full
           , to_ram_fifo_empty, to_ram_fifo_almost_empty, to_ram_fifo_valid;
   assign to_ram_fifo_valid = {!to_ram_fifo_empty[1], !to_ram_fifo_empty[0]};
   wire from_ram_fifo_ack, from_ram_fifo_empty, from_ram_fifo_valid
-     , from_ram_fifo_full, from_ram_fifo_almost_full;
-  reg  from_ram_fifo_wren;
+     , from_ram_fifo_high, from_ram_fifo_full, from_ram_fifo_almost_full;
+  reg  from_ram_src;
   
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-              , .din(from_ram_fifo_din), .wren(from_ram_fifo_wren)
-              , .full(from_ram_fifo_full), .almost_full(from_ram_fifo_almost_full)
+              , .din(ram_rd_data[from_ram_src]), .wren(ram_rd_data_valid[from_ram_src])
+              , .high(from_ram_fifo_high), .full(from_ram_fifo_full)
+              , .almost_full(from_ram_fifo_almost_full)
               , .rden(from_ram_fifo_ack), .dout(from_ram_fifo_dout)
               , .empty(from_ram_fifo_empty), .almost_empty());
-  assign #DELAY from_ram_fifo_ack = `FALSE;
-
+  assign #DELAY from_ram_fifo_ack = from_ram_fifo_valid;
+  assign from_ram_fifo_valid = !from_ram_fifo_empty;
+  
   integer i;
   genvar geni;
   generate
     for(geni=0; geni<2; geni=geni+1) begin
       better_fifo#(.TYPE("ToRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
       to_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-                , .din(to_ram_fifo_din), .wren(to_ram_fifo_wren[geni])
-                , .full(to_ram_fifo_full[geni])
+                , .din({to_ram_fifo_data, to_ram_fifo_header[geni]})
+                , .wren(to_ram_fifo_wren[geni]), .high(), .full(to_ram_fifo_full[geni])
                 , .almost_full(to_ram_fifo_almost_full[geni])
                 , .rden(to_ram_fifo_ack[geni]), .dout(to_ram_fifo_dout[geni])
                 , .empty(to_ram_fifo_empty[geni])
@@ -138,7 +141,13 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         ram_wdf_wren[i] <= #DELAY `FALSE;
         ram_state[i] <= #DELAY RAM_IDLE;
       end
+      from_ram_src <= #DELAY `FALSE;
     end else begin
+      ram_en_and_read[0] <= #DELAY ram_en & ram_read;//bitwise
+      for(i=1; i<BRAM_READ_LATENCY-1; i=i+1)
+        ram_en_and_read[i] <= #DELAY ram_en_and_read[i-1];
+      ram_rd_data_valid <= #DELAY ram_en_and_read[BRAM_READ_LATENCY-2];
+  
       fpga_msg_valid <= #DELAY `FALSE;
 
       //Message assembler code
@@ -177,18 +186,18 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                                             +:CONTROL_MSG_STRIDE_SIZE];
             exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
-            // ^SOF to 1st RAM controller
-            to_ram_fifo_din <= #DELAY {RAM_DATA_SIZE{`FALSE}};
-            to_ram_fifo_din[2:0] <= #DELAY {`TRUE,`TRUE,`FALSE};//START(WR)
+            // ^START to 1st RAM controller
+            to_ram_fifo_data <= #DELAY {(RAM_DATA_SIZE-4){`FALSE}};            
+            to_ram_fifo_header[0][2:0] <= #DELAY 'b0110;//START(WR)
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
 
             pacer_state <= #DELAY PACER_STARTING;
           end
 
         PACER_STOPPING:
-          if(to_ram_fifo_full == 'b00) begin// ^EOF to both RAM controllers
+          if(to_ram_fifo_full == 'b00) begin// ^STOP to both RAM controllers
             for(i=0; i<2; i=i+1) begin
-              to_ram_fifo_din[i] <= #DELAY {RAM_DATA_SIZE{`FALSE}};
+              to_ram_fifo_header[i] <= #DELAY 'b0000;
               to_ram_fifo_wren[i] <= #DELAY `TRUE;
             end
             pacer_state <= #DELAY PACER_STOPPED;
@@ -196,7 +205,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         
         PACER_STARTING:
           if(!to_ram_fifo_full[0]) begin
-            to_ram_fifo_din[0] <= #DELAY `TRUE; //non-control msg from now
+            to_ram_fifo_header[0] <= #DELAY 'b0001;//data message from now
             wr_zmw <= #DELAY 0;
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_INIT;
@@ -209,18 +218,17 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             pacer_state <= #DELAY PACER_STOPPING;//just move to STOPPING
           end else if(to_ram_fifo_full[0]) begin
             to_ram_fifo_wren[0] <= #DELAY `FALSE;
-            pacer_state <= #DELAY PACER_INIT_PAUSED;
+            pacer_state <= #DELAY PACER_INIT_THROTTLED;
           end else begin
-            if(wr_zmw == (N_ZMW-1)) begin
-              // ^EOF to 1st RAM controller
-              to_ram_fifo_din[1:0] <= #DELAY 'b00;
-              pacer_state <= #DELAY STARTING_POST;
+            if(wr_zmw == (N_ZMW-1)) begin              
+              to_ram_fifo_header[0] <= #DELAY 'b0000;// ^STOP to 1st RAM
+              pacer_state <= #DELAY PACER_STARTING_POST;
             end
             wr_zmw <= #DELAY wr_zmw + `TRUE;            
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
           end
         
-        PACER_INIT_PAUSED:
+        PACER_INIT_THROTTLED:
           if(is_control_msg
              && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE) begin//STOP
             pacer_state <= #DELAY PACER_STOPPING;
@@ -229,15 +237,44 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             pacer_state <= #DELAY PACER_INIT;
           end
           
-        STARTING_POST:
+        PACER_STARTING_POST:
           if(!to_ram_fifo_full[0]) begin
-            to_ram_fifo_din[2:0] <= #DELAY {`FALSE, `TRUE, `FALSE};//^SOF(RD)
+            // Tell 1st RAM to start reading, and 2nd RAM to start writing
+            from_ram_src <= #DELAY `FALSE;
+            to_ram_fifo_header[0] <= #DELAY 'b0010;//^START(RD)
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
+            to_ram_fifo_header[1] <= #DELAY 'b0110;//^START(WR)
+            to_ram_fifo_wren[1] <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_POSTING;
           end
         
         PACER_POSTING: // check the answer
           if(from_ram_fifo_valid) begin
+            if(!from_ram_fifo_dout[0]
+               || from_ram_fifo_dout[RAM_HEADER_SIZE+:64]) begin//check some bits
+              // ^STOP to both RAM controllers
+              for(i=0; i<2; i=i+1) begin
+                to_ram_fifo_header[i] <= #DELAY 'b0000;
+                to_ram_fifo_wren[i] <= #DELAY `TRUE;
+              end
+              pacer_state <= #DELAY PACER_ERROR;
+            end else begin
+              //Write to the src's OTHER RAM
+              to_ram_fifo_wren[i] <= #DELAY from_ram_src ^ i;
+              to_ram_fifo_header[i] <= #DELAY 'b0001; // is data
+              to_ram_fifo_data[i] <= #DELAY
+                from_ram_fifo_dout[RAM_HEADER_SIZE+:ZMW_DATA_SIZE];
+              
+              rd_zmw <= #DELAY rd_zmw + `TRUE;
+              if(rd_zmw == N_ZMW-1) begin // done checking
+                // ^STOP to both RAM controllers
+                for(i=0; i<2; i=i+1) begin
+                  to_ram_fifo_header[i] <= #DELAY 'b0000;
+                  to_ram_fifo_wren[i] <= #DELAY `TRUE;
+                end
+                pacer_state <= #DELAY PACER_INTERFRAME;
+              end
+            end
           end
           
         PACER_INTERFRAME: begin
@@ -247,6 +284,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         end
 
         default: begin // ERROR
+          to_ram_fifo_wren <= #DELAY {`FALSE, `FALSE};
         end
       endcase//pacer_state
 
@@ -264,7 +302,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                   ram_state[i] <= #DELAY RAM_MSG_WAIT1;
                 end else begin
                   ram_read[i] <= #DELAY `TRUE;
-                  ram_en[i] <= #DELAY `FALSE;
+                  ram_en[i] <= #DELAY `TRUE;
+                  rd_zmw <= #DELAY 0;
                   ram_state[i] <= #DELAY RAM_READING;
                 end
               end else begin //record state transition
@@ -373,19 +412,46 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           RAM_READING:
             if(to_ram_fifo_valid[i]//There IS a message from pacer
               && to_ram_fifo_dout[i][1:0] == 'b00) begin//STOP message
-              ram_en[i] <= #DELAY FALSE;
+              ram_en[i] <= #DELAY `FALSE;
               ram_state[i] <= #DELAY RAM_IDLE;
               //Ignore all other messages
               //Don't forget to ACK the message in combinational logic
             end else begin
-              if(ram_rd_data_valid[i]) begin
-              end
-              if(from_ram_fifo_high) begin
+              if(from_ram_fifo_full) begin
+                ram_en[i] <= #DELAY `FALSE;
+                ram_state[i] <= #DELAY RAM_ERROR;
+              end else if(from_ram_fifo_high) begin
+                ram_en[i] <= #DELAY `FALSE;
                 ram_state[i] <= #DELAY RAM_THROTTLED;
+              end else begin
+                ram_addr[i] <= #DELAY ram_addr[i] + RAM_ADDR_INCR;
+                if(ram_addr[i] == N_ZMW-1) begin
+                  ram_en[i] <= #DELAY `FALSE;
+                  ram_state[i] <= #DELAY RAM_IDLE;
+                end
               end
             end
+          
+          RAM_THROTTLED:
+            if(to_ram_fifo_valid[i]//There IS a message from pacer
+              && to_ram_fifo_dout[i][1:0] == 'b00) begin//STOP message
+              ram_en[i] <= #DELAY `FALSE;
+              ram_state[i] <= #DELAY RAM_IDLE;
+              //Ignore all other messages
+              //Don't forget to ACK the message in combinational logic
+            end else begin
+              if(from_ram_fifo_full) begin
+                ram_en[i] <= #DELAY `FALSE;
+                ram_state[i] <= #DELAY RAM_ERROR;
+              end else if(!from_ram_fifo_high) begin
+                ram_en[i] <= #DELAY `TRUE;
+                ram_state[i] <= #DELAY RAM_READING;
+              end
+            end
+          
           default: begin
           end
+          
         endcase
       end
     end
