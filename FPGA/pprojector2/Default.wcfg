@@ -10,36 +10,32 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="7" />
-   <wvobject fp_name="/simmain/main/BUS_CLK" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">BUS_CLK</obj_property>
-      <obj_property name="ObjectShortName">BUS_CLK</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">CLK</obj_property>
-      <obj_property name="ObjectShortName">CLK</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/xb_wr_wren" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">xb_wr_wren</obj_property>
-      <obj_property name="ObjectShortName">xb_wr_wren</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
-      <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
-      <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
-      <obj_property name="Radix">HEXRADIX</obj_property>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">pc_msg_empty</obj_property>
-      <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
-   </wvobject>
-   <wvobject fp_name="group17" type="group">
-      <obj_property name="label">app</obj_property>
+   <WVObjectSize size="3" />
+   <wvobject fp_name="group35" type="group">
+      <obj_property name="label">XB</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/BUS_CLK" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">BUS_CLK</obj_property>
+         <obj_property name="ObjectShortName">BUS_CLK</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/xb_wr_wren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">xb_wr_wren</obj_property>
+         <obj_property name="ObjectShortName">xb_wr_wren</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
+         <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_empty</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/pc_msg_valid" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">pc_msg_valid</obj_property>
          <obj_property name="ObjectShortName">pc_msg_valid</obj_property>
@@ -48,24 +44,36 @@
          <obj_property name="ElementShortName">pc_msg_ack</obj_property>
          <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/msg_assembler_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">msg_assembler_state[1:0]</obj_property>
-         <obj_property name="ObjectShortName">msg_assembler_state[1:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/msg_assembler_cache" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">msg_assembler_cache[63:0]</obj_property>
-         <obj_property name="ObjectShortName">msg_assembler_cache[63:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/whole_pc_msg" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">whole_pc_msg[95:0]</obj_property>
-         <obj_property name="ObjectShortName">whole_pc_msg[95:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/whole_pc_msg_valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">whole_pc_msg_valid</obj_property>
-         <obj_property name="ObjectShortName">whole_pc_msg_valid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+      <obj_property name="ElementShortName">CLK</obj_property>
+      <obj_property name="ObjectShortName">CLK</obj_property>
+   </wvobject>
+   <wvobject fp_name="group17" type="group">
+      <obj_property name="label">app</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="group36" type="group">
+         <obj_property name="label">msg assembler</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/msg_assembler_state" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">msg_assembler_state[1:0]</obj_property>
+            <obj_property name="ObjectShortName">msg_assembler_state[1:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/msg_assembler_cache" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">msg_assembler_cache[63:0]</obj_property>
+            <obj_property name="ObjectShortName">msg_assembler_cache[63:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/whole_pc_msg" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">whole_pc_msg[95:0]</obj_property>
+            <obj_property name="ObjectShortName">whole_pc_msg[95:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/whole_pc_msg_valid" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">whole_pc_msg_valid</obj_property>
+            <obj_property name="ObjectShortName">whole_pc_msg_valid</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/pacer_state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">pacer_state[3:0]</obj_property>
@@ -106,6 +114,10 @@
          <obj_property name="ElementShortName">to_ram_fifo_wren[1:0]</obj_property>
          <obj_property name="ObjectShortName">to_ram_fifo_wren[1:0]</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/main/app/to_ram_fifo_header" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
+         <obj_property name="ObjectShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/to_ram_fifo_valid" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">to_ram_fifo_valid[1:0]</obj_property>
          <obj_property name="ObjectShortName">to_ram_fifo_valid[1:0]</obj_property>
@@ -137,6 +149,10 @@
          <obj_property name="ElementShortName">ram_en[1:0]</obj_property>
          <obj_property name="ObjectShortName">ram_en[1:0]</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_read" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_read[1:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_read[1:0]</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/ram_rd_data" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram_rd_data[1:0,255:0]</obj_property>
          <obj_property name="ObjectShortName">ram_rd_data[1:0,255:0]</obj_property>
@@ -154,9 +170,9 @@
          <obj_property name="ElementShortName">from_ram_fifo_valid</obj_property>
          <obj_property name="ObjectShortName">from_ram_fifo_valid</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_fifo_dout" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_fifo_dout[255:0]</obj_property>
-         <obj_property name="ObjectShortName">from_ram_fifo_dout[255:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/from_ram_fifo_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">from_ram_fifo_data[247:0]</obj_property>
+         <obj_property name="ObjectShortName">from_ram_fifo_data[247:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
    </wvobject>

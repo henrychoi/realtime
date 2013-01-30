@@ -4,7 +4,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 , output reg fpga_msg_valid, output reg [XB_SIZE-1:0] fpga_msg
 , output app_running, app_error);
 `include "function.v"
-  localparam RAM_HEADER_SIZE = 4, ZMW_DATA_SIZE = RAM_DATA_SIZE - RAM_HEADER_SIZE
+  localparam RAM_HEADER_SIZE = 8, ZMW_DATA_SIZE = RAM_DATA_SIZE - RAM_HEADER_SIZE
            , FP_SIZE = 30
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
            , MAX_FRAME = 2**24 - 1;
@@ -38,10 +38,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
            , RAM_N_STATE = 9;
   reg [log2(RAM_N_STATE)-1:0] ram_state[1:0];
   
-  localparam N_ZMW = 128, BRAM_READ_LATENCY = 3;
+  localparam N_ZMW = 128, BRAM_READ_LATENCY = 5;
 
   //simulate DRAM interface until we build our own board
-  localparam RAM_ADDR_INCR = `TRUE;
+  localparam RAM_ADDR_INCR = `TRUE; //my way of saying 1 while avoiding warning
   wire[1:0] ram_rdy, ram_wdf_rdy;
   reg [1:0] ram_en, ram_read, ram_wdf_wren, ram_wdf_end
           , ram_en_and_read[BRAM_READ_LATENCY-2:0], ram_rd_data_valid;
@@ -50,26 +50,29 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
   reg [log2(N_ZMW)-1:0] ram_addr[1:0], wr_zmw, rd_zmw;
   //reg [1:0] ram_wren;
-  wire[RAM_DATA_SIZE-1:0] ram_rd_data[1:0], to_ram_fifo_dout[1:0]
-                        , from_ram_fifo_dout;
+  wire[RAM_DATA_SIZE-1:0] ram_rd_data[1:0], to_ram_fifo_dout[1:0];
   reg [RAM_DATA_SIZE-1:0] to_ram_cache[1:0], ram_wdf_data;
-  reg [RAM_HEADER_SIZE-1:0] to_ram_fifo_header[1:0];  
+  reg [RAM_HEADER_SIZE-1:0] to_ram_fifo_header[1:0];
   reg [ZMW_DATA_SIZE-1:0]   to_ram_fifo_data;
   reg[1:0] to_ram_fifo_wren;
   wire[1:0] to_ram_fifo_ack //Need Karnaugh logic for ACK, arrrg!
           , to_ram_fifo_full, to_ram_fifo_almost_full
           , to_ram_fifo_empty, to_ram_fifo_almost_empty, to_ram_fifo_valid;
   assign to_ram_fifo_valid = {!to_ram_fifo_empty[1], !to_ram_fifo_empty[0]};
+
   wire from_ram_fifo_ack, from_ram_fifo_empty, from_ram_fifo_valid
      , from_ram_fifo_high, from_ram_fifo_full, from_ram_fifo_almost_full;
+  wire[RAM_HEADER_SIZE-1:0] from_ram_fifo_header;
+  wire[ZMW_DATA_SIZE-1:0]   from_ram_fifo_data;
   reg  from_ram_src;
   
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-              , .din(ram_rd_data[from_ram_src]), .wren(ram_rd_data_valid[from_ram_src])
+              , .din(ram_rd_data[from_ram_src])
+              , .wren(ram_rd_data_valid[from_ram_src])
               , .high(from_ram_fifo_high), .full(from_ram_fifo_full)
-              , .almost_full(from_ram_fifo_almost_full)
-              , .rden(from_ram_fifo_ack), .dout(from_ram_fifo_dout)
+              , .almost_full(from_ram_fifo_almost_full), .rden(from_ram_fifo_ack)
+              , .dout({from_ram_fifo_data, from_ram_fifo_header})
               , .empty(from_ram_fifo_empty), .almost_empty());
   assign #DELAY from_ram_fifo_ack = from_ram_fifo_valid;
   assign from_ram_fifo_valid = !from_ram_fifo_empty;
@@ -88,19 +91,28 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 , .almost_empty(to_ram_fifo_almost_empty[geni]));
 
       assign #DELAY to_ram_fifo_ack[geni] = to_ram_fifo_valid[geni]
+`ifdef STRAIGHTFORWARD_TO_RAM_FIFIO_ACK
         && (ram_state[geni] == RAM_IDLE
             || ram_state[geni] == RAM_MSG_WAIT1
-            || (ram_state[geni] == RAM_MSG_WAIT2
+            || (ram_state[geni] == RAM_MSG_WAIT2 //6
                 && to_ram_fifo_dout[geni][0] == `FALSE)//control message
-            || (ram_state[geni] == RAM_WR1
+            || (ram_state[geni] == RAM_WR1 //5
                 && (to_ram_fifo_dout[geni][0] == `FALSE//control message
                     || ram_wdf_rdy[geni]))
-            || (ram_state[geni] == RAM_WR2));
-
+            || (ram_state[geni] == RAM_WR2)
+            || (ram_state[geni] == RAM_READING)
+            || (ram_state[geni] == RAM_THROTTLED));
+`else
+        && !((ram_state[geni] == RAM_MSG_WAIT2
+              && to_ram_fifo_dout[geni][0])//is data
+             || (ram_state[geni] == RAM_WR1
+                 && to_ram_fifo_dout[geni][0]//is data
+                 && !ram_wdf_rdy[geni]));
+`endif
       PulseListBRAM
       list(.clka(CLK), .douta(ram_rd_data[geni])
          , .addra(ram_addr[geni]), .dina(ram_wdf_data)
-         , .wea(ram_wdf_wren[geni]));                 
+         , .wea(ram_wdf_wren[geni]));             
     end
   endgenerate
 
@@ -135,8 +147,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       pacer_state <= #DELAY PACER_STOPPED;
       for(i=0; i<2; i=i+1) begin
         ram_en[i] <= #DELAY `FALSE;
-        ram_read[i] <= #DELAY `FALSE;
-        
+        ram_read[i] <= #DELAY `FALSE;    
+        to_ram_fifo_header[i] <= #DELAY 0;
         to_ram_fifo_wren[i] <= #DELAY `FALSE;
         ram_wdf_wren[i] <= #DELAY `FALSE;
         ram_state[i] <= #DELAY RAM_IDLE;
@@ -187,8 +199,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
             // ^START to 1st RAM controller
-            to_ram_fifo_data <= #DELAY {(RAM_DATA_SIZE-4){`FALSE}};            
-            to_ram_fifo_header[0][2:0] <= #DELAY 'b0110;//START(WR)
+            to_ram_fifo_data <= #DELAY {ZMW_DATA_SIZE{`FALSE}};            
+            to_ram_fifo_header[0][2:0] <= #DELAY 'b110;//START(WR)
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
 
             pacer_state <= #DELAY PACER_STARTING;
@@ -197,7 +209,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         PACER_STOPPING:
           if(to_ram_fifo_full == 'b00) begin// ^STOP to both RAM controllers
             for(i=0; i<2; i=i+1) begin
-              to_ram_fifo_header[i] <= #DELAY 'b0000;
+              to_ram_fifo_header[i] <= #DELAY 0;
               to_ram_fifo_wren[i] <= #DELAY `TRUE;
             end
             pacer_state <= #DELAY PACER_STOPPED;
@@ -205,7 +217,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         
         PACER_STARTING:
           if(!to_ram_fifo_full[0]) begin
-            to_ram_fifo_header[0] <= #DELAY 'b0001;//data message from now
+            to_ram_fifo_header[0] <= #DELAY 'h01;//data message from now
             wr_zmw <= #DELAY 0;
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_INIT;
@@ -221,10 +233,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             pacer_state <= #DELAY PACER_INIT_THROTTLED;
           end else begin
             if(wr_zmw == (N_ZMW-1)) begin              
-              to_ram_fifo_header[0] <= #DELAY 'b0000;// ^STOP to 1st RAM
+              to_ram_fifo_header[0] <= #DELAY 'h00;// ^STOP to 1st RAM
               pacer_state <= #DELAY PACER_STARTING_POST;
+            end else begin
+              wr_zmw <= #DELAY wr_zmw + `TRUE;            
+              to_ram_fifo_data[0+:log2(N_ZMW)] <= #DELAY wr_zmw;
             end
-            wr_zmw <= #DELAY wr_zmw + `TRUE;            
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
           end
         
@@ -241,17 +255,18 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           if(!to_ram_fifo_full[0]) begin
             // Tell 1st RAM to start reading, and 2nd RAM to start writing
             from_ram_src <= #DELAY `FALSE;
-            to_ram_fifo_header[0] <= #DELAY 'b0010;//^START(RD)
+            to_ram_fifo_header[0] <= #DELAY 'b00000010;//^START(RD)
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
-            to_ram_fifo_header[1] <= #DELAY 'b0110;//^START(WR)
+            to_ram_fifo_header[1] <= #DELAY 'b00000110;//^START(WR)
             to_ram_fifo_wren[1] <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_POSTING;
           end
         
         PACER_POSTING: // check the answer
           if(from_ram_fifo_valid) begin
-            if(!from_ram_fifo_dout[0]
-               || from_ram_fifo_dout[RAM_HEADER_SIZE+:64]) begin//check some bits
+            if(!from_ram_fifo_header[0]
+               || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
+            begin
               // ^STOP to both RAM controllers
               for(i=0; i<2; i=i+1) begin
                 to_ram_fifo_header[i] <= #DELAY 'b0000;
@@ -262,8 +277,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               //Write to the src's OTHER RAM
               to_ram_fifo_wren[i] <= #DELAY from_ram_src ^ i;
               to_ram_fifo_header[i] <= #DELAY 'b0001; // is data
-              to_ram_fifo_data[i] <= #DELAY
-                from_ram_fifo_dout[RAM_HEADER_SIZE+:ZMW_DATA_SIZE];
+              to_ram_fifo_data <= #DELAY from_ram_fifo_data;
               
               rd_zmw <= #DELAY rd_zmw + `TRUE;
               if(rd_zmw == N_ZMW-1) begin // done checking
