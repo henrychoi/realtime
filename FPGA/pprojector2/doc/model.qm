@@ -93,7 +93,8 @@
       </tran_glyph>
      </tran>
      <state name="WR1">
-      <entry brief="ram_wdf_wren = 1;\ram_wdf_end = 0;\ram_addr++;"/>
+      <entry brief="ram_wdf_wren = 1;\ram_wdf_end = 0;"/>
+      <exit brief="ram_addr++;"/>
       <tran trig="app_wdf_rdy" target="../../3">
        <action brief="dram_wdf_end = 1; dram_wdf_data = FIFO DATA"/>
        <tran_glyph conn="79,40,2,1,8,-16">
@@ -101,12 +102,12 @@
        </tran_glyph>
       </tran>
       <state_glyph node="74,27,18,13">
-       <entry box="1,2,17,7"/>
+       <entry box="1,2,17,5"/>
+       <exit box="1,7,17,3"/>
       </state_glyph>
      </state>
      <state name="WR2">
-      <entry brief="ram_addr++"/>
-      <exit brief="dram_wdf_wren = 0"/>
+      <exit brief="dram_wdf_wren = 0;\ram_addr++"/>
       <tran trig="clk">
        <choice target="../../../5">
         <guard brief="FIFO EMPTY">guard1</guard>
@@ -140,13 +141,12 @@
          <action box="5,-9,15,4"/>
         </choice_glyph>
        </choice>
-       <tran_glyph conn="43,44,3,-1,-18">
-        <action box="-13,-2,4,2"/>
+       <tran_glyph conn="40,44,3,-1,-15">
+        <action box="-4,0,4,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="43,43,20,7">
-       <entry box="1,2,16,2"/>
-       <exit box="1,4,18,3"/>
+      <state_glyph node="40,43,23,8">
+       <exit box="1,2,19,4"/>
       </state_glyph>
      </state>
      <state name="MSG_WAIT2">
@@ -185,7 +185,7 @@
        <entry box="1,2,12,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="5,23,88,28"/>
+     <state_glyph node="5,23,88,29"/>
     </state>
     <state name="ERROR">
      <entry brief="led = 1"/>
@@ -250,9 +250,9 @@
         <action box="0,-2,9,2"/>
        </tran_glyph>
       </tran>
-      <tran trig="wr_zmw == N_ZMW-1" target="../../4">
+      <tran trig="wr_zmw == N_ZMW % 2^log2(N_ZMW)" target="../../4">
        <tran_glyph conn="33,22,0,3,-3,6">
-        <action box="-2,-7,9,5"/>
+        <action box="-3,-8,12,6"/>
        </tran_glyph>
       </tran>
       <state name="INIT_THROTTLED">
