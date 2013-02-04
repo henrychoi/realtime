@@ -9,7 +9,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
            , MAX_FRAME = 2**24 - 1;
   reg [log2(MAX_STRIDE)-1:0] max_stride, n_stride;
-  reg [log2(MAX_CLOCK_PER_FRAME)-1:0] max_clock_per_frame, n_clock;
+  reg [log2(MAX_CLOCK_PER_FRAME)-1:0] clock_per_frame, n_clock;
   reg [log2(MAX_FRAME)-1:0] max_frame, n_frame;
   reg [FP_SIZE-1:0] exposure;
   
@@ -73,8 +73,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               , .almost_full(from_ram_fifo_almost_full), .rden(from_ram_fifo_ack)
               , .dout({from_ram_fifo_data, from_ram_fifo_header})
               , .empty(from_ram_fifo_empty), .almost_empty());
-  assign from_ram_fifo_ack = from_ram_fifo_valid;
   assign from_ram_fifo_valid = !from_ram_fifo_empty;
+  assign from_ram_fifo_ack = from_ram_fifo_valid && !to_ram_fifo_full;
   
   integer i;
   genvar geni;
@@ -194,8 +194,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           if(is_start_msg) begin
             max_frame <= #DELAY whole_pc_msg[CONTROL_MSG_N_FRAME_BIT
                                            +:CONTROL_MSG_N_FRAME_SIZE];
-            max_clock_per_frame <= #DELAY whole_pc_msg[CONTROL_MSG_N_CLOCK_PER_FRAME_BIT
-                                            +:CONTROL_MSG_N_CLOCK_PER_FRAME_SIZE];
+            clock_per_frame <= #DELAY whole_pc_msg[
+               CONTROL_MSG_N_CLOCK_PER_FRAME_BIT +:CONTROL_MSG_N_CLOCK_PER_FRAME_SIZE];
             max_stride <= #DELAY whole_pc_msg[CONTROL_MSG_STRIDE_BIT
                                             +:CONTROL_MSG_STRIDE_SIZE];
             exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
@@ -213,13 +213,15 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         PACER_STOPPING:
           if(to_ram_fifo_full == 'b00) begin// ^STOP to both RAM controllers
             for(i=0; i<2; i=i+1) begin
-              to_ram_fifo_header[i] <= #DELAY 0;
+              to_ram_fifo_header[i] <= #DELAY 'h00;
               to_ram_fifo_wren[i] <= #DELAY `TRUE;
             end
             pacer_state <= #DELAY PACER_STOPPED;
           end
         
-        PACER_STARTING:
+        PACER_STARTING: begin
+          n_frame <= #DELAY 0;
+          n_stride <= #DELAY 0;
           if(!to_ram_fifo_full[0]) begin
             to_ram_fifo_header[0] <= #DELAY 'h01;//data message from now
             //writing 0 in this cycle, so write 1 next
@@ -227,6 +229,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_INIT;
           end
+        end
         
         PACER_INIT:
           if(is_control_msg
@@ -239,6 +242,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           end else begin
             if(wr_zmw == N_ZMW % (2**log2(N_ZMW))) begin              
               to_ram_fifo_header[0] <= #DELAY 'h00;// ^STOP to 1st RAM
+              n_clock <= #DELAY 0;
               pacer_state <= #DELAY PACER_STARTING_FRAME;
             end else begin
               to_ram_fifo_data[0+:log2(N_ZMW)] <= #DELAY wr_zmw;
@@ -259,6 +263,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         PACER_STARTING_FRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
           if(!to_ram_fifo_full) begin
+            n_frame <= #DELAY n_frame + `TRUE;
+            
             //Tell src RAM to start reading, and ~src RAM to start writing.
             //Note that the src appears flipped because flipping happens at the
             //next clock.
@@ -274,7 +280,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           n_clock <= #DELAY n_clock + `TRUE;
           // check the answer
           if(from_ram_fifo_valid) begin
-            if(!from_ram_fifo_header[0] // RAM should only hold data
+            if(!from_ram_fifo_header[0] // RAM should not hold metadata
                || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
             begin
               // ^STOP to both RAM controllers
@@ -284,11 +290,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               end
               pacer_state <= #DELAY PACER_ERROR;
             end else begin
-              //Write to the src's OTHER RAM
-              for(i=0; i<2; i=i+1) begin
-                to_ram_fifo_header[i] <= #DELAY 'h01; // is data
-                to_ram_fifo_wren[i] <= #DELAY from_ram_src != i;
-              end
+              //Write to the NON src RAM
+              to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
+              to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
               to_ram_fifo_data <= #DELAY from_ram_fifo_data;
               
               rd_zmw <= #DELAY rd_zmw + `TRUE;
@@ -304,16 +308,19 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           
         PACER_STOPPING_FRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
-          //^STOP to RAM[~src]
-          to_ram_fifo_header[~from_ram_src] <= #DELAY 'b0000_0000;
-          to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
-          n_clock <= #DELAY 0; n_frame <= #DELAY 0; n_stride <= #DELAY 0;
-          pacer_state <= #DELAY PACER_INTERFRAME;
+          //^EOF
+          if(n_frame == max_frame) pacer_state <= #DELAY PACER_STOPPING;
+          else if(!to_ram_fifo_full[~from_ram_src]) begin
+            //^STOP to RAM[~src]
+            to_ram_fifo_header[~from_ram_src] <= #DELAY 'b0000_0000;
+            to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
+            pacer_state <= #DELAY PACER_INTERFRAME;
+          end
         end
         
         PACER_INTERFRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
-          if(n_clock == max_clock_per_frame) begin
+          if(n_clock == clock_per_frame) begin
             n_clock <= #DELAY 0;
             pacer_state <= #DELAY PACER_STARTING_FRAME;
           end
