@@ -85,7 +85,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
 #24      xb_wr_wren_r = `TRUE;
         //A valid START message is {'h3c23d70a,'h0012_0000,'h0000_0140}
         xb_wr_data_r = 'h0000_0240;
-#8      xb_wr_data_r = 'h0010_0000;
+#8      xb_wr_data_r = 'h0000_0100;
 #8      xb_wr_data_r = 'h3c23_d70a;
 #8      xb_wr_wren_r = `FALSE;
       end

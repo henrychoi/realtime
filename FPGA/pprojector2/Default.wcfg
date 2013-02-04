@@ -78,6 +78,21 @@
       <wvobject fp_name="group302" type="group">
          <obj_property name="label">pacer arguments</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/n_clock" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">n_clock[23:0]</obj_property>
+            <obj_property name="ObjectShortName">n_clock[23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/n_frame" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">n_frame[23:0]</obj_property>
+            <obj_property name="ObjectShortName">n_frame[23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/n_stride" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">n_stride[7:0]</obj_property>
+            <obj_property name="ObjectShortName">n_stride[7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/max_clock_per_frame" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">max_clock_per_frame[23:0]</obj_property>
             <obj_property name="ObjectShortName">max_clock_per_frame[23:0]</obj_property>
@@ -154,6 +169,16 @@
          <obj_property name="ElementShortName">ram_state[1:0,3:0]</obj_property>
          <obj_property name="ObjectShortName">ram_state[1:0,3:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/ram_state[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1,3:0]</obj_property>
+            <obj_property name="ObjectShortName">ram_state[1,3:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ram_state[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0,3:0]</obj_property>
+            <obj_property name="ObjectShortName">ram_state[0,3:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/ram_addr" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram_addr[1:0,6:0]</obj_property>
@@ -177,6 +202,10 @@
          <obj_property name="ElementShortName">ram_read[1:0]</obj_property>
          <obj_property name="ObjectShortName">ram_read[1:0]</obj_property>
       </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram_rd_data_valid" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram_rd_data_valid[1:0]</obj_property>
+         <obj_property name="ObjectShortName">ram_rd_data_valid[1:0]</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/ram_rd_data" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram_rd_data[1:0,255:0]</obj_property>
          <obj_property name="ObjectShortName">ram_rd_data[1:0,255:0]</obj_property>
@@ -191,10 +220,6 @@
             <obj_property name="ObjectShortName">ram_rd_data[0,255:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/ram_rd_data_valid" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">ram_rd_data_valid[1:0]</obj_property>
-         <obj_property name="ObjectShortName">ram_rd_data_valid[1:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/from_ram_src" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">from_ram_src</obj_property>
