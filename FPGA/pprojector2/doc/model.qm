@@ -220,53 +220,108 @@
   <class name="Pacer" superclass="qpn::QHsm">
    <statechart>
     <initial target="../1">
-     <initial_glyph conn="8,16,4,2,-3">
+     <initial_glyph conn="10,30,4,2,-3">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
     <state name="STOPPED">
-     <tran trig="START( exposure, stride, n_frame)" target="../../5">
+     <tran trig="START( exposure, stride, n_frame)" target="../../4">
       <action brief="save args"/>
-      <tran_glyph conn="11,5,1,3,26">
-       <action box="1,-2,24,4"/>
+      <tran_glyph conn="5,20,0,2,-9">
+       <action box="-2,-5,24,4"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="2,4,9,9"/>
+     <state_glyph node="3,20,9,7"/>
+    </state>
+    <state name="ERROR">
+     <state_glyph node="2,49,11,6"/>
+    </state>
+    <state name="STOPPING">
+     <tran trig="RAM0&amp;1 FIFO !FULL" target="../../1">
+      <action brief="RAM0/1 ^ STOP"/>
+      <tran_glyph conn="5,39,0,2,-12">
+       <action box="0,-7,11,6"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,39,8,6"/>
+    </state>
+    <state name="STARTING">
+     <tran trig="RAM0 FIFO !FULL" target="../../5/1">
+      <action brief="RAM0 ^ START(WR)"/>
+      <tran_glyph conn="11,7,1,0,39,5">
+       <action box="1,-2,26,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="3,5,8,6"/>
     </state>
     <state name="STARTED">
-     <tran trig="STOP" target="../../4">
-      <tran_glyph conn="15,26,3,1,-5">
+     <tran trig="STOP" target="../../3">
+      <tran_glyph conn="15,47,3,2,-8,-2">
        <action box="-4,-2,5,3"/>
       </tran_glyph>
      </tran>
+     <state name="INIT">
+      <tran trig="FULL" target="../2">
+       <tran_glyph conn="70,19,1,1,-10">
+        <action box="-5,-2,5,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="wr_zmw == N_ZMW % 2^log2(N_ZMW)" target="../../2/0/0">
+       <tran_glyph conn="46,20,3,0,-5,18">
+        <action box="-14,-4,14,4"/>
+       </tran_glyph>
+      </tran>
+      <state name="INIT_THROTTLED">
+       <tran trig="!FULL" target="../..">
+        <tran_glyph conn="60,16,1,1,10">
+         <action box="1,-2,6,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="47,15,13,6"/>
+      </state>
+      <state_glyph node="46,12,24,10"/>
+     </state>
      <state name="RUNNING">
       <entry brief="n_frame = 1; n_stride = 0;"/>
       <state name="INTRAFRAME">
        <entry brief="n_clk = 0;"/>
        <state name="STARTING_FRAME">
-        <entry brief="STOP-&gt; RAM[src]; n_frame++"/>
+        <entry brief="\STOP-&gt; RAM[src];\n_frame++"/>
         <tran trig="RAM[src] FIFO !FULL" target="../../1">
          <action brief="START(RD) -&gt; RAM[src]"/>
-         <tran_glyph conn="59,32,1,3,13">
-          <action box="1,0,10,6"/>
+         <tran_glyph conn="44,43,1,3,14">
+          <action box="1,0,14,6"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="46,25,13,12">
-         <entry box="1,2,12,6"/>
+        <state_glyph node="30,38,14,12">
+         <entry box="1,2,13,7"/>
         </state_glyph>
        </state>
        <state name="FRAME">
         <tran trig="rd_zmw == N_ZMW-1" target="../../2">
-         <tran_glyph conn="72,30,3,2,-2,-3">
-          <action box="-10,-3,8,4"/>
+         <tran_glyph conn="63,40,0,3,-4,3">
+          <action box="-9,-4,8,4"/>
          </tran_glyph>
         </tran>
-        <tran trig="wrong data" target="../../../../../3">
-         <tran_glyph conn="74,37,2,2,4,-66,-3">
-          <action box="1,3,10,2"/>
+        <tran trig="wrong data" target="../../../../../2">
+         <tran_glyph conn="58,48,3,1,-4,3,-41">
+          <action box="-12,1,8,2"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="72,29,15,8"/>
+        <tran trig="RAM[~src] FIFO HIGH" target="../3">
+         <tran_glyph conn="58,46,3,3,15">
+          <action box="1,-3,13,4"/>
+         </tran_glyph>
+        </tran>
+        <state name="FRAME_THROTTLED">
+         <tran trig="RAM[~src] FIFO !HIGH" target="../..">
+          <tran_glyph conn="73,49,3,3,-15">
+           <action box="-12,-2,13,4"/>
+          </tran_glyph>
+         </tran>
+         <state_glyph node="73,43,13,7"/>
+        </state>
+        <state_glyph node="58,40,29,11"/>
        </state>
        <state name="STOPPING_FRAME">
         <entry brief="^EOF"/>
@@ -274,86 +329,44 @@
         <tran trig="clk">
          <choice target="../../../../1">
           <guard brief="else">guard1</guard>
-          <choice_glyph conn="60,23,5,1,-19">
-           <action box="-6,-2,5,2"/>
+          <choice_glyph conn="37,34,4,1,2,-11">
+           <action box="-6,0,5,2"/>
           </choice_glyph>
          </choice>
          <choice target="../../../../../../1">
           <guard brief="n_frame == max_frame">guard2</guard>
-          <choice_glyph conn="60,23,4,0,-21,-54,2">
-           <action box="0,-17,16,2"/>
+          <choice_glyph conn="37,34,4,1,-11,-25">
+           <action box="-22,-13,19,2"/>
           </choice_glyph>
          </choice>
-         <tran_glyph conn="65,23,3,-1,-5">
+         <tran_glyph conn="66,34,3,-1,-29">
           <action box="-3,-2,4,2"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="65,19,22,8">
+        <state_glyph node="66,30,21,8">
          <entry box="1,2,16,2"/>
          <exit box="1,4,16,2"/>
         </state_glyph>
        </state>
-       <state_glyph node="44,16,44,22">
+       <state_glyph node="28,27,60,25">
         <entry box="1,2,20,3"/>
        </state_glyph>
       </state>
       <state name="INTERFRAME">
        <tran trig="n_clk == clock_per_frame" target="../../0/0">
-        <tran_glyph conn="41,29,1,3,5">
-         <action box="-4,0,12,5"/>
+        <tran_glyph conn="24,43,2,3,3,6">
+         <action box="-7,2,11,4"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="31,22,10,11"/>
+       <state_glyph node="17,34,9,9"/>
       </state>
-      <state_glyph node="30,13,59,26">
+      <state_glyph node="16,24,73,29">
        <entry box="1,2,13,5"/>
       </state_glyph>
      </state>
-     <state name="INIT">
-      <tran trig="FULL" target="../2">
-       <tran_glyph conn="19,36,2,2,-4">
-        <action box="0,-2,9,2"/>
-       </tran_glyph>
-      </tran>
-      <tran trig="wr_zmw == N_ZMW % 2^log2(N_ZMW)" target="../../1/0/0">
-       <tran_glyph conn="28,34,1,3,18">
-        <action box="1,0,14,4"/>
-       </tran_glyph>
-      </tran>
-      <state name="INIT_THROTTLED">
-       <tran trig="!FULL" target="../..">
-        <tran_glyph conn="24,32,2,2,4">
-         <action box="1,0,6,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="17,26,10,6"/>
-      </state>
-      <state_glyph node="16,22,12,14"/>
-     </state>
-     <state_glyph node="15,10,75,30"/>
+     <state_glyph node="15,8,75,46"/>
     </state>
-    <state name="ERROR">
-     <state_glyph node="2,32,11,6"/>
-    </state>
-    <state name="STOPPING">
-     <tran trig="RAM0&amp;1 FIFO !FULL" target="../../1">
-      <action brief="RAM0/1 ^ STOP"/>
-      <tran_glyph conn="4,24,0,2,-11">
-       <action box="0,-7,11,6"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,24,8,6"/>
-    </state>
-    <state name="STARTING">
-     <tran trig="RAM0 FIFO !FULL" target="../../2/2">
-      <action brief="RAM0 ^ START(WR)"/>
-      <tran_glyph conn="37,8,3,0,-17,14">
-       <action box="-15,-2,14,4"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="37,3,13,6"/>
-    </state>
-    <state_diagram size="92,45"/>
+    <state_diagram size="92,61"/>
    </statechart>
   </class>
   <class name="MsgAssembler" superclass="qpn::QHsm">

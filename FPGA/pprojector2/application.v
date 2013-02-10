@@ -23,8 +23,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
   localparam PACER_ERROR = 0, PACER_STOPPED = 1, PACER_STOPPING = 2
            , PACER_STARTING = 3, PACER_INIT = 4, PACER_INIT_THROTTLED = 5
-           , PACER_STARTING_FRAME = 6, PACER_FRAME = 7, PACER_STOPPING_FRAME =8
-           , PACER_INTERFRAME = 9, PACER_N_STATE = 10;
+           , PACER_STARTING_FRAME = 6, PACER_FRAME = 7
+           , PACER_FRAME_THROTTLED = 8, PACER_STOPPING_FRAME = 9
+           , PACER_INTERFRAME = 10, PACER_N_STATE = 11;
   reg [log2(PACER_N_STATE)-1:0] pacer_state;
   assign #DELAY app_running = pacer_state >= PACER_STARTING_FRAME;
   assign #DELAY app_error = !pacer_state; 
@@ -54,7 +55,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   reg [ZMW_DATA_SIZE-1:0]   to_ram_fifo_data;
   reg[1:0] to_ram_fifo_wren;
   wire[1:0] to_ram_fifo_ack //Need Karnaugh logic for ACK, arrrg!
-          , to_ram_fifo_full, to_ram_fifo_almost_full
+          , to_ram_fifo_full, to_ram_fifo_almost_full, to_ram_fifo_high
           , to_ram_fifo_empty, to_ram_fifo_almost_empty, to_ram_fifo_valid;
   assign to_ram_fifo_valid = {!to_ram_fifo_empty[1], !to_ram_fifo_empty[0]};
 
@@ -70,7 +71,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
               , .wren(from_ram_fifo_wren), .din(from_ram_fifo_din)
               , .high(from_ram_fifo_high), .full(from_ram_fifo_full)
-              , .almost_full(from_ram_fifo_almost_full), .rden(from_ram_fifo_ack)
+              , .almost_full(from_ram_fifo_almost_full)
+              , .rden(from_ram_fifo_ack)
               , .dout({from_ram_fifo_data, from_ram_fifo_header})
               , .empty(from_ram_fifo_empty), .almost_empty());
   assign from_ram_fifo_valid = !from_ram_fifo_empty;
@@ -83,8 +85,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       better_fifo#(.TYPE("ToRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
       to_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
                 , .din({to_ram_fifo_data, to_ram_fifo_header[geni]})
-                , .wren(to_ram_fifo_wren[geni]), .high(), .full(to_ram_fifo_full[geni])
+                , .wren(to_ram_fifo_wren[geni]), .full(to_ram_fifo_full[geni])
                 , .almost_full(to_ram_fifo_almost_full[geni])
+                , .high(to_ram_fifo_high[geni])
                 , .rden(to_ram_fifo_ack[geni]), .dout(to_ram_fifo_dout[geni])
                 , .empty(to_ram_fifo_empty[geni])
                 , .almost_empty(to_ram_fifo_almost_empty[geni]));
@@ -240,7 +243,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             to_ram_fifo_wren[0] <= #DELAY `FALSE;
             pacer_state <= #DELAY PACER_INIT_THROTTLED;
           end else begin
-            if(wr_zmw == N_ZMW % (2**log2(N_ZMW))) begin              
+            if(wr_zmw == N_ZMW % (2**log2(N_ZMW))
+               && !to_ram_fifo_full[0]) begin
               to_ram_fifo_header[0] <= #DELAY 'h00;// ^STOP to 1st RAM
               n_clock <= #DELAY 0;
               pacer_state <= #DELAY PACER_STARTING_FRAME;
@@ -262,7 +266,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           
         PACER_STARTING_FRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
-          if(!to_ram_fifo_full) begin
+          //Wait for both FIFO to free up
+          if(!to_ram_fifo_full) begin // ^START to both DRAM managers
             n_frame <= #DELAY n_frame + `TRUE;
             
             //Tell src RAM to start reading, and ~src RAM to start writing.
@@ -278,8 +283,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         
         PACER_FRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
-          // check the answer
           if(from_ram_fifo_valid) begin
+            // check the answer
             if(!from_ram_fifo_header[0] // RAM should not hold metadata
                || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
             begin
@@ -289,7 +294,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 to_ram_fifo_wren[i] <= #DELAY `TRUE;
               end
               pacer_state <= #DELAY PACER_ERROR;
-            end else begin
+            end else begin // do write to ~src RAM
               //Write to the NON src RAM
               to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
               to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
@@ -301,11 +306,34 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 to_ram_fifo_header[from_ram_src] <= #DELAY 'b0000_0000;
                 to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
                 pacer_state <= #DELAY PACER_STOPPING_FRAME;
+              end else begin//if(rd_zmw == N_ZMW-1)
+                pacer_state <= #DELAY to_ram_fifo_high[~from_ram_src]
+                             ? PACER_FRAME_THROTTLED : PACER_FRAME;
               end
-            end
-          end
-        end
+            end//else
+          end//!to_ram_fifo_high
+        end//if(from_ram_fifo_valid)
           
+        PACER_FRAME_THROTTLED: begin
+          n_clock <= #DELAY n_clock + `TRUE;
+          if(from_ram_fifo_valid) begin
+            // check the answer
+            if(!from_ram_fifo_header[0] // RAM should not hold metadata
+               || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
+            begin
+              // ^STOP to both RAM controllers
+              for(i=0; i<2; i=i+1) begin
+                to_ram_fifo_header[i] <= #DELAY 'h00;
+                to_ram_fifo_wren[i] <= #DELAY `TRUE;
+              end
+              pacer_state <= #DELAY PACER_ERROR;
+            end else begin // do NOT write to ~src RAM, but process new data
+              pacer_state <= #DELAY to_ram_fifo_high[~from_ram_src]
+                           ? PACER_FRAME_THROTTLED : PACER_FRAME;
+            end//else
+          end//!to_ram_fifo_high
+        end
+
         PACER_STOPPING_FRAME: begin
           n_clock <= #DELAY n_clock + `TRUE;
           //^EOF

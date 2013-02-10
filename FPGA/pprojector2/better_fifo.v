@@ -18,8 +18,8 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
     else if(TYPE == "ToRAM" || TYPE == "FromRAM")
       standard256_fifo fifo(.clk(RD_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
-      , .prog_full(high)
+      , .din(din), .wr_en(wren)
+      , .full(full), .almost_full(almost_full), .prog_full(high)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
       , .almost_empty(fifo_almost_empty));
   endgenerate
