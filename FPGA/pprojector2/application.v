@@ -5,7 +5,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 , output app_running, app_error);
 `include "function.v"
   localparam RAM_HEADER_SIZE = 8, ZMW_DATA_SIZE = RAM_DATA_SIZE - RAM_HEADER_SIZE
-           , FP_SIZE = 30
+           , FP_SIZE = 32
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
            , MAX_FRAME = 2**24 - 1;
   reg [log2(MAX_STRIDE)-1:0] max_stride, n_stride;
@@ -57,7 +57,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire[1:0] to_ram_fifo_ack //Need Karnaugh logic for ACK, arrrg!
           , to_ram_fifo_full, to_ram_fifo_almost_full, to_ram_fifo_high
           , to_ram_fifo_empty, to_ram_fifo_almost_empty, to_ram_fifo_valid;
-  assign to_ram_fifo_valid = {!to_ram_fifo_empty[1], !to_ram_fifo_empty[0]};
+  assign #DELAY to_ram_fifo_valid = {!to_ram_fifo_empty[1], !to_ram_fifo_empty[0]};
 
   wire from_ram_fifo_ack, from_ram_fifo_empty, from_ram_fifo_valid
      , from_ram_fifo_high, from_ram_fifo_full, from_ram_fifo_almost_full;
@@ -66,7 +66,20 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   // register the inputs for timing margin
   reg  from_ram_src, from_ram_fifo_wren;
   reg [RAM_DATA_SIZE-1:0] from_ram_fifo_din;
+
+  reg gTime_cal_en;
+  wire fn_frame_rdy, nframeXexp_rdy;
+  wire[FP_SIZE-1:0] fn_frame, nframeXexp;
+  reg [FP_SIZE-1:0] gTime;
   
+  i25tof nframe_to_f(.clk(CLK), .sclr(RESET)
+                   , .a({0, n_frame}) //sign bit always 0
+                   , .operation_nd(gTime_cal_en)
+                   , .result(fn_frame), .rdy(fn_frame_rdy));
+  fmult fnframeXexp(.clk(CLK), .sclr(RESET)
+                  , .a(fn_frame), .b(exposure), .operation_nd(fn_frame_rdy)
+                  , .result(nframeXexp), .rdy(nframeXexp_rdy));
+
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
               , .wren(from_ram_fifo_wren), .din(from_ram_fifo_din)
@@ -106,6 +119,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         || (ram_state[geni] == RAM_THROTTLED));
 `else
         !((ram_state[geni] == RAM_MSG_WAIT2 && to_ram_fifo_dout[geni][0]) ||
+          (ram_state[geni] == RAM_WR_WAIT) ||
           (ram_state[geni] == RAM_WR1 && to_ram_fifo_dout[geni][0] && //is data
            !ram_wdf_rdy[geni]));
 `endif
@@ -130,6 +144,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                                       + CONTROL_MSG_STRIDE_SIZE
            , CONTROL_MSG_EXPOSURE_SIZE = 32;
   wire is_control_msg, is_start_msg, is_stop_msg;
+  //A PC message is either a camera control message (START/STOP; see design doc)
+  //or data (pulse description) message
   assign #DELAY is_control_msg = whole_pc_msg_valid
                               && whole_pc_msg[MSG_HEADER_TYPE_BIT] == `FALSE;
   assign #DELAY is_start_msg = whole_pc_msg_valid
@@ -143,6 +159,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   always @(posedge CLK) begin
     if(RESET) begin
+      gTime_cal_en <= #DELAY `FALSE;
       fpga_msg_valid <= #DELAY `FALSE;
       msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT1;
       pacer_state <= #DELAY PACER_STOPPED;
@@ -191,6 +208,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       endcase//msg_assembler_state
     
       //Pacer code
+      gTime_cal_en <= #DELAY `FALSE;
+      if(nframeXexp_rdy) gTime <= #DELAY nframeXexp;
+      
       for(i=0; i<2; i=i+1) to_ram_fifo_wren[i] <= #DELAY `FALSE;
       case(pacer_state)
         PACER_STOPPED:
@@ -230,6 +250,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             //writing 0 in this cycle, so write 1 next
             wr_zmw <= #DELAY wr_zmw + `TRUE;
             to_ram_fifo_wren[0] <= #DELAY `TRUE;
+            gTime_cal_en <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_INIT;
           end
         end
@@ -328,6 +349,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             //^STOP to RAM[~src]
             to_ram_fifo_header[~from_ram_src] <= #DELAY 'b0000_0000;
             to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
+            gTime_cal_en <= #DELAY `TRUE;
             pacer_state <= #DELAY PACER_INTERFRAME;
           end
         end

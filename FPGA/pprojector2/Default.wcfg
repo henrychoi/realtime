@@ -104,14 +104,19 @@
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/exposure" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">exposure[29:0]</obj_property>
-            <obj_property name="ObjectShortName">exposure[29:0]</obj_property>
+            <obj_property name="ElementShortName">exposure[31:0]</obj_property>
+            <obj_property name="ObjectShortName">exposure[31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/pacer_state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">pacer_state[3:0]</obj_property>
          <obj_property name="ObjectShortName">pacer_state[3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/gTime" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTime[31:0]</obj_property>
+         <obj_property name="ObjectShortName">gTime[31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/from_ram_src" type="logic" db_ref_id="1">
@@ -201,6 +206,16 @@
          <obj_property name="ElementShortName">ram_addr[1:0,6:0]</obj_property>
          <obj_property name="ObjectShortName">ram_addr[1:0,6:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/ram_addr[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1,6:0]</obj_property>
+            <obj_property name="ObjectShortName">ram_addr[1,6:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ram_addr[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0,6:0]</obj_property>
+            <obj_property name="ObjectShortName">ram_addr[0,6:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/ram_wdf_wren" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram_wdf_wren[1:0]</obj_property>
