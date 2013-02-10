@@ -294,10 +294,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 to_ram_fifo_wren[i] <= #DELAY `TRUE;
               end
               pacer_state <= #DELAY PACER_ERROR;
-            end else begin // do write to ~src RAM
-              //Write to the NON src RAM
+            end else begin // write to ~src RAM
               to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
               to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
+              //To do: update the pulse definition when a new one comes in
               to_ram_fifo_data <= #DELAY from_ram_fifo_data;
               
               rd_zmw <= #DELAY rd_zmw + `TRUE;
@@ -307,7 +307,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
                 pacer_state <= #DELAY PACER_STOPPING_FRAME;
               end else begin//if(rd_zmw == N_ZMW-1)
-                pacer_state <= #DELAY to_ram_fifo_high[~from_ram_src]
+                pacer_state <= #DELAY to_ram_fifo_full[~from_ram_src]
                              ? PACER_FRAME_THROTTLED : PACER_FRAME;
               end
             end//else
@@ -316,22 +316,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           
         PACER_FRAME_THROTTLED: begin
           n_clock <= #DELAY n_clock + `TRUE;
-          if(from_ram_fifo_valid) begin
-            // check the answer
-            if(!from_ram_fifo_header[0] // RAM should not hold metadata
-               || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
-            begin
-              // ^STOP to both RAM controllers
-              for(i=0; i<2; i=i+1) begin
-                to_ram_fifo_header[i] <= #DELAY 'h00;
-                to_ram_fifo_wren[i] <= #DELAY `TRUE;
-              end
-              pacer_state <= #DELAY PACER_ERROR;
-            end else begin // do NOT write to ~src RAM, but process new data
-              pacer_state <= #DELAY to_ram_fifo_high[~from_ram_src]
-                           ? PACER_FRAME_THROTTLED : PACER_FRAME;
-            end//else
-          end//!to_ram_fifo_high
+          pacer_state <= #DELAY to_ram_fifo_full[~from_ram_src]
+                       ? PACER_FRAME_THROTTLED : PACER_FRAME;
         end
 
         PACER_STOPPING_FRAME: begin
