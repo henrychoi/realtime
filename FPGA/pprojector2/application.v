@@ -62,7 +62,6 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire from_ram_fifo_ack, from_ram_fifo_empty, from_ram_fifo_valid
      , from_ram_fifo_high, from_ram_fifo_full, from_ram_fifo_almost_full;
   wire[RAM_HEADER_SIZE-1:0] from_ram_fifo_header;
-  wire[ZMW_DATA_SIZE-1:0]   from_ram_fifo_data;
   // register the inputs for timing margin
   reg  from_ram_src, from_ram_fifo_wren;
   reg [RAM_DATA_SIZE-1:0] from_ram_fifo_din;
@@ -80,13 +79,34 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                   , .a(fn_frame), .b(exposure), .operation_nd(fn_frame_rdy)
                   , .result(nframeXexp), .rdy(nframeXexp_rdy));
 
+  localparam MAX_PULSE_PER_ZMW = 3;
+  wire[FP_SIZE-1:0] current_pulse_t1[MAX_PULSE_PER_ZMW-1:0]
+                  , current_pulse_dt[MAX_PULSE_PER_ZMW-1:0]
+                  , current_pulse_tf[MAX_PULSE_PER_ZMW-1:0];
+  wire[MAX_PULSE_PER_ZMW-1:0] current_pulse_tf_rdy;
+  wire[1:0] current_pulse_dye[MAX_PULSE_PER_ZMW-1:0]
+          , current_pulse_intensity[MAX_PULSE_PER_ZMW-1:0]
+          , current_pulse_zz[1:0][MAX_PULSE_PER_ZMW-1:0];
+  wire[7:0] current_pulse_zzzzzzzz;
+  wire[23:0] current_pulse_zmw_number;
+  
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
               , .wren(from_ram_fifo_wren), .din(from_ram_fifo_din)
               , .high(from_ram_fifo_high), .full(from_ram_fifo_full)
               , .almost_full(from_ram_fifo_almost_full)
               , .rden(from_ram_fifo_ack)
-              , .dout({from_ram_fifo_data, from_ram_fifo_header})
+              , .dout({current_pulse_t1[0], current_pulse_dt[0]
+                     , current_pulse_t1[1], current_pulse_dt[1]
+                     , current_pulse_t1[2], current_pulse_dt[2]
+                     , current_pulse_zz[0][0], current_pulse_dye[0]
+                     , current_pulse_zz[1][0], current_pulse_intensity[0]
+                     , current_pulse_zz[0][1], current_pulse_dye[1]
+                     , current_pulse_zz[1][1], current_pulse_intensity[1]
+                     , current_pulse_zz[0][2], current_pulse_dye[2]
+                     , current_pulse_zz[1][2], current_pulse_intensity[2]
+                     , current_pulse_zzzzzzzz, current_pulse_zmw_number
+                     , from_ram_fifo_header})
               , .empty(from_ram_fifo_empty), .almost_empty());
   assign from_ram_fifo_valid = !from_ram_fifo_empty;
   assign from_ram_fifo_ack = from_ram_fifo_valid && !to_ram_fifo_full;
@@ -94,6 +114,13 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   integer i;
   genvar geni;
   generate
+    for(geni=0; geni < MAX_PULSE_PER_ZMW; geni=geni+1) begin
+      fadd t1Pdt(.clk(CLK), .sclr(RESET), .operation_nd(from_ram_fifo_valid)
+               , .a(current_pulse_t1[geni]), .b(current_pulse_dt[geni])
+               , .result(current_pulse_tf[geni])
+               , .rdy(current_pulse_tf_rdy[geni]));
+    end
+
     for(geni=0; geni<2; geni=geni+1) begin
       better_fifo#(.TYPE("ToRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
       to_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
@@ -142,8 +169,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
            , CONTROL_MSG_STRIDE_SIZE = 8
            , CONTROL_MSG_EXPOSURE_BIT = CONTROL_MSG_STRIDE_BIT
                                       + CONTROL_MSG_STRIDE_SIZE
-           , CONTROL_MSG_EXPOSURE_SIZE = 32;
-  wire is_control_msg, is_start_msg, is_stop_msg;
+           , CONTROL_MSG_EXPOSURE_SIZE = FP_SIZE;
+  wire is_control_msg, is_start_msg, is_stop_msg, is_pulse_msg;
   //A PC message is either a camera control message (START/STOP; see design doc)
   //or data (pulse description) message
   assign #DELAY is_control_msg = whole_pc_msg_valid
@@ -155,7 +182,25 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
              && whole_pc_msg[MSG_HEADER_TYPE_BIT] == `FALSE//control msg
              && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE;//stop msg
 
-  assign #DELAY pc_msg_ack = pc_msg_valid;
+  localparam PULSE_MSG_SIZE = FP_SIZE + FP_SIZE + 2 + 2 + 22;//90;
+  wire[FP_SIZE-1:0] new_pulse_t1, new_pulse_dt;
+  wire[1:0]  new_pulse_dye, new_pulse_intensity;
+  wire[21:0] new_pulse_zmw_num;
+  assign #DELAY is_pulse_msg = whole_pc_msg_valid
+                            && whole_pc_msg[MSG_HEADER_TYPE_BIT] == `TRUE;
+  wire to_updater_fifo_ack, to_updater_fifo_full, to_updater_fifo_empty;
+
+  better_fifo#(.TYPE("Pulse"), .WIDTH(PULSE_MSG_SIZE), .DELAY(DELAY))
+  to_updater_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+                , .wren(is_pulse_msg && !to_updater_fifo_full)
+                , .din(whole_pc_msg[CONTROL_MSG_START_BIT+:PULSE_MSG_SIZE])
+                , .high(), .full(to_updater_fifo_full), .almost_full()
+                , .rden(to_updater_fifo_ack)
+                , .dout({new_pulse_t1, new_pulse_dt, new_pulse_dye
+                       , new_pulse_intensity, new_pulse_zmw_num})
+                , .empty(to_updater_fifo_empty), .almost_empty());
+
+  assign #DELAY pc_msg_ack = pc_msg_valid && !to_updater_fifo_full;
   
   always @(posedge CLK) begin
     if(RESET) begin
@@ -184,30 +229,32 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
       fpga_msg_valid <= #DELAY `FALSE;
 
-      //Message assembler code
+      //Message assembler code ///////////////////////////////////////
       whole_pc_msg_valid <= #DELAY `FALSE;
-      case(msg_assembler_state)
-        MSG_ASSEMBLER_WAIT1:
-          if(pc_msg_valid) begin
-            msg_assembler_cache[0+:XB_SIZE] <= #DELAY pc_msg;
-            msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT2;
+      if(!to_updater_fifo_full) begin
+        case(msg_assembler_state)
+          MSG_ASSEMBLER_WAIT1:
+            if(pc_msg_valid) begin
+              msg_assembler_cache[0+:XB_SIZE] <= #DELAY pc_msg;
+              msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT2;
+            end
+          MSG_ASSEMBLER_WAIT2:
+            if(pc_msg_valid) begin
+              msg_assembler_cache[XB_SIZE+:XB_SIZE] <= #DELAY pc_msg;
+              msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT3;
+            end
+          MSG_ASSEMBLER_WAIT3:
+            if(pc_msg_valid) begin
+              msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT1;
+              whole_pc_msg <= #DELAY {pc_msg, msg_assembler_cache};
+              whole_pc_msg_valid <= #DELAY `TRUE;
+            end
+          default: begin
           end
-        MSG_ASSEMBLER_WAIT2:
-          if(pc_msg_valid) begin
-            msg_assembler_cache[XB_SIZE+:XB_SIZE] <= #DELAY pc_msg;
-            msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT3;
-          end
-        MSG_ASSEMBLER_WAIT3:
-          if(pc_msg_valid) begin
-            msg_assembler_state <= #DELAY MSG_ASSEMBLER_WAIT1;
-            whole_pc_msg <= #DELAY {pc_msg, msg_assembler_cache};
-            whole_pc_msg_valid <= #DELAY `TRUE;
-          end
-        default: begin
-        end
-      endcase//msg_assembler_state
-    
-      //Pacer code
+        endcase//msg_assembler_state
+      end//if(!to_updater_fifo_full)
+      
+      //Pacer code ////////////////////////////////////////////////////
       gTime_cal_en <= #DELAY `FALSE;
       if(nframeXexp_rdy) gTime <= #DELAY nframeXexp;
       
@@ -307,7 +354,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           if(from_ram_fifo_valid) begin
             // check the answer
             if(!from_ram_fifo_header[0] // RAM should not hold metadata
-               || from_ram_fifo_data[0+:log2(N_ZMW)] != rd_zmw)
+               || current_pulse_zmw_number[0+:log2(N_ZMW)] != rd_zmw)
             begin
               // ^STOP to both RAM controllers
               for(i=0; i<2; i=i+1) begin
@@ -319,8 +366,17 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
               to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
               //To do: update the pulse definition when a new one comes in
-              to_ram_fifo_data <= #DELAY from_ram_fifo_data;
-              
+              to_ram_fifo_data <= #DELAY {
+                   current_pulse_t1[0], current_pulse_dt[0]
+                 , current_pulse_t1[1], current_pulse_dt[1]
+                 , current_pulse_t1[2], current_pulse_dt[2]
+                 , current_pulse_zz[0][0], current_pulse_dye[0]
+                 , current_pulse_zz[1][0], current_pulse_intensity[0]
+                 , current_pulse_zz[0][1], current_pulse_dye[1]
+                 , current_pulse_zz[1][1], current_pulse_intensity[1]
+                 , current_pulse_zz[0][2], current_pulse_dye[2]
+                 , current_pulse_zz[1][2], current_pulse_intensity[2]
+                 , current_pulse_zzzzzzzz, current_pulse_zmw_number};              
               rd_zmw <= #DELAY rd_zmw + `TRUE;
               if(rd_zmw == N_ZMW-1) begin // done checking
                 // ^STOP to RAM[src]
@@ -367,9 +423,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         end
       endcase//pacer_state
 
+      // DRAM manager code /////////////////////////////////////////////
       for(i=0; i<2; i=i+1) begin // Dual RAM => dual statemachine
         //to_ram_fifo_ack[i] <= #DELAY `FALSE;//don't ACK by default
-        
         case(ram_state[i])
           RAM_IDLE: begin
             ram_addr[i] <= #DELAY 0;

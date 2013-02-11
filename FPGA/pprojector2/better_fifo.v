@@ -22,6 +22,10 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
       , .full(full), .almost_full(almost_full), .prog_full(high)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
       , .almost_empty(fifo_almost_empty));
+    else if(TYPE == "Pulse")
+      standard_pulse_fifo fifo(.clk(RD_CLK), .rst(RESET)
+      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
   endgenerate
   
   assign #DELAY will_update_middle = fifo_valid
