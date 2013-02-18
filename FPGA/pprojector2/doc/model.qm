@@ -57,7 +57,7 @@
         <guard brief="app_addr &lt; end_addr">guard2</guard>
         <action brief="app_addr++"/>
         <choice_glyph conn="62,14,5,-1,4">
-         <action box="2,0,14,4"/>
+         <action box="1,1,14,4"/>
         </choice_glyph>
        </choice>
        <tran_glyph conn="62,19,2,-1,-5">
@@ -292,7 +292,7 @@
         <entry brief="STOP-&gt; RAM[src];\n_frame++"/>
         <tran trig="RAM[src] FIFO !FULL" target="../../1">
          <action brief="START(RD) -&gt; RAM[src]"/>
-         <tran_glyph conn="55,41,1,0,6,2">
+         <tran_glyph conn="55,41,1,0,7,2">
           <action box="1,-7,9,8"/>
          </tran_glyph>
         </tran>
@@ -303,28 +303,20 @@
        <state name="FRAME">
         <tran trig="rd_zmw == N_ZMW-1" target="../../2">
          <tran_glyph conn="72,43,0,2,-5">
-          <action box="1,-2,15,2"/>
+          <action box="0,-3,15,2"/>
          </tran_glyph>
         </tran>
-        <tran trig="RAM[~src] FIFO HIGH" target="../3">
-         <tran_glyph conn="58,56,2,3,-3,3">
-          <action box="-7,-4,8,4"/>
+        <tran trig="RAM[~src] FIFO FULL" target="../../3">
+         <tran_glyph conn="60,51,3,1,-13">
+          <action box="-12,-2,13,2"/>
          </tran_glyph>
         </tran>
         <tran trig="wrong data" target="../../../../../2">
-         <tran_glyph conn="32,51,3,1,-20">
-          <action box="-13,-2,9,2"/>
+         <tran_glyph conn="60,54,3,1,-48">
+          <action box="-10,-2,9,2"/>
          </tran_glyph>
         </tran>
-        <state name="FRAME_THROTTLED">
-         <tran trig="RAM[~src] FIFO !HIGH" target="../..">
-          <tran_glyph conn="61,49,3,0,-3,-6">
-           <action box="-10,-3,8,4"/>
-          </tran_glyph>
-         </tran>
-         <state_glyph node="61,46,25,9"/>
-        </state>
-        <state_glyph node="32,43,55,13"/>
+        <state_glyph node="60,43,25,12"/>
        </state>
        <state name="STOPPING_FRAME">
         <entry brief="^EOF"/>
@@ -351,7 +343,15 @@
          <exit box="1,4,16,2"/>
         </state_glyph>
        </state>
-       <state_glyph node="31,27,57,30">
+       <state name="FRAME_THROTTLED">
+        <tran trig="RAM[~src] FIFO !FULL" target="../../1">
+         <tran_glyph conn="47,47,1,3,13">
+          <action box="0,-4,8,4"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="33,45,14,8"/>
+       </state>
+       <state_glyph node="31,27,57,29">
         <entry box="1,2,20,3"/>
        </state_glyph>
       </state>
@@ -366,11 +366,11 @@
         <entry box="1,2,10,7"/>
        </state_glyph>
       </state>
-      <state_glyph node="16,24,73,34">
+      <state_glyph node="16,24,73,33">
        <entry box="1,2,13,5"/>
       </state_glyph>
      </state>
-     <state_glyph node="15,8,75,51"/>
+     <state_glyph node="15,8,75,50"/>
     </state>
     <state_diagram size="92,61"/>
    </statechart>

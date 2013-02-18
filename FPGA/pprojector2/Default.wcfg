@@ -136,9 +136,9 @@
          <obj_property name="ElementShortName">from_ram_fifo_valid</obj_property>
          <obj_property name="ObjectShortName">from_ram_fifo_valid</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_fifo_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_fifo_data[247:0]</obj_property>
-         <obj_property name="ObjectShortName">from_ram_fifo_data[247:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">current_pulse_zmw_number[21:0]</obj_property>
+         <obj_property name="ObjectShortName">current_pulse_zmw_number[21:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/rd_zmw" type="array" db_ref_id="1">
@@ -252,6 +252,31 @@
             <obj_property name="ObjectShortName">ram_rd_data[0,255:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/gTimeGTEcurrent_pulse_tf" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
+         <obj_property name="ObjectShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/gTimeGTEcurrent_pulse_tf_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTimeGTEcurrent_pulse_tf_rdy[2:0]</obj_property>
+         <obj_property name="ObjectShortName">gTimeGTEcurrent_pulse_tf_rdy[2:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram2updater_fifo_empty" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram2updater_fifo_empty[2:0]</obj_property>
+         <obj_property name="ObjectShortName">ram2updater_fifo_empty[2:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ram2updater_fifo_full" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ram2updater_fifo_full[2:0]</obj_property>
+         <obj_property name="ObjectShortName">ram2updater_fifo_full[2:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number_d[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,21:0]</obj_property>
+         <obj_property name="ObjectShortName">current_pulse_zmw_number_d[0,21:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/assembler2updater_fifo_ack" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">assembler2updater_fifo_ack</obj_property>
+         <obj_property name="ObjectShortName">assembler2updater_fifo_ack</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
