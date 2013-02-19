@@ -24,7 +24,8 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
       , .almost_empty(fifo_almost_empty));
     else if(TYPE == "Pulse")
       standard_pulse_fifo fifo(.clk(RD_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+      , .din(din), .wr_en(wren)
+      , .full(full), .almost_full(almost_full), .prog_full(high)
       , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
   endgenerate
   
