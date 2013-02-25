@@ -119,22 +119,31 @@
          <obj_property name="ObjectShortName">gTime[31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_src" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_src</obj_property>
-         <obj_property name="ObjectShortName">from_ram_src</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_fifo_wren" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_fifo_wren</obj_property>
-         <obj_property name="ObjectShortName">from_ram_fifo_wren</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_fifo_din" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_fifo_din[255:0]</obj_property>
-         <obj_property name="ObjectShortName">from_ram_fifo_din[255:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/gTime_exposure" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTime_exposure[31:0]</obj_property>
+         <obj_property name="ObjectShortName">gTime_exposure[31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/from_ram_fifo_valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">from_ram_fifo_valid</obj_property>
-         <obj_property name="ObjectShortName">from_ram_fifo_valid</obj_property>
+      <wvobject fp_name="group68" type="group">
+         <obj_property name="label">from_ram</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/from_ram_src" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">from_ram_src</obj_property>
+            <obj_property name="ObjectShortName">from_ram_src</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/from_ram_fifo_wren" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">from_ram_fifo_wren</obj_property>
+            <obj_property name="ObjectShortName">from_ram_fifo_wren</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/from_ram_fifo_din" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">from_ram_fifo_din[255:0]</obj_property>
+            <obj_property name="ObjectShortName">from_ram_fifo_din[255:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/from_ram_fifo_valid" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">from_ram_fifo_valid</obj_property>
+            <obj_property name="ObjectShortName">from_ram_fifo_valid</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">current_pulse_zmw_number[21:0]</obj_property>
@@ -151,41 +160,45 @@
          <obj_property name="ObjectShortName">wr_zmw[6:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_wren" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_wren[1:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_wren[1:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_header" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_data[247:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_data[247:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_valid" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_valid[1:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_valid[1:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-         <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout[1]" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">[1,255:0]</obj_property>
-            <obj_property name="ObjectShortName">to_ram_fifo_dout[1,255:0]</obj_property>
+      <wvobject fp_name="group62" type="group">
+         <obj_property name="label">to_ram</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_wren" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_wren[1:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_wren[1:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_header" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_header[1:0,7:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_data" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_data[247:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_data[247:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout[0]" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">[0,255:0]</obj_property>
-            <obj_property name="ObjectShortName">to_ram_fifo_dout[0,255:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_valid" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_valid[1:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_valid[1:0]</obj_property>
          </wvobject>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/to_ram_fifo_ack" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">to_ram_fifo_ack[1:0]</obj_property>
-         <obj_property name="ObjectShortName">to_ram_fifo_ack[1:0]</obj_property>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_dout[1:0,255:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout[1]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[1,255:0]</obj_property>
+               <obj_property name="ObjectShortName">to_ram_fifo_dout[1,255:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/to_ram_fifo_dout[0]" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">[0,255:0]</obj_property>
+               <obj_property name="ObjectShortName">to_ram_fifo_dout[0,255:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/to_ram_fifo_ack" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">to_ram_fifo_ack[1:0]</obj_property>
+            <obj_property name="ObjectShortName">to_ram_fifo_ack[1:0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/ram_state" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">ram_state[1:0,3:0]</obj_property>
@@ -253,6 +266,11 @@
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
       </wvobject>
+      <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number_d[0]" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">[0,21:0]</obj_property>
+         <obj_property name="ObjectShortName">current_pulse_zmw_number_d[0,21:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/gTimeGTEcurrent_pulse_tf" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
          <obj_property name="ObjectShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
@@ -261,22 +279,44 @@
          <obj_property name="ElementShortName">gTimeGTEcurrent_pulse_tf_rdy[2:0]</obj_property>
          <obj_property name="ObjectShortName">gTimeGTEcurrent_pulse_tf_rdy[2:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/ram2updater_fifo_empty" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">ram2updater_fifo_empty[2:0]</obj_property>
-         <obj_property name="ObjectShortName">ram2updater_fifo_empty[2:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/gTime_exposureGTEcurrent_pulse_t1" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTime_exposureGTEcurrent_pulse_t1[2:0]</obj_property>
+         <obj_property name="ObjectShortName">gTime_exposureGTEcurrent_pulse_t1[2:0]</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/ram2updater_fifo_full" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">ram2updater_fifo_full[2:0]</obj_property>
-         <obj_property name="ObjectShortName">ram2updater_fifo_full[2:0]</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number_d[0]" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">[0,21:0]</obj_property>
-         <obj_property name="ObjectShortName">current_pulse_zmw_number_d[0,21:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
+      <wvobject fp_name="/simmain/main/app/gTime_exposureGTEcurrent_pulse_t1_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">gTime_exposureGTEcurrent_pulse_t1_rdy[2:0]</obj_property>
+         <obj_property name="ObjectShortName">gTime_exposureGTEcurrent_pulse_t1_rdy[2:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/assembler2updater_fifo_ack" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">assembler2updater_fifo_ack</obj_property>
          <obj_property name="ObjectShortName">assembler2updater_fifo_ack</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/updater_d_fifo_ack" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">updater_d_fifo_ack</obj_property>
+         <obj_property name="ObjectShortName">updater_d_fifo_ack</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pulse_desc_valid_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pulse_desc_valid_d[1:0]</obj_property>
+         <obj_property name="ObjectShortName">pulse_desc_valid_d[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/time1" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">time1[2:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">time1[2:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/time2_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">time2_d[2:0,1:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">time2_d[2:0,1:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/projection_duration" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">projection_duration[2:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">projection_duration[2:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/projection_duration_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">projection_duration_rdy[2:0]</obj_property>
+         <obj_property name="ObjectShortName">projection_duration_rdy[2:0]</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

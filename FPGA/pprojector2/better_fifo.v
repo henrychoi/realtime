@@ -13,20 +13,31 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
 
   generate
     if(TYPE == "XILLYBUS")
-      standard32x512_bram_fifo fifo(.rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
-      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+      standard32x512_bram_fifo
+      fifo(.rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
+         , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
     else if(TYPE == "ToRAM" || TYPE == "FromRAM")
-      standard256_fifo fifo(.clk(RD_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren)
-      , .full(full), .almost_full(almost_full), .prog_full(high)
-      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
-      , .almost_empty(fifo_almost_empty));
+      standard256_fifo
+      fifo(.clk(RD_CLK), .rst(RESET), .din(din), .wr_en(wren)
+         , .full(full), .almost_full(almost_full), .prog_full(high)
+         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty)
+         , .almost_empty(fifo_almost_empty));
     else if(TYPE == "Pulse")
-      standard_pulse_fifo fifo(.clk(RD_CLK), .rst(RESET)
-      , .din(din), .wr_en(wren)
-      , .full(full), .almost_full(almost_full), .prog_full(high)
-      , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+      standard_pulse_fifo
+      fifo(.clk(RD_CLK), .rst(RESET), .din(din), .wr_en(wren)
+         , .full(full), .almost_full(almost_full), .prog_full(high)
+         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+    else if(TYPE == "FPandZMW")
+      FPandZMW_fifo
+      fifo(.clk(RD_CLK), .rst(RESET), .din(din), .wr_en(wren)
+         , .full(full), .almost_full(almost_full)
+         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
+    else if(TYPE == "DYEandZMW")
+      DYEandZMW_fifo
+      fifo(.clk(RD_CLK), .rst(RESET), .din(din), .wr_en(wren)
+         , .full(full), .almost_full(almost_full)
+         , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
   endgenerate
   
   assign #DELAY will_update_middle = fifo_valid
