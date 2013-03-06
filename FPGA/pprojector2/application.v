@@ -103,7 +103,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
      , gTimeGTEcurrent_pulse_tf, gTimeGTEcurrent_pulse_tf_rdy
      , updater_d_fifo_full, updater_d_fifo_empty
      , gTime_exposureGTEcurrent_pulse_t1, gTime_exposureGTEcurrent_pulse_t1_rdy
-     , projection_duration_rdy
+     , projection_duration_rdy, durationXintensity_rdy
      , intensity_d_fifo_empty
      , dye_d_fifo_empty;
   wire updater_d_fifo_ack;
@@ -125,7 +125,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     , current_pulse_t1_dd[MAX_PULSE_PER_ZMW-1:0][FCOMP_LATENCY-1:0]
     , current_pulse_tf_d[MAX_PULSE_PER_ZMW-1:0][FCOMP_LATENCY-1:0];
   wire[FP_SIZE-1:0] projection_duration[MAX_PULSE_PER_ZMW-1:0]
-                  , pulse_intensity[MAX_PULSE_PER_ZMW-1:0];
+                  , pulse_intensity[MAX_PULSE_PER_ZMW-1:0]
+				  , durationXintensity[MAX_PULSE_PER_ZMW-1:0];
   reg [FP_SIZE-1:0] pulse_intensity_pool[2**2-1:0]
                   , current_pulse_intensity[MAX_PULSE_PER_ZMW-1:0];
   
@@ -206,7 +207,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       fmult duraXin(.clk(CLK), .sclr(RESET)
                   , .operation_nd(projection_duration_rdy[geni])
                   , .a(projection_duration[geni]), .b(pulse_intensity[geni])
-                  , .result(durationXint[geni]), .rdy(durationXint_rdy[geni]));
+                  , .result(durationXintensity[geni])
+                  , .rdy(durationXintensity_rdy[geni]));
 
       better_fifo#(.TYPE("DYEandZMW"), .WIDTH(FP_SIZE+N_ZMW_SIZE), .DELAY(DELAY))
       dye_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
