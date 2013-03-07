@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<model version="2.2.00">
+<model version="2.2.03">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
   <class name="DramIfc" superclass="qpn::QHsm">
@@ -248,7 +248,7 @@
     <state name="STARTING">
      <tran trig="RAM0 FIFO !FULL" target="../../5/1">
       <action brief="RAM0 ^ START(WR)"/>
-      <tran_glyph conn="11,14,1,3,37">
+      <tran_glyph conn="11,11,1,3,37">
        <action box="1,-2,26,2"/>
       </tran_glyph>
      </tran>
@@ -263,24 +263,24 @@
      <state name="INIT">
       <entry brief="start gTime calculation"/>
       <tran trig="FULL" target="../2">
-       <tran_glyph conn="81,19,1,1,-7">
+       <tran_glyph conn="81,16,1,1,-7">
         <action box="-5,-2,5,2"/>
        </tran_glyph>
       </tran>
       <tran trig="wr_zmw == N_ZMW % 2^log2(N_ZMW)" target="../../2/0/0">
-       <tran_glyph conn="48,20,3,0,-2,13">
+       <tran_glyph conn="48,17,3,0,-2,16">
         <action box="-14,-4,14,4"/>
        </tran_glyph>
       </tran>
       <state name="INIT_THROTTLED">
        <tran trig="!FULL" target="../..">
-        <tran_glyph conn="74,16,1,1,7">
+        <tran_glyph conn="74,13,1,1,7">
          <action box="1,-2,6,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="61,15,13,6"/>
+       <state_glyph node="61,12,13,7"/>
       </state>
-      <state_glyph node="48,12,33,10">
+      <state_glyph node="48,9,33,11">
        <entry box="1,2,12,4"/>
       </state_glyph>
      </state>
@@ -289,64 +289,66 @@
       <state name="INTRAFRAME">
        <entry brief="n_clk = 0;"/>
        <state name="STARTING_FRAME">
-        <entry brief="STOP-&gt; RAM[src];\n_frame++;\n_clock_throttled = 0"/>
+        <entry brief="STOP-&gt; RAM[src];\n_frame++;\n_clock_throttled = 0;\xof = TRUE"/>
+        <exit brief="xof = FALSE"/>
         <tran trig="RAM[src] FIFO !FULL" target="../../1">
          <action brief="START(RD) -&gt; RAM[src]"/>
-         <tran_glyph conn="57,41,1,0,8,3">
+         <tran_glyph conn="57,41,1,0,8,6">
           <action box="0,-6,12,6"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="40,33,17,10">
-         <entry box="1,2,16,6"/>
+        <state_glyph node="40,33,17,13">
+         <entry box="1,2,16,8"/>
+         <exit box="1,10,15,2"/>
         </state_glyph>
        </state>
        <state name="FRAME">
         <entry brief="rd_zmw_prev = -1"/>
         <tran trig="rd_zmw == N_ZMW-1" target="../../2">
-         <tran_glyph conn="74,44,0,2,-6">
+         <tran_glyph conn="74,47,0,2,-6">
           <action box="0,-3,15,2"/>
          </tran_glyph>
         </tran>
         <tran trig="RAM[~src] FIFO HIGH" target="../4">
-         <tran_glyph conn="35,52,3,3,15">
+         <tran_glyph conn="35,55,3,3,15">
           <action box="1,-2,14,2"/>
          </tran_glyph>
         </tran>
         <tran trig="wrong data" target="../../../../../2">
-         <tran_glyph conn="35,54,3,1,-21">
+         <tran_glyph conn="35,57,3,1,-21">
           <action box="-11,-2,9,2"/>
          </tran_glyph>
         </tran>
         <tran trig="n_clock_throttled &amp;&amp; Tf comparison rdy &amp;&amp; updater_d FIFO valid">
          <action brief="update new pulse description;\ACK new pulse FIFO if took update;"/>
-         <tran_glyph conn="89,48,1,-1,-4">
+         <tran_glyph conn="89,51,1,-1,-4">
           <action box="-20,-2,20,11"/>
          </tran_glyph>
         </tran>
         <state name="FRAME_THROTTLED">
          <exit brief="n_clock_throttled = 0"/>
          <tran trig="RAM[~src] FIFO !HIGH" target="../..">
-          <tran_glyph conn="50,55,3,3,-15">
+          <tran_glyph conn="50,58,3,3,-15">
            <action box="-14,-2,15,2"/>
           </tran_glyph>
          </tran>
          <tran trig="clock">
           <action brief="n_clock_throttled++"/>
-          <tran_glyph conn="50,54,3,-1,4">
+          <tran_glyph conn="50,57,3,-1,4">
            <action box="0,-2,18,2"/>
           </tran_glyph>
          </tran>
-         <state_glyph node="50,48,18,8">
+         <state_glyph node="50,51,18,8">
           <exit box="1,2,17,2"/>
          </state_glyph>
         </state>
-        <state_glyph node="35,44,54,13">
+        <state_glyph node="35,47,54,13">
          <entry box="1,2,18,2"/>
         </state_glyph>
        </state>
        <state name="STOPPING_FRAME">
-        <entry brief="^EOF"/>
-        <exit brief="STOP -&gt; RAM[src]"/>
+        <entry brief="xof = TRUE"/>
+        <exit brief="xof = FALSE;\STOP -&gt; RAM[src]"/>
         <tran trig="clk">
          <choice target="../../../../1">
           <guard brief="else">guard1</guard>
@@ -357,20 +359,20 @@
          <choice target="../../../../../../1">
           <guard brief="n_frame == max_frame">guard2</guard>
           <choice_glyph conn="36,32,5,1,-24">
-           <action box="-19,-11,19,2"/>
+           <action box="-20,-2,19,2"/>
           </choice_glyph>
          </choice>
          <tran_glyph conn="70,32,3,-1,-34">
           <action box="-3,-2,4,2"/>
          </tran_glyph>
         </tran>
-        <state_glyph node="70,30,19,8">
-         <entry box="1,2,16,2"/>
-         <exit box="1,4,16,2"/>
+        <state_glyph node="70,30,19,11">
+         <entry box="1,2,16,3"/>
+         <exit box="1,5,17,5"/>
         </state_glyph>
        </state>
-       <state_glyph node="33,27,57,31">
-        <entry box="1,2,20,3"/>
+       <state_glyph node="33,27,57,34">
+        <entry box="1,2,20,2"/>
        </state_glyph>
       </state>
       <state name="INTERFRAME">
@@ -384,13 +386,13 @@
         <entry box="1,2,10,7"/>
        </state_glyph>
       </state>
-      <state_glyph node="18,24,73,35">
-       <entry box="1,2,13,6"/>
+      <state_glyph node="18,23,73,39">
+       <entry box="1,2,13,5"/>
       </state_glyph>
      </state>
-     <state_glyph node="17,8,75,52"/>
+     <state_glyph node="17,5,75,58"/>
     </state>
-    <state_diagram size="95,61"/>
+    <state_diagram size="95,67"/>
    </statechart>
   </class>
   <class name="MsgAssembler" superclass="qpn::QHsm">
