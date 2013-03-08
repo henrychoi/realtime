@@ -28,7 +28,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
    , xb_wr_data         // xillybus -> xb_wr_fifo
    , pc_msg;
   reg [XB_SIZE-1:0] pc_msg_d;
-  wire[XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
+  wire[4*XB_SIZE-1:0] fpga_msg;//app -> xb_rd_fifo
 
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
   

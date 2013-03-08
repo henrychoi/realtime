@@ -11,40 +11,6 @@
       </db_ref>
    </db_ref_list>
    <WVObjectSize size="3" />
-   <wvobject fp_name="group35" type="group">
-      <obj_property name="label">XB</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject fp_name="/simmain/main/BUS_CLK" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">BUS_CLK</obj_property>
-         <obj_property name="ObjectShortName">BUS_CLK</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/xb_wr_wren" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">xb_wr_wren</obj_property>
-         <obj_property name="ObjectShortName">xb_wr_wren</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
-         <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">pc_msg_empty</obj_property>
-         <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/pc_msg_valid" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">pc_msg_valid</obj_property>
-         <obj_property name="ObjectShortName">pc_msg_valid</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/pc_msg_ack" type="logic" db_ref_id="1">
-         <obj_property name="ElementShortName">pc_msg_ack</obj_property>
-         <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
-      </wvobject>
-   </wvobject>
    <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -354,10 +320,6 @@
          <obj_property name="ObjectShortName">durationXintensity[2:0,31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/dye_d_fifo_empty" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">dye_d_fifo_empty[2:0]</obj_property>
-         <obj_property name="ObjectShortName">dye_d_fifo_empty[2:0]</obj_property>
-      </wvobject>
       <wvobject fp_name="/simmain/main/app/dye_d_fifo_ack" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">dye_d_fifo_ack</obj_property>
          <obj_property name="ObjectShortName">dye_d_fifo_ack</obj_property>
@@ -368,13 +330,100 @@
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/pulse_dye_zmw" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">pulse_dye_zmw[2:0,21:0]</obj_property>
-         <obj_property name="ObjectShortName">pulse_dye_zmw[2:0,21:0]</obj_property>
+         <obj_property name="ElementShortName">pulse_dye_zmw[21:0]</obj_property>
+         <obj_property name="ObjectShortName">pulse_dye_zmw[21:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/xof_d" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">xof_d[2:0]</obj_property>
-         <obj_property name="ObjectShortName">xof_d[2:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/pulse_dye_zmw_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pulse_dye_zmw_d[21:0]</obj_property>
+         <obj_property name="ObjectShortName">pulse_dye_zmw_d[21:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/xof_d" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">xof_d</obj_property>
+         <obj_property name="ObjectShortName">xof_d</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/xof_dd" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">xof_dd</obj_property>
+         <obj_property name="ObjectShortName">xof_dd</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/zmwxof_d_fifo_ack" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">zmwxof_d_fifo_ack</obj_property>
+         <obj_property name="ObjectShortName">zmwxof_d_fifo_ack</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/zmwxof_d_fifo_full" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">zmwxof_d_fifo_full</obj_property>
+         <obj_property name="ObjectShortName">zmwxof_d_fifo_full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/strength012" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">strength012[3:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">strength012[3:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/strength2_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">strength2_d[3:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">strength2_d[3:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/strength012_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">strength012_rdy[3:0]</obj_property>
+         <obj_property name="ObjectShortName">strength012_rdy[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/strength012" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">strength012[3:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">strength012[3:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="group35" type="group">
+      <obj_property name="label">XB</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/BUS_CLK" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">BUS_CLK</obj_property>
+         <obj_property name="ObjectShortName">BUS_CLK</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/xb_wr_wren" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">xb_wr_wren</obj_property>
+         <obj_property name="ObjectShortName">xb_wr_wren</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/xb_wr_data" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">xb_wr_data[31:0]</obj_property>
+         <obj_property name="ObjectShortName">xb_wr_data[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="ObjectShortName">pc_msg[31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/pc_msg_empty" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_empty</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_empty</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pc_msg_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_valid</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/pc_msg_ack" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">pc_msg_ack</obj_property>
+         <obj_property name="ObjectShortName">pc_msg_ack</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fpga_msg" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg[127:0]</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg[127:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fpga_msg_valid" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg_valid</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg_valid</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fpga_msg_full" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg_full</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg_full</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/fpga_msg_overflow" type="logic" db_ref_id="1">
+         <obj_property name="ElementShortName">fpga_msg_overflow</obj_property>
+         <obj_property name="ObjectShortName">fpga_msg_overflow</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
