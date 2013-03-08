@@ -1,7 +1,7 @@
 module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 (input CLK, RESET, output[7:4] GPIO_LED
 , input pc_msg_valid, input[XB_SIZE-1:0] pc_msg, output pc_msg_ack
-, output reg fpga_msg_valid, output reg [4*XB_SIZE-1:0] fpga_msg
+, output reg fpga_msg_valid, output reg [2*XB_SIZE-1:0] fpga_msg
 , output app_running, app_error);
 `include "function.v"
   localparam N_ZMW_SIZE = log2(4 * 1024 * 1024);
@@ -75,7 +75,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   reg [RAM_DATA_SIZE-1:0] from_ram_fifo_din;
 
   reg gTime_cal_en;
-  wire fn_frame_rdy, nframeXexp_rdy, fn_frame_1_rdy, fn_frame_1_rdy;
+  wire fn_frame_rdy, nframeXexp_rdy, fn_frame_1_rdy;
   wire[FP_SIZE-1:0] fn_frame, nframeXexp, fn_frame_1, nframe_1Xexp;
   reg [FP_SIZE-1:0] gTime, gTime_exposure;
   
@@ -415,7 +415,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     end//for(MAX_PULSE_PER_ZMW)
 
     fpga_msg_valid <= #DELAY zmwxof_d_fifo_ack;
-    fpga_msg <= #DELAY {strength012[3], strength012[1], strength012[0]
+    fpga_msg <= #DELAY {strength012[0]
                       , 2'b00, pulse_dye_zmw_d, 3'b000, xof_dd, pacer_state};
 
     from_ram_fifo_wren <= #DELAY ram_rd_data_valid[from_ram_src];
