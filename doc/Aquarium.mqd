@@ -1,0 +1,206 @@
+7.2,Version
+False,CustMod
+2,Pages
+10,FontSize
+PageNames,Start
+1,PageName
+2,PageName
+QSolver,Start
+0,Page
+10,X
+10,Y
+Solver,UserString
+False,HorizSwap
+False,VertSwap
+1E-05,h
+0,Time Increment
+,Documentation
+0,IDNumber
+QWaveGen,Start
+0,Page
+10,X
+70,Y
+Wave Gen,UserString
+False,HorizSwap
+False,VertSwap
+1,Waveform
+1,Frequency
+1,Amplitude
+0,Offset
+0,Phase
+50,DutyCycle
+1,Mult
+1,Enable
+,Documentation
+1,IDNumber
+QSFilter3,Start
+0,Page
+230,X
+100,Y
+Water/U,UserString
+False,HorizSwap
+False,VertSwap
+0,Input
+1.21E-09,A0
+1.09E-07,A1
+0,A2
+0,A3
+7.6E-10,B0
+5.04E-05,B1
+0.016,B2
+,Documentation
+7,IDNumber
+QDsa,Start
+0,Page
+100,X
+70,Y
+DSA,UserString
+False,HorizSwap
+False,VertSwap
+0,Switched Input Wave
+0,Unswitched Input Wave
+1,Excitation Amplitude
+2,Input Channel
+9,Output Channel
+0.00025,TSample
+0.2,Start Zero Time
+0.2,End Zero Time
+11,Order
+1,Auto Frequency
+0.01,Minimum Frequency
+100,Maximum Frequency
+20,Gain Scale
+0,Gain Offset
+90,Phase Scale
+0,Phase Offset
+10,False,Name1,-1,-1,False,Name2,-1,-1,False,Name3,-1,-1,False,Name4,-1,-1,False,Name5,-1,-1,False,Name6,-1,-1,False,Name7,-1,-1,False,Name8,-1,-1,False,Name9,-1,-1,False,Name10,-1,-1,Button Setup
+,Documentation
+6,IDNumber
+QLiveVariable2,Start
+0,Page
+450,X
+80,Y
+U,UserString
+False,HorizSwap
+False,VertSwap
+0,Input1
+1,Scale1
+0,Offset1
+0.1,Time/Div
+1,Mult1
+0,Ext
+0,Trigger Level
+1,Positive Trig?
+20,Trigger Position
+1,Trigger Mode
+160,Width
+160,Height
+0,Input2
+1,Scale2
+0,Offset2
+1,Mult2
+,Documentation
+0,AC Couple1
+0,AC Couple2
+0,AC Trigger
+1,Ext Mult
+1,Trigger Channel
+0,Single Shot
+2,IDNumber
+QVariable,Start
+0,Page
+330,X
+10,Y
+Twater,UserString
+False,HorizSwap
+False,VertSwap
+0,Input
+1,Mult
+,Documentation
+9,IDNumber
+QTime,Start
+0,Page
+90,X
+10,Y
+Time,UserString
+False,HorizSwap
+False,VertSwap
+,Documentation
+11,IDNumber
+QWire,Start
+0,Page
+1,StartBlock
+0,StartBlockNode
+6,EndBlock
+0,EndBlockNode
+2,Bends
+68,X
+90,Y
+102,X
+90,Y
+4,IDNumber
+QWire,Start
+0,Page
+6,StartBlock
+2,StartBlockNode
+7,EndBlock
+1,EndBlockNode
+4,Bends
+188,X
+90,Y
+210,X
+90,Y
+210,X
+120,Y
+232,X
+120,Y
+3,IDNumber
+QWire,Start
+0,Page
+6,StartBlock
+2,StartBlockNode
+2,EndBlock
+0,EndBlockNode
+2,Bends
+188,X
+90,Y
+452,X
+90,Y
+5,IDNumber
+QWire,Start
+0,Page
+7,StartBlock
+0,StartBlockNode
+9,EndBlock
+0,EndBlockNode
+4,Bends
+318,X
+120,Y
+325,X
+120,Y
+325,X
+30,Y
+332,X
+30,Y
+8,IDNumber
+QWire,Start
+0,Page
+7,StartBlock
+0,StartBlockNode
+2,EndBlock
+12,EndBlockNode
+6,Bends
+318,X
+120,Y
+385,X
+120,Y
+385,X
+75,Y
+615,X
+75,Y
+615,X
+90,Y
+608,X
+90,Y
+10,IDNumber
+FileEnd,Start
