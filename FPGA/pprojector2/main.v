@@ -11,8 +11,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
    , xb_rd_rden         //xb_rd_fifo -> xillybus
    , xb_rd_empty        //xb_rd_fifo -> xillybus
    , xb_rd_open         //xillybus -> xb_rd_fifo
-   , fpga_msg_valid     //app -> xb_rd_fifo
-   , fpga_msg_full, fpga_msg_overflow//xb_rd_fifo -> app
+   , fpag_msg_wren, fpga_msg_high, fpga_msg_overflow//app -> xb_rd_fifo
    , pc_msg_empty //xb_wr_fifo -> app; NOT of empty
    //, pc_msg_pending
    , pc_msg_ack         // app -> xb_wr_fifo
@@ -36,7 +35,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
   application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE), .RAM_DATA_SIZE(256))
     app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4])
       , .pc_msg_valid(!pc_msg_empty), .pc_msg(pc_msg), .pc_msg_ack(pc_msg_ack)
-      , .fpga_msg_valid(fpga_msg_valid), .fpga_msg(fpga_msg)
+      , .downstream_wren(fpag_msg_wren), .downstream_din(fpga_msg)
+      , .downstream_high(fpga_msg_high), .downstream_overflow(fpga_msg_overflow)
       , .app_running(app_running), .app_error(app_error));
 
   generate
@@ -126,8 +126,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
         , .full(xb_loop_full), .empty(xb_loop_empty));
     `endif
       xb_rd_fifo xb_rd_fifo(.rst(rst) //RESET
-        , .wr_clk(CLK), .din(fpga_msg), .wr_en(fpga_msg_valid /*&& xb_rd_open*/)
-        , .full(fpga_msg_full), .overflow(fpga_msg_overflow)
+        , .wr_clk(CLK), .din(fpga_msg), .wr_en(fpag_msg_wren /*&& xb_rd_open*/)
+        , .full(), .prog_full(fpga_msg_high), .overflow(fpga_msg_overflow)
         , .rd_clk(BUS_CLK), .rd_en(xb_rd_rden), .dout(xb_rd_data)
         , .empty(xb_rd_empty));
     end//!SIMULATION

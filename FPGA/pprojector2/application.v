@@ -1,7 +1,8 @@
 module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 (input CLK, RESET, output[7:4] GPIO_LED
 , input pc_msg_valid, input[XB_SIZE-1:0] pc_msg, output pc_msg_ack
-, output reg fpga_msg_valid, output reg [2*XB_SIZE-1:0] fpga_msg
+, output reg downstream_wren, output reg [2*XB_SIZE-1:0] downstream_din
+, input downstream_high, downstream_overflow
 , output app_running, app_error);
 `include "function.v"
   localparam N_ZMW_SIZE = log2(4 * 1024 * 1024);
@@ -414,8 +415,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       //                        ? durationXintensity[i] : 0;
     end//for(MAX_PULSE_PER_ZMW)
 
-    fpga_msg_valid <= #DELAY zmwxof_d_fifo_ack;
-    fpga_msg <= #DELAY {strength012[0]
+    downstream_wren <= #DELAY zmwxof_d_fifo_ack;
+    downstream_din <= #DELAY {strength012[0]
                       , 2'b00, pulse_dye_zmw_d, 3'b000, xof_dd, pacer_state};
 
     from_ram_fifo_wren <= #DELAY ram_rd_data_valid[from_ram_src];
@@ -478,324 +479,330 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       if(nframe_1Xexp_rdy) gTime_exposure <= #DELAY nframe_1Xexp;
       
       for(i=0; i<2; i=i+1) to_ram_fifo_wren[i] <= #DELAY `FALSE;
-      case(pacer_state)
-        PACER_STOPPED:
-          if(is_start_msg) begin
-            max_frame <= #DELAY whole_pc_msg[CONTROL_MSG_N_FRAME_BIT
-                                           +:CONTROL_MSG_N_FRAME_SIZE];
-            clock_per_frame <= #DELAY whole_pc_msg[
-                CONTROL_MSG_N_CLOCK_PER_FRAME_BIT
-              +:CONTROL_MSG_N_CLOCK_PER_FRAME_SIZE];
-            max_stride <= #DELAY whole_pc_msg[CONTROL_MSG_STRIDE_BIT
-                                            +:CONTROL_MSG_STRIDE_SIZE];
-            exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
-            // ^START to 1st RAM controller
-            to_ram_fifo_data <= #DELAY {ZMW_DATA_SIZE{`FALSE}};            
-            to_ram_fifo_header[0][2:0] <= #DELAY 'b110;//START(WR)
-            to_ram_fifo_wren[0] <= #DELAY `TRUE;
+      if(downstream_overflow) pacer_state <= #DELAY PACER_ERROR;
+      else begin//!downstream_overflow
+        case(pacer_state)
+          PACER_STOPPED:
+            if(is_start_msg) begin
+              max_frame <= #DELAY whole_pc_msg[CONTROL_MSG_N_FRAME_BIT
+                                             +:CONTROL_MSG_N_FRAME_SIZE];
+              clock_per_frame <= #DELAY whole_pc_msg[
+                  CONTROL_MSG_N_CLOCK_PER_FRAME_BIT
+                +:CONTROL_MSG_N_CLOCK_PER_FRAME_SIZE];
+              max_stride <= #DELAY whole_pc_msg[CONTROL_MSG_STRIDE_BIT
+                                              +:CONTROL_MSG_STRIDE_SIZE];
+              exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
-            wr_zmw <= #DELAY 0;
-            from_ram_src <= #DELAY `TRUE;
-            pacer_state <= #DELAY PACER_STARTING;
-          end
+              // ^START to 1st RAM controller
+              to_ram_fifo_data <= #DELAY {ZMW_DATA_SIZE{`FALSE}};            
+              to_ram_fifo_header[0][2:0] <= #DELAY 'b110;//START(WR)
+              to_ram_fifo_wren[0] <= #DELAY `TRUE;
 
-        PACER_STOPPING:
-          if(to_ram_fifo_full == 'b00) begin// ^STOP to both RAM controllers
-            for(i=0; i<2; i=i+1) begin
-              to_ram_fifo_header[i] <= #DELAY 'h00;
-              to_ram_fifo_wren[i] <= #DELAY `TRUE;
+              wr_zmw <= #DELAY 0;
+              from_ram_src <= #DELAY `TRUE;
+              pacer_state <= #DELAY PACER_STARTING;
             end
-            pacer_state <= #DELAY PACER_STOPPED;
-          end
-        
-        PACER_STARTING: begin
-          n_frame <= #DELAY 0;
-          n_stride <= #DELAY 0;
-          if(!to_ram_fifo_full[0]) begin
-            to_ram_fifo_header[0] <= #DELAY 'h01;//data message from now
-            //writing 0 in this cycle, so write 1 next
-            wr_zmw <= #DELAY wr_zmw + `TRUE;
-            to_ram_fifo_wren[0] <= #DELAY `TRUE;
-            gTime_cal_en <= #DELAY `TRUE;
-            pacer_state <= #DELAY PACER_INIT;
-          end
-        end
-        
-        PACER_INIT:
-          if(is_control_msg
-             && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE) begin//STOP
-            //I can't ^STOP message here because of the possibility of FIFO full
-            pacer_state <= #DELAY PACER_STOPPING;//just move to STOPPING
-          end else if(to_ram_fifo_full[0]) begin
-            to_ram_fifo_wren[0] <= #DELAY `FALSE;
-            pacer_state <= #DELAY PACER_INIT_THROTTLED;
-          end else begin
-            if(wr_zmw == N_ZMW % (2**log2(N_ZMW))
-               && !to_ram_fifo_full[0]) begin
-              to_ram_fifo_header[0] <= #DELAY 'h00;// ^STOP to 1st RAM
-              n_clock <= #DELAY 0;
-              n_clock_throttled <= #DELAY 0;
-              pacer_state <= #DELAY PACER_STARTING_FRAME;
-            end else begin
-              to_ram_fifo_data[0+:log2(N_ZMW)] <= #DELAY wr_zmw;
-              wr_zmw <= #DELAY wr_zmw + `TRUE;            
-            end
-            to_ram_fifo_wren[0] <= #DELAY `TRUE;
-          end
-        
-        PACER_INIT_THROTTLED:
-          if(is_control_msg
-             && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE) begin//STOP
-            pacer_state <= #DELAY PACER_STOPPING;
-          end else if(!to_ram_fifo_full[0]) begin
-            to_ram_fifo_wren[0] <= #DELAY `TRUE;
-            pacer_state <= #DELAY PACER_INIT;
-          end
-          
-        PACER_STARTING_FRAME: begin
-          n_clock <= #DELAY n_clock + `TRUE;
-          //Wait for both FIFO to free up
-          if(!to_ram_fifo_full) begin // ^START to both DRAM managers
-            n_frame <= #DELAY n_frame + `TRUE;
-            
-            //Tell src RAM to start reading, and ~src RAM to start writing.
-            //Note that the src appears flipped because flipping happens at the
-            //next clock.
-            from_ram_src <= ~from_ram_src; // flip the source
-            to_ram_fifo_header[~from_ram_src] <= #DELAY 'b00000010;//^START(RD)
-            to_ram_fifo_header[from_ram_src] <= #DELAY 'b00000110;//^START(WR)
-            to_ram_fifo_wren <= #DELAY 'b11;
-            pacer_state <= #DELAY PACER_FRAME;
-          end
-        end
-        
-        PACER_FRAME: begin
-          n_clock <= #DELAY n_clock + `TRUE;
-          //Yes there are 2 others, but they are identical, so it's safe
-          //to use just the first for all
-          if(gTimeGTEcurrent_pulse_tf_rdy[0]//(gTime >= Tf) calculation ready
-                                            // => can update pulse
-             && !updater_d_fifo_empty[0]) // current pulse definition ready
-          begin//Can update pulse, and current pulse definition is ready
-            //Note that new pulse definition is NOT required
-            
-            //First, check the delayed answer
-            if(current_pulse_zmw_number_d[0][0+:log2(N_ZMW)] != rd_zmw) begin
-              // ^STOP to both RAM controllers
+
+          PACER_STOPPING:
+            if(to_ram_fifo_full == 'b00) begin// ^STOP to both RAM controllers
               for(i=0; i<2; i=i+1) begin
                 to_ram_fifo_header[i] <= #DELAY 'h00;
                 to_ram_fifo_wren[i] <= #DELAY `TRUE;
               end
-              pacer_state <= #DELAY PACER_ERROR;
+              pacer_state <= #DELAY PACER_STOPPED;
+            end
+          
+          PACER_STARTING: begin
+            n_frame <= #DELAY 0;
+            n_stride <= #DELAY 0;
+            if(!to_ram_fifo_full[0]) begin
+              to_ram_fifo_header[0] <= #DELAY 'h01;//data message from now
+              //writing 0 in this cycle, so write 1 next
+              wr_zmw <= #DELAY wr_zmw + `TRUE;
+              to_ram_fifo_wren[0] <= #DELAY `TRUE;
+              gTime_cal_en <= #DELAY `TRUE;
+              pacer_state <= #DELAY PACER_INIT;
+            end
+          end
+          
+          PACER_INIT:
+            if(is_control_msg
+               && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE) begin//STOP
+              //I can't ^STOP message here because of the possibility of FIFO full
+              pacer_state <= #DELAY PACER_STOPPING;//just move to STOPPING
+            end else if(to_ram_fifo_full[0]) begin
+              to_ram_fifo_wren[0] <= #DELAY `FALSE;
+              pacer_state <= #DELAY PACER_INIT_THROTTLED;
             end else begin
-              if(assembler2updater_fifo_empty//no new pulse description
-                 //There is new pulse, but it's not THIS zmw
-                 || new_pulse_zmw_num != current_pulse_zmw_number
-                 //none of the pulse has expired
-                 || gTimeGTEcurrent_pulse_tf == {MAX_PULSE_PER_ZMW{`FALSE}}
-               ) begin// => can't update
-                //If there is no new pulse for this ZMW,
-                //just copy all 3 to the ALT RAM
-                to_ram_fifo_data <= #DELAY {
-                    current_pulse_t1_d[0], current_pulse_dt_d[0]
-                  , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                  , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                  , 2'b00, current_pulse_dye_d[0]
-                  , 2'b00, current_pulse_in_idx_d[0]
-                  , 2'b00, current_pulse_dye_d[1]
-                  , 2'b00, current_pulse_in_idx_d[1]
-                  , 2'b00, current_pulse_dye_d[2]
-                  , 2'b00, current_pulse_in_idx_d[2]
-                  , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-              end else begin // a new pulse has to be saved to the ALT RAM
-              //Which slot to grab?
-                if(gTimeGTEcurrent_pulse_tf[0]) begin//pulse[0] is expired
-                  to_ram_fifo_data <= #DELAY {
-                      new_pulse_t1, new_pulse_dt
-                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 2'b00, current_pulse_dye_d[1]
-                    , 2'b00, current_pulse_in_idx_d[1]
-                    , 2'b00, current_pulse_dye_d[2]
-                    , 2'b00, current_pulse_in_idx_d[2]
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else if(gTimeGTEcurrent_pulse_tf[1]) begin
-                  //pulse[1] is expired => take slot 1
-                  to_ram_fifo_data <= #DELAY {
-                      current_pulse_t1_d[0], current_pulse_dt_d[0]
-                    , new_pulse_t1, new_pulse_dt
-                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                    , 2'b00, current_pulse_dye_d[0]
-                    , 2'b00, current_pulse_in_idx_d[0]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 2'b00, current_pulse_dye_d[2]
-                    , 2'b00, current_pulse_in_idx_d[2]
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else if(gTimeGTEcurrent_pulse_tf[2]) begin
-                  //pulse[2] is expired => take slot 2
-                  to_ram_fifo_data <= #DELAY {
-                      current_pulse_t1_d[0], current_pulse_dt_d[0]
-                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                    , new_pulse_t1, new_pulse_dt
-                    , 2'b00, current_pulse_dye_d[0]
-                    , 2'b00, current_pulse_in_idx_d[0]
-                    , 2'b00, current_pulse_dye_d[1]
-                    , 2'b00, current_pulse_in_idx_d[1]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else begin
-                  //full => can't update, don't ACK
-                end
-              end //else: a new pulse definition has to be saved to ALT
-
-              //Write the updated (could be the same as current) pulse
-              //description to ALT; note that we always write in this state
-              //unless there is an error
-              to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
-              to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
-              rd_zmw <= #DELAY rd_zmw + `TRUE;
+              if(wr_zmw == N_ZMW % (2**log2(N_ZMW))
+                 && !to_ram_fifo_full[0]) begin
+                to_ram_fifo_header[0] <= #DELAY 'h00;// ^STOP to 1st RAM
+                n_clock <= #DELAY 0;
+                n_clock_throttled <= #DELAY 0;
+                pacer_state <= #DELAY PACER_STARTING_FRAME;
+              end else begin
+                to_ram_fifo_data[0+:log2(N_ZMW)] <= #DELAY wr_zmw;
+                wr_zmw <= #DELAY wr_zmw + `TRUE;            
+              end
+              to_ram_fifo_wren[0] <= #DELAY `TRUE;
+            end
+          
+          PACER_INIT_THROTTLED:
+            if(is_control_msg
+               && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE) begin//STOP
+              pacer_state <= #DELAY PACER_STOPPING;
+            end else if(!to_ram_fifo_full[0]) begin
+              to_ram_fifo_wren[0] <= #DELAY `TRUE;
+              pacer_state <= #DELAY PACER_INIT;
+            end
+            
+          PACER_STARTING_FRAME: begin
+            n_clock <= #DELAY n_clock + `TRUE;
+            //Wait for both FIFO to free up
+            if(!to_ram_fifo_full) begin // ^START to both DRAM managers
+              n_frame <= #DELAY n_frame + `TRUE;
               
-              if(rd_zmw == N_ZMW-1) begin // done checking
-                // ^STOP to RAM[src]
-                to_ram_fifo_header[from_ram_src] <= #DELAY 'b0000_0000;
-                to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
-                pacer_state <= #DELAY PACER_STOPPING_FRAME;
-              end else if(to_ram_fifo_high[~from_ram_src]) begin
-                pacer_state <= #DELAY PACER_FRAME_THROTTLED;
-              end//!if(rd_zmw == N_ZMW-1)
-
-            end //else: not an error condition
-          end //Can update pulse, and current pulse definition is ready
-        end //case PACER_FRAME
-        
-        PACER_FRAME_THROTTLED: begin//delayed Tf calculation will keep coming
-          //for PULSE_EXPIRATION_DETERMINATION_LATENCY after entry
-          n_clock <= #DELAY n_clock + `TRUE;
-          n_clock_throttled <= #DELAY n_clock_throttled + `TRUE;
+              //Tell src RAM to start reading, and ~src RAM to start writing.
+              //Note that the src appears flipped because flipping happens at the
+              //next clock.
+              from_ram_src <= ~from_ram_src; // flip the source
+              to_ram_fifo_header[~from_ram_src] <= #DELAY 'b00000010;//^START(RD)
+              to_ram_fifo_header[from_ram_src] <= #DELAY 'b00000110;//^START(WR)
+              to_ram_fifo_wren <= #DELAY 'b11;
+              pacer_state <= #DELAY PACER_FRAME;
+            end
+          end
           
-          if(!to_ram_fifo_high[~from_ram_src]) begin//The default logic
-            n_clock_throttled <= #DELAY 0;
-            pacer_state <= #DELAY PACER_FRAME;
-          end//which may be overridden by valid current pulse definition below
-          
-          if(n_clock_throttled < PULSE_EXPIRATION_DETERMINATION_LATENCY
-             && gTimeGTEcurrent_pulse_tf_rdy[0]
-             && !updater_d_fifo_empty[0]) begin//consume comparison result
-            //First, check the delayed answer
-            if(current_pulse_zmw_number_d[0][0+:log2(N_ZMW)] != rd_zmw) begin
-              // ^STOP to both RAM controllers
-              for(i=0; i<2; i=i+1) begin
-                to_ram_fifo_header[i] <= #DELAY 'h00;
-                to_ram_fifo_wren[i] <= #DELAY `TRUE;
-              end
-              pacer_state <= #DELAY PACER_ERROR;
-            end else begin
-              if(assembler2updater_fifo_empty//no new pulse description
-                 //There is new pulse, but it's not THIS one
-                 || new_pulse_zmw_num != current_pulse_zmw_number
-                 //none of the pulse has expired => can't update
-                 || gTimeGTEcurrent_pulse_tf == {MAX_PULSE_PER_ZMW{`FALSE}})
-              begin
-                //If there is no new pulse for this ZMW,
-                //just copy all 3 to the ALT RAM
-                to_ram_fifo_data <= #DELAY {
-                    current_pulse_t1_d[0], current_pulse_dt_d[0]
-                  , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                  , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                  , 2'b00, current_pulse_dye_d[0]
-                  , 2'b00, current_pulse_in_idx_d[0]
-                  , 2'b00, current_pulse_dye_d[1]
-                  , 2'b00, current_pulse_in_idx_d[1]
-                  , 2'b00, current_pulse_dye_d[2]
-                  , 2'b00, current_pulse_in_idx_d[2]
-                  , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-              end else begin // a new pulse has to be saved to the ALT RAM
-              //Which slot to grab?
-                if(gTimeGTEcurrent_pulse_tf[0]) begin//pulse[0] is expired
-                  to_ram_fifo_data <= #DELAY {
-                      new_pulse_t1, new_pulse_dt
-                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 2'b00, current_pulse_dye_d[1]
-                    , 2'b00, current_pulse_in_idx_d[1]
-                    , 2'b00, current_pulse_dye_d[2]
-                    , 2'b00, current_pulse_in_idx_d[2]
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else if(gTimeGTEcurrent_pulse_tf[1]) begin
-                  //pulse[1] is expired => take slot 1
-                  to_ram_fifo_data <= #DELAY {
-                      current_pulse_t1_d[0], current_pulse_dt_d[0]
-                    , new_pulse_t1, new_pulse_dt
-                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                    , 2'b00, current_pulse_dye_d[0]
-                    , 2'b00, current_pulse_in_idx_d[0]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 2'b00, current_pulse_dye_d[2]
-                    , 2'b00, current_pulse_in_idx_d[2]
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else if(gTimeGTEcurrent_pulse_tf[2]) begin
-                  //pulse[2] is expired => take slot 2
-                  to_ram_fifo_data <= #DELAY {
-                      current_pulse_t1_d[0], current_pulse_dt_d[0]
-                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
-                    , new_pulse_t1, new_pulse_dt
-                    , 2'b00, current_pulse_dye_d[0]
-                    , 2'b00, current_pulse_in_idx_d[0]
-                    , 2'b00, current_pulse_dye_d[1]
-                    , 2'b00, current_pulse_in_idx_d[1]
-                    , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
-                end else begin
-                  //full => can't update, don't ACK
+          PACER_FRAME: begin
+            n_clock <= #DELAY n_clock + `TRUE;
+            //Yes there are 2 others, but they are identical, so it's safe
+            //to use just the first for all
+            if(gTimeGTEcurrent_pulse_tf_rdy[0]//(gTime >= Tf) calculation ready
+                                              // => can update pulse
+               && !updater_d_fifo_empty[0]) // current pulse definition ready
+            begin//Can update pulse, and current pulse definition is ready
+              //Note that new pulse definition is NOT required
+              
+              //First, check the delayed answer
+              if(current_pulse_zmw_number_d[0][0+:log2(N_ZMW)] != rd_zmw) begin
+                // ^STOP to both RAM controllers
+                for(i=0; i<2; i=i+1) begin
+                  to_ram_fifo_header[i] <= #DELAY 'h00;
+                  to_ram_fifo_wren[i] <= #DELAY `TRUE;
                 end
-              end //else: a new pulse definition has to be saved to ALT
+                pacer_state <= #DELAY PACER_ERROR;
+              end else begin
+                if(assembler2updater_fifo_empty//no new pulse description
+                   //There is new pulse, but it's not THIS zmw
+                   || new_pulse_zmw_num != current_pulse_zmw_number
+                   //none of the pulse has expired
+                   || gTimeGTEcurrent_pulse_tf == {MAX_PULSE_PER_ZMW{`FALSE}}
+                 ) begin// => can't update
+                  //If there is no new pulse for this ZMW,
+                  //just copy all 3 to the ALT RAM
+                  to_ram_fifo_data <= #DELAY {
+                      current_pulse_t1_d[0], current_pulse_dt_d[0]
+                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                    , 2'b00, current_pulse_dye_d[0]
+                    , 2'b00, current_pulse_in_idx_d[0]
+                    , 2'b00, current_pulse_dye_d[1]
+                    , 2'b00, current_pulse_in_idx_d[1]
+                    , 2'b00, current_pulse_dye_d[2]
+                    , 2'b00, current_pulse_in_idx_d[2]
+                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                end else begin // a new pulse has to be saved to the ALT RAM
+                //Which slot to grab?
+                  if(gTimeGTEcurrent_pulse_tf[0]) begin//pulse[0] is expired
+                    to_ram_fifo_data <= #DELAY {
+                        new_pulse_t1, new_pulse_dt
+                      , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                      , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[1]
+                      , 2'b00, current_pulse_in_idx_d[1]
+                      , 2'b00, current_pulse_dye_d[2]
+                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else if(gTimeGTEcurrent_pulse_tf[1]) begin
+                    //pulse[1] is expired => take slot 1
+                    to_ram_fifo_data <= #DELAY {
+                        current_pulse_t1_d[0], current_pulse_dt_d[0]
+                      , new_pulse_t1, new_pulse_dt
+                      , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                      , 2'b00, current_pulse_dye_d[0]
+                      , 2'b00, current_pulse_in_idx_d[0]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[2]
+                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else if(gTimeGTEcurrent_pulse_tf[2]) begin
+                    //pulse[2] is expired => take slot 2
+                    to_ram_fifo_data <= #DELAY {
+                        current_pulse_t1_d[0], current_pulse_dt_d[0]
+                      , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                      , new_pulse_t1, new_pulse_dt
+                      , 2'b00, current_pulse_dye_d[0]
+                      , 2'b00, current_pulse_in_idx_d[0]
+                      , 2'b00, current_pulse_dye_d[1]
+                      , 2'b00, current_pulse_in_idx_d[1]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else begin
+                    //full => can't update, don't ACK
+                  end
+                end //else: a new pulse definition has to be saved to ALT
 
-              //Write the updated (could be the same as current) pulse
-              //description to ALT; note that we always write in this state
-              //unless there is an error
-              to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
+                //Write the updated (could be the same as current) pulse
+                //description to ALT; note that we always write in this state
+                //unless there is an error
+                to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
+                to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
+                rd_zmw <= #DELAY rd_zmw + `TRUE;
+                
+                if(rd_zmw == N_ZMW-1) begin // done checking
+                  // ^STOP to RAM[src]
+                  to_ram_fifo_header[from_ram_src] <= #DELAY 'b0000_0000;
+                  to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
+                  pacer_state <= #DELAY PACER_STOPPING_FRAME;
+                end else if(to_ram_fifo_high[~from_ram_src]
+                            || downstream_high) begin
+                  pacer_state <= #DELAY PACER_FRAME_THROTTLED;
+                end//!if(rd_zmw == N_ZMW-1)
+
+              end //else: not an error condition
+            end //Can update pulse, and current pulse definition is ready
+          end //case PACER_FRAME
+          
+          PACER_FRAME_THROTTLED: begin//delayed Tf calculation will keep coming
+            //for PULSE_EXPIRATION_DETERMINATION_LATENCY after entry
+            n_clock <= #DELAY n_clock + `TRUE;
+            n_clock_throttled <= #DELAY n_clock_throttled + `TRUE;
+            
+            if(!(to_ram_fifo_high[~from_ram_src] || downstream_high))
+            begin //The default logic,
+              n_clock_throttled <= #DELAY 0;
+              pacer_state <= #DELAY PACER_FRAME;
+            end//which may be overridden by valid current pulse definition below
+            
+            if(n_clock_throttled < PULSE_EXPIRATION_DETERMINATION_LATENCY
+               && gTimeGTEcurrent_pulse_tf_rdy[0]
+               && !updater_d_fifo_empty[0]) begin//consume comparison result
+              //First, check the delayed answer
+              if(current_pulse_zmw_number_d[0][0+:log2(N_ZMW)] != rd_zmw) begin
+                // ^STOP to both RAM controllers
+                for(i=0; i<2; i=i+1) begin
+                  to_ram_fifo_header[i] <= #DELAY 'h00;
+                  to_ram_fifo_wren[i] <= #DELAY `TRUE;
+                end
+                pacer_state <= #DELAY PACER_ERROR;
+              end else begin
+                if(assembler2updater_fifo_empty//no new pulse description
+                   //There is new pulse, but it's not THIS one
+                   || new_pulse_zmw_num != current_pulse_zmw_number
+                   //none of the pulse has expired => can't update
+                   || gTimeGTEcurrent_pulse_tf == {MAX_PULSE_PER_ZMW{`FALSE}})
+                begin
+                  //If there is no new pulse for this ZMW,
+                  //just copy all 3 to the ALT RAM
+                  to_ram_fifo_data <= #DELAY {
+                      current_pulse_t1_d[0], current_pulse_dt_d[0]
+                    , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                    , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                    , 2'b00, current_pulse_dye_d[0]
+                    , 2'b00, current_pulse_in_idx_d[0]
+                    , 2'b00, current_pulse_dye_d[1]
+                    , 2'b00, current_pulse_in_idx_d[1]
+                    , 2'b00, current_pulse_dye_d[2]
+                    , 2'b00, current_pulse_in_idx_d[2]
+                    , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                end else begin // a new pulse has to be saved to the ALT RAM
+                //Which slot to grab?
+                  if(gTimeGTEcurrent_pulse_tf[0]) begin//pulse[0] is expired
+                    to_ram_fifo_data <= #DELAY {
+                        new_pulse_t1, new_pulse_dt
+                      , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                      , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[1]
+                      , 2'b00, current_pulse_in_idx_d[1]
+                      , 2'b00, current_pulse_dye_d[2]
+                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else if(gTimeGTEcurrent_pulse_tf[1]) begin
+                    //pulse[1] is expired => take slot 1
+                    to_ram_fifo_data <= #DELAY {
+                        current_pulse_t1_d[0], current_pulse_dt_d[0]
+                      , new_pulse_t1, new_pulse_dt
+                      , current_pulse_t1_d[2], current_pulse_dt_d[2]
+                      , 2'b00, current_pulse_dye_d[0]
+                      , 2'b00, current_pulse_in_idx_d[0]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[2]
+                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else if(gTimeGTEcurrent_pulse_tf[2]) begin
+                    //pulse[2] is expired => take slot 2
+                    to_ram_fifo_data <= #DELAY {
+                        current_pulse_t1_d[0], current_pulse_dt_d[0]
+                      , current_pulse_t1_d[1], current_pulse_dt_d[1]
+                      , new_pulse_t1, new_pulse_dt
+                      , 2'b00, current_pulse_dye_d[0]
+                      , 2'b00, current_pulse_in_idx_d[0]
+                      , 2'b00, current_pulse_dye_d[1]
+                      , 2'b00, current_pulse_in_idx_d[1]
+                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
+                  end else begin
+                    //full => can't update, don't ACK
+                  end
+                end //else: a new pulse definition has to be saved to ALT
+
+                //Write the updated (could be the same as current) pulse
+                //description to ALT; note that we always write in this state
+                //unless there is an error
+                to_ram_fifo_header[~from_ram_src] <= #DELAY 'h01; // is data
+                to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
+                rd_zmw <= #DELAY rd_zmw + `TRUE;
+
+                if(rd_zmw == N_ZMW-1) begin // done checking
+                  // ^STOP to RAM[src]
+                  to_ram_fifo_header[from_ram_src] <= #DELAY 'b0000_0000;
+                  to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
+                  pacer_state <= #DELAY PACER_STOPPING_FRAME;
+                end//!if(rd_zmw == N_ZMW-1)
+              end //else: not an error condition
+            end//valid current pulse definition
+          end//PACER_FRAME_THROTTLED
+
+          PACER_STOPPING_FRAME: begin
+            n_clock <= #DELAY n_clock + `TRUE;
+            //^EOF
+            if(n_frame == max_frame) pacer_state <= #DELAY PACER_STOPPING;
+            else if(!to_ram_fifo_full[~from_ram_src]) begin
+              //^STOP to RAM[~src]
+              to_ram_fifo_header[~from_ram_src] <= #DELAY 'b0000_0000;
               to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
-              rd_zmw <= #DELAY rd_zmw + `TRUE;
-
-              if(rd_zmw == N_ZMW-1) begin // done checking
-                // ^STOP to RAM[src]
-                to_ram_fifo_header[from_ram_src] <= #DELAY 'b0000_0000;
-                to_ram_fifo_wren[from_ram_src] <= #DELAY `TRUE;
-                pacer_state <= #DELAY PACER_STOPPING_FRAME;
-              end//!if(rd_zmw == N_ZMW-1)
-            end //else: not an error condition
-          end//valid current pulse definition
-        end//PACER_FRAME_THROTTLED
-
-        PACER_STOPPING_FRAME: begin
-          n_clock <= #DELAY n_clock + `TRUE;
-          //^EOF
-          if(n_frame == max_frame) pacer_state <= #DELAY PACER_STOPPING;
-          else if(!to_ram_fifo_full[~from_ram_src]) begin
-            //^STOP to RAM[~src]
-            to_ram_fifo_header[~from_ram_src] <= #DELAY 'b0000_0000;
-            to_ram_fifo_wren[~from_ram_src] <= #DELAY `TRUE;
-            gTime_cal_en <= #DELAY `TRUE;
-            pacer_state <= #DELAY PACER_INTERFRAME;
+              gTime_cal_en <= #DELAY `TRUE;
+              pacer_state <= #DELAY PACER_INTERFRAME;
+            end
           end
-        end
-        
-        PACER_INTERFRAME: begin
-          n_clock <= #DELAY n_clock + `TRUE;
-          if(n_clock == clock_per_frame) begin
-            n_clock <= #DELAY 0;
-            pacer_state <= #DELAY PACER_STARTING_FRAME;
+          
+          PACER_INTERFRAME: begin
+            n_clock <= #DELAY n_clock + `TRUE;
+            if(n_clock == clock_per_frame) begin
+              n_clock <= #DELAY 0;
+              pacer_state <= #DELAY PACER_STARTING_FRAME;
+            end
           end
-        end
-        
-        default: begin // ERROR
-          to_ram_fifo_wren <= #DELAY {`FALSE, `FALSE};
-        end
-      endcase//pacer_state
-
+          
+          default: begin // ERROR
+            to_ram_fifo_wren <= #DELAY {`FALSE, `FALSE};
+          end
+        endcase//pacer_state
+      end //!downstream_overflow
+      
       // DRAM manager code /////////////////////////////////////////////
       for(i=0; i<2; i=i+1) begin // Dual RAM => dual statemachine
         //to_ram_fifo_ack[i] <= #DELAY `FALSE;//don't ACK by default
