@@ -1,0 +1,31 @@
+#CONFIG PART = xc6vlx240t-ff1156-1;
+
+# The location constraints for REFCLK are implicitly given by the choice
+# of the input buffer.
+
+#NET "PCIE_REFCLK_P" LOC = V6;
+#NET "PCIE_REFCLK_N" LOC = V5;
+INST "*/pcieclk_ibuf" LOC = IBUFDS_GTXE1_X0Y4;
+
+INST "*/pcie/pcie_2_0_i/pcie_gt_i/gtx_v6_i/GTXD[0].GTX" LOC = GTXE1_X0Y15;
+INST "*/pcie/pcie_2_0_i/pcie_gt_i/gtx_v6_i/GTXD[1].GTX" LOC = GTXE1_X0Y14;
+INST "*/pcie/pcie_2_0_i/pcie_gt_i/gtx_v6_i/GTXD[2].GTX" LOC = GTXE1_X0Y13;
+INST "*/pcie/pcie_2_0_i/pcie_gt_i/gtx_v6_i/GTXD[3].GTX" LOC = GTXE1_X0Y12;
+INST "*/pcie/pcie_2_0_i/pcie_block_i" LOC = PCIE_X0Y1;
+
+INST "*/pcie/pcie_clocking_i/mmcm_adv_i" LOC = MMCM_ADV_X0Y7;
+
+NET "PCIE_REFCLK_P" TNM_NET = "SYSCLK" ;
+NET "*/pcie/pcie_clocking_i/clk_125" TNM_NET = "CLK_125" ;
+NET "*/pcie/TxOutClk_bufg" TNM_NET = "TXOUTCLKBUFG";
+
+TIMESPEC "TS_SYSCLK"  = PERIOD "SYSCLK" 250 MHz HIGH 50 % PRIORITY 100 ;
+TIMESPEC "TS_CLK_125"  = PERIOD "CLK_125" TS_SYSCLK/2 HIGH 50 % PRIORITY 1 ; 
+TIMESPEC "TS_TXOUTCLKBUFG"  = PERIOD "TXOUTCLKBUFG" 250 MHz HIGH 50 % PRIORITY 100 ;
+
+PIN "*/pcie/trn_reset_n_int_i.CLR" TIG ;
+PIN "*/pcie/trn_reset_n_i.CLR" TIG ;
+PIN "*/pcie/pcie_clocking_i/mmcm_adv_i.RST" TIG ;
+
+NET "PCIE_PERST_B_LS" TIG;
+NET "PCIE_PERST_B_LS" LOC = AE13 | IOSTANDARD = LVCMOS25 | PULLUP | NODELAY ;
