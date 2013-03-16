@@ -5,8 +5,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 , input downstream_high, downstream_overflow
 , output app_running, app_error);
 `include "function.v"
+  genvar geni, genj;
+  integer i, j;
+
   localparam N_ZMW_SIZE = log2(4 * 1024 * 1024);
-  localparam RAM_HEADER_SIZE = 8, ZMW_DATA_SIZE = RAM_DATA_SIZE - RAM_HEADER_SIZE
+  localparam PULSE_RAM_HEADER_SIZE = 8
+           , PULSES_DESC_SIZE = RAM_DATA_SIZE - PULSE_RAM_HEADER_SIZE
            , FP_SIZE = 32, DYE_SIZE = 2, N_DYE = 2**DYE_SIZE
            , INTENSITY_INDEX_SIZE = 2
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
@@ -20,8 +24,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   reg [FP_SIZE-1:0] exposure;
   
   reg [2*RAM_DATA_SIZE-1:0] whole_pc_msg;
-  localparam PC_MSG_PPROJECTOR = 'b00, PC_MSG_ZMW = 'b01, PC_MSG_PIXEL = 'b10;
 
+  localparam N_ZMW = 128;
+  localparam RAM_ADDR_INCR = `TRUE //my way of saying 1 while avoiding warning
+           , BRAM_READ_LATENCY = 3;
+
+  // Pulse stage ////////////////////////////////////////////////////////
   localparam PACER_ERROR = 0, PACER_STOPPED = 1, PACER_STOPPING = 2
            , PACER_STARTING = 3, PACER_INIT = 4, PACER_INIT_THROTTLED = 5
            , PACER_STARTING_FRAME = 6, PACER_FRAME = 7
@@ -39,10 +47,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
            , PULSE_RAM_THROTTLED = 8, PULSE_RAM_N_STATE = 9;
   reg [log2(PULSE_RAM_N_STATE)-1:0] pulse_ram_state[1:0];
   
-  localparam N_ZMW = 128, BRAM_READ_LATENCY = 3;
-
   //simulate DRAM interface until we build our own board
-  localparam RAM_ADDR_INCR = `TRUE; //my way of saying 1 while avoiding warning
   wire[1:0] pulse_ram_rdy, pulse_ram_wdf_rdy;
   reg [1:0] pulse_ram_en, pulse_ram_read
           , pulse_ram_wdf_wren, pulse_ram_wdf_end
@@ -59,8 +64,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   //reg [1:0] ram_wren;
   wire[RAM_DATA_SIZE-1:0] pulse_ram_rd_data[1:0], pulse_to_ram_fifo_dout[1:0];
   reg [RAM_DATA_SIZE-1:0] pulse_to_ram_cache[1:0], pulse_ram_wdf_data;
-  reg [RAM_HEADER_SIZE-1:0] pulse_to_ram_fifo_header[1:0];
-  reg [ZMW_DATA_SIZE-1:0]   pulse_to_ram_fifo_data;
+  reg [PULSE_RAM_HEADER_SIZE-1:0] pulse_to_ram_fifo_header[1:0];
+  reg [PULSES_DESC_SIZE-1:0]   pulse_to_ram_fifo_data;
   reg[1:0] pulse_to_ram_fifo_wren;
   wire[1:0] pulse_to_ram_fifo_ack //Need Karnaugh logic for ACK, arrrg!
           , pulse_to_ram_fifo_full, pulse_to_ram_fifo_almost_full
@@ -74,7 +79,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
      , pulse_from_ram_fifo_valid
      , pulse_from_ram_fifo_high, pulse_from_ram_fifo_full
      , pulse_from_ram_fifo_almost_full;
-  wire[RAM_HEADER_SIZE-1:0] pulse_from_ram_fifo_header;
+  wire[PULSE_RAM_HEADER_SIZE-1:0] pulse_from_ram_fifo_header;
   // register the inputs for timing margin
   reg  pulse_from_ram_src, pulse_from_ram_fifo_wren;
   reg [RAM_DATA_SIZE-1:0] pulse_from_ram_fifo_din;
@@ -169,7 +174,6 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                           && !pulse_to_ram_fifo_full
                           && !updater_d_fifo_full[0];//chain to updater_d FIFO
   
-  genvar geni, genj;
   generate
     for(geni=0; geni < MAX_PULSE_PER_ZMW; geni=geni+1) begin
       fadd t1Pdt(.clk(CLK), .sclr(RESET), .operation_nd(pulse_from_ram_fifo_valid)
@@ -384,8 +388,24 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   assign #DELAY zmwxof_d_fifo_ack = !zmwxof_d_fifo_empty
                                   && (strength012_rdy[0] || xof_dd);
 
+  // FIFO from the pulse projector to the photonic tracer
+  localparam KT_TRACE_SIZE = 1 + N_ZMW_SIZE + N_DYE*FP_SIZE;
+  wire kt_fifo_overflow, kt_fifo_high, kt_fifo_full, kt_fifo_empty;
+  wire[FP_SIZE-1:0] kinetic_trace[N_DYE-1:0];
+  wire[N_ZMW_SIZE-1:0] kinetic_trace_zmw;
+  wire kinetic_trace_xof, kt_fifo_ack;
+  better_fifo#(.TYPE("KineticTrace"), .WIDTH(KT_TRACE_SIZE), .DELAY(DELAY))
+  kt_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+        , .din({strength012[3], strength012[2], strength012[1], strength012[0]
+              , pulse_dye_zmw_d, xof_dd})
+        , .wren(zmwxof_d_fifo_ack), .full(kt_fifo_full)
+        , .overflow(kt_fifo_overflow), .almost_full(), .high(kt_fifo_high)
+        , .rden(kt_fifo_ack), .empty(kt_fifo_empty), .almost_empty()
+        , .dout({kinetic_trace[3], kinetic_trace[2]
+               , kinetic_trace[1], kinetic_trace[0]
+               , kinetic_trace_zmw, kinetic_trace_xof}));
+
   //sequential logic ////////////////////////////////////////////////////////
-  integer i, j;
   always @(posedge CLK) begin
     current_pulse_zmw_number_dd <= #DELAY current_pulse_zmw_number_d[0];
     
@@ -451,7 +471,6 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       pulse_ram_rd_data_valid <= #DELAY pulse_ram_en_and_read[BRAM_READ_LATENCY-2];
       pulse_from_ram_fifo_din <= #DELAY pulse_ram_rd_data[pulse_from_ram_src];
   
-      
       //Pacer code ////////////////////////////////////////////////////
       gTime_cal_en <= #DELAY `FALSE;
       if(nframeXexp_rdy) gTime <= #DELAY nframeXexp;
@@ -459,8 +478,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       
       for(i=0; i<2; i=i+1) pulse_to_ram_fifo_wren[i] <= #DELAY `FALSE;
 
-      if(downstream_overflow) pacer_state <= #DELAY PACER_ERROR;
-      else begin//!downstream_overflow
+      if(kt_fifo_overflow) pacer_state <= #DELAY PACER_ERROR;
+      else begin
         case(pacer_state)
           PACER_STOPPED:
             if(is_start_msg) begin
@@ -474,7 +493,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
               // ^START to 1st RAM controller
-              pulse_to_ram_fifo_data <= #DELAY {ZMW_DATA_SIZE{`FALSE}};            
+              pulse_to_ram_fifo_data <= #DELAY {PULSES_DESC_SIZE{`FALSE}};            
               pulse_to_ram_fifo_header[0][2:0] <= #DELAY 'b110;//START(WR)
               pulse_to_ram_fifo_wren[0] <= #DELAY `TRUE;
 
@@ -785,6 +804,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       // DRAM manager code /////////////////////////////////////////////
       for(i=0; i<2; i=i+1) begin // Dual RAM => dual statemachine
         //pulse_to_ram_fifo_ack[i] <= #DELAY `FALSE;//don't ACK by default
+        pulse_ram_wdf_end[i] <= #DELAY `FALSE;
+        
         case(pulse_ram_state[i])
           PULSE_RAM_IDLE: begin
             pulse_ram_addr[i] <= #DELAY 0;
@@ -856,6 +877,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             end else if(pulse_ram_wdf_rdy[i]) begin//always TRUE for BRAM
               //we are here because there IS data in FIFO
               pulse_ram_wdf_data <= #DELAY pulse_to_ram_fifo_dout[i];//get it now
+              pulse_ram_wdf_end[i] <= #DELAY `TRUE;
               pulse_ram_wdf_wren[i] <= #DELAY `TRUE;//write the 2nd data
               pulse_ram_addr[i] <= #DELAY pulse_ram_addr[i] + RAM_ADDR_INCR;//move pointer
               //pulse_to_ram_fifo_ack[i] <= #DELAY `TRUE;//and acknowledge data
@@ -951,51 +973,178 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     end//!RESET
   end//always @(posedge CLK)
 
-  // Photonic tracer, camera tracer code ////////////////////////////////////
+  // Trace stage ///////////////////////////////////////////////////////
+  reg zmw_msg_valid;//Is there a message from the PC to this logic?
+  
   localparam ZMW_RAM_ERROR = 0
            , ZMW_RAM_MSG_WAIT = 1, ZMW_RAM_WR_WAIT = 2, ZMW_RAM_WR1 = 3
            , ZMW_RAM_WR2 = 4, ZMW_RAM_READING = 5, ZMW_RAM_THROTTLED = 6
            , ZMW_RAM_N_STATE = 7;
   reg [log2(ZMW_RAM_N_STATE)-1:0] zmw_ram_state;
-  reg zmw_msg_valid;
 
-  // FIFO from the pulse projector to the photonic tracer////////////
-  localparam KT_TRACE_SIZE = 1 + N_ZMW_SIZE + N_DYE*FP_SIZE;
-  wire kt_fifo_overflow, kt_fifo_high, kt_fifo_full, kt_fifo_empty;
-  wire[FP_SIZE-1:0] kinetic_trace[N_DYE-1:0];
-  wire[N_ZMW_SIZE-1:0] kinetic_trace_zmw;
-  wire kinetic_trace_xof, kinetic_trace_ack;
-  better_fifo#(.TYPE("KineticTrace"), .WIDTH(KT_TRACE_SIZE), .DELAY(DELAY))
-  pulse_to_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-            , .din({strength012[3], strength012[2], strength012[1], strength012[0]
-                  , pulse_dye_zmw_d, xof_dd})
-            , .wren(zmwxof_d_fifo_ack), .full(kt_fifo_full)
-            , .overflow(kt_fifo_overflow), .almost_full(), .high(kt_fifo_high)
-            , .rden(kinetic_trace_ack), .empty(kt_fifo_empty), .almost_empty()
-            , .dout({kinetic_trace[3], kinetic_trace[2]
-                   , kinetic_trace[1], kinetic_trace[0]
-                   , kinetic_trace_zmw, kinetic_trace_xof}));
-  assign kinetic_trace_ack = !kt_fifo_empty;
-
+  // RAM interface
   wire zmw_ram_rdy, zmw_ram_wdf_rdy;
   reg  zmw_ram_en, zmw_ram_read, zmw_ram_wdf_wren, zmw_ram_wdf_end
-     , zmw_ram_en_and_read[BRAM_READ_LATENCY-2:0]
-     , zmw_ram_rd_data_valid;
+     , zmw_ram_en_and_read[BRAM_READ_LATENCY-2:0], zmw_ram_rd_data_valid;
   assign zmw_ram_rdy = `TRUE;
   assign zmw_ram_wdf_rdy = `TRUE;
-  reg [log2(N_ZMW)-1:0] zmw_ram_addr;
+  reg [log2(N_ZMW)-1:0] zmw_ram_addr, zmw_ram_n_read;
   wire[RAM_DATA_SIZE-1:0] zmw_ram_rd_data;
+  reg [RAM_DATA_SIZE-1:0] zmw_ram_wdf_data;
 
   bram256x128//BRAM to fake 256 bit DDR3 SODIMM for 128 ZMWs
   zmw_ram(.clka(CLK), .douta(zmw_ram_rd_data), .addra(zmw_ram_addr)
         , .dina(zmw_ram_wdf_data), .wea(zmw_ram_wdf_wren));
 
-  always @(posedge CLK) begin
+  // FIFO from RAM to the photonic tracer
+  wire zmw_from_ram_fifo_ack, zmw_from_ram_fifo_empty, zmw_from_ram_fifo_valid
+     , zmw_from_ram_fifo_high, zmw_from_ram_fifo_full
+     , zmw_from_ram_fifo_almost_full;
+  wire[3:0] zmw_from_ram_fifo_dout_meta;
+  // register the inputs for timing margin
+  reg  zmw_from_ram_fifo_wren;
+  reg [RAM_DATA_SIZE-1:0] zmw_from_ram_fifo_din;
+  
+  localparam SMALL_FP_SIZE = 24;
+  wire[11:0] zmw_from_ram_pixel_row, zmw_from_ram_pixel_col;
+  wire[7:0] zmw_from_ram_grn_psf_idx, zmw_from_ram_red_psf_idx;
+  wire[SMALL_FP_SIZE-1:0] zmw_from_ram_photonic_bias[N_DYE-1:0]
+                        , zmw_from_ram_photonic_gain[N_DYE-1:0];
+  wire[3:0] zmw_from_ram_spectral_mx_idx[N_DYE-1:0];
+
+  better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
+  zmw_from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+      , .wren(zmw_from_ram_fifo_wren), .din(zmw_from_ram_fifo_din)
+      , .high(zmw_from_ram_fifo_high), .full(zmw_from_ram_fifo_full)
+      , .almost_full(zmw_from_ram_fifo_almost_full)
+      , .overflow(zmw_from_ram_fifo_overflow)
+      , .rden(zmw_from_ram_fifo_ack)
+      , .dout({zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
+             , zmw_from_ram_grn_psf_idx, zmw_from_ram_red_psf_idx
+             , zmw_from_ram_photonic_bias[0], zmw_from_ram_photonic_gain[0]
+             , zmw_from_ram_spectral_mx_idx[0]
+             , zmw_from_ram_photonic_bias[1], zmw_from_ram_photonic_gain[1]
+             , zmw_from_ram_spectral_mx_idx[1]
+             , zmw_from_ram_photonic_bias[2], zmw_from_ram_photonic_gain[2]
+             , zmw_from_ram_spectral_mx_idx[2]
+             , zmw_from_ram_photonic_bias[3], zmw_from_ram_photonic_gain[3]
+             , zmw_from_ram_spectral_mx_idx[3]
+             , zmw_from_ram_fifo_dout_meta})
+      , .empty(zmw_from_ram_fifo_empty), .almost_empty());
+  assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
+
+  assign #DELAY zmw_from_ram_fifo_ack =
+    !(zmw_from_ram_fifo_empty || kt_fifo_empty
+      || kinetic_trace_xof || downstream_high);
+  assign #DELAY kt_fifo_ack = !kt_fifo_empty
+    && (kinetic_trace_xof || zmw_from_ram_fifo_valid)
+    && !downstream_high;
+
+  always @(posedge CLK) begin //ZMW DRAM manager code //////////////////
+    // Setup defaults
+    zmw_ram_en_and_read[0] <= #DELAY zmw_ram_en & zmw_ram_read;
+    for(i=1; i<BRAM_READ_LATENCY-1; i=i+1)
+      zmw_ram_en_and_read[i] <= #DELAY zmw_ram_en_and_read[i-1];
+    zmw_ram_rd_data_valid <= #DELAY zmw_ram_en_and_read[BRAM_READ_LATENCY-2];
+
+    zmw_ram_wdf_end <= #DELAY `FALSE;
+    zmw_from_ram_fifo_wren <= #DELAY `FALSE;
+    zmw_ram_wdf_wren <= #DELAY `FALSE;
+    
+    // And override defaults below
     if(RESET) begin
+      zmw_ram_en <= #DELAY `FALSE;
+      zmw_ram_read <= #DELAY `FALSE;
+      zmw_ram_addr <= #DELAY 0;
+      zmw_ram_n_read <= #DELAY 0;
       zmw_ram_state <= #DELAY ZMW_RAM_MSG_WAIT;
     end else begin
+      if(zmw_from_ram_fifo_overflow) begin//assertion
+        zmw_ram_read <= #DELAY `FALSE;
+        zmw_ram_state <= #DELAY ZMW_RAM_ERROR;
+      end else begin
+        case(zmw_ram_state)
+          ZMW_RAM_MSG_WAIT:
+            if(zmw_msg_valid) begin
+              zmw_ram_en <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_WR_WAIT;
+            end else if(!kt_fifo_empty && kinetic_trace_xof) begin
+              zmw_ram_en <= #DELAY `TRUE;
+              zmw_ram_addr <= #DELAY 0;
+              zmw_ram_read <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_READING;
+            end
+          ZMW_RAM_WR_WAIT: //wait for the HW to grant write
+            if(zmw_ram_rdy && zmw_ram_wdf_rdy) begin
+              zmw_ram_wdf_data <= #DELAY whole_pc_msg[0+:RAM_DATA_SIZE];
+              // Write at the current zmw_ram_addr
+              zmw_ram_wdf_wren <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_WR1;
+            end
+          ZMW_RAM_WR1://HW writing the 1st of the pair in this state
+            if(zmw_ram_wdf_rdy) begin//always TRUE for BRAM
+              zmw_ram_wdf_data <= #DELAY whole_pc_msg[RAM_DATA_SIZE+:RAM_DATA_SIZE];
+              zmw_ram_wdf_wren <= #DELAY `TRUE;//write the 2nd data
+              zmw_ram_addr <= #DELAY zmw_ram_addr + RAM_ADDR_INCR;//Move pointer
+              zmw_ram_wdf_end <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_WR2;
+            end
+          ZMW_RAM_WR2:
+            if(zmw_ram_wdf_rdy) zmw_ram_state <= #DELAY ZMW_RAM_MSG_WAIT;
+            else zmw_ram_state <= #DELAY ZMW_RAM_ERROR;//assertion
+          ZMW_RAM_READING:
+            if(zmw_msg_valid) begin//stop read and jump over to SAVING
+              zmw_ram_read <= #DELAY `FALSE;
+              zmw_ram_addr <= #DELAY 0;
+              zmw_ram_en <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_WR_WAIT;
+            end else begin
+              if(zmw_ram_rd_data_valid) begin
+                //This is unnecessary for N_ZMW power of 2 (because it will
+                //wrap around) but emphasizes the intention that we don't want
+                //to require N_ZMW to power of 2 ultimately
+                zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
+                  ? 0 : zmw_ram_n_read + `TRUE;
+                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:4]
+                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:4];
+                zmw_from_ram_fifo_din[3:0] <= #DELAY zmw_ram_n_read[3:0];
+                zmw_from_ram_fifo_wren <= #DELAY `TRUE;
+              end
+              if(zmw_from_ram_fifo_high) begin
+                zmw_ram_en <= #DELAY `FALSE;
+                zmw_ram_state <= #DELAY ZMW_RAM_THROTTLED;
+              end else if(zmw_ram_rdy)//can request the next addr
+                zmw_ram_addr <= #DELAY zmw_ram_addr == (N_ZMW-1) //xADDR_INCR
+                  ? 0 : zmw_ram_addr + RAM_ADDR_INCR;//Move pointer
+            end
+          ZMW_RAM_THROTTLED:
+            if(zmw_msg_valid) begin//stop read and jump over to SAVING
+              zmw_ram_read <= #DELAY `FALSE;
+              zmw_ram_addr <= #DELAY 0;
+              zmw_ram_en <= #DELAY `TRUE;
+              zmw_ram_state <= #DELAY ZMW_RAM_WR_WAIT;
+            end else begin
+              if(zmw_ram_rd_data_valid) begin
+                zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
+                  ? 0 : zmw_ram_n_read + `TRUE;
+                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:4]
+                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:4];
+                zmw_from_ram_fifo_din[3:0] <= #DELAY zmw_ram_n_read[3:0];
+                zmw_from_ram_fifo_wren <= #DELAY `TRUE;
+              end
+              if(!zmw_from_ram_fifo_high) begin
+                zmw_ram_en <= #DELAY `TRUE;//resume READING
+                zmw_ram_state <= #DELAY ZMW_RAM_READING;
+              end
+            end
+          default: begin // What shall we do in ERROR?
+          end
+        endcase
+      end
     end
   end//always @(posedge CLK)
+
+
 
   // Trace to pixel projector code /////////////////////////////////////////
   localparam PIXEL_RAM_ERROR = 0
@@ -1014,6 +1163,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   /////////////////////////////////////////////////////////////////////////////
   //PC message assembler code comes last because it is aware of the FIFO and
   //RAM manager states for the logically separate modules.
+  //Message kinds
+  localparam PC_MSG_PPROJECTOR = 'b00, PC_MSG_ZMW = 'b01, PC_MSG_PIXEL = 'b10;
+  //Message assembler states
   localparam MSG_ASSEMBLER_WAIT1 = 0, MSG_ASSEMBLER_PPROJECTOR = 1
            , MSG_ASSEMBLER_ZMW = 2, MSG_ASSEMBLER_PIXEL = 3
            , MSG_ASSEMBLER_N_STATE = 4;

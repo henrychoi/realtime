@@ -1,7 +1,7 @@
 ##############################################################
 #
 # Xilinx Core Generator version 13.4
-# Date: Sat Mar 16 01:33:21 2013
+# Date: Fri Mar 15 19:56:38 2013
 #
 ##############################################################
 #
@@ -40,7 +40,7 @@ SELECT Fifo_Generator xilinx.com:ip:fifo_generator:8.4
 # END Select
 # BEGIN Parameters
 CSET add_ngc_constraint_axi=false
-CSET almost_empty_flag=true
+CSET almost_empty_flag=false
 CSET almost_full_flag=true
 CSET aruser_width=1
 CSET awuser_width=1
@@ -51,9 +51,9 @@ CSET axis_type=FIFO
 CSET buser_width=1
 CSET clock_enable_type=Slave_Interface_Clock_Enable
 CSET clock_type_axi=Common_Clock
-CSET component_name=standard256_fifo
+CSET component_name=standard512_fifo
 CSET data_count=false
-CSET data_count_width=7
+CSET data_count_width=5
 CSET disable_timing_violations=false
 CSET disable_timing_violations_axi=false
 CSET dout_reset_value=0
@@ -117,14 +117,14 @@ CSET fifo_implementation_wach=Common_Clock_Block_RAM
 CSET fifo_implementation_wdch=Common_Clock_Block_RAM
 CSET fifo_implementation_wrch=Common_Clock_Block_RAM
 CSET full_flags_reset_value=1
-CSET full_threshold_assert_value=96
+CSET full_threshold_assert_value=30
 CSET full_threshold_assert_value_axis=1023
 CSET full_threshold_assert_value_rach=1023
 CSET full_threshold_assert_value_rdch=1023
 CSET full_threshold_assert_value_wach=1023
 CSET full_threshold_assert_value_wdch=1023
 CSET full_threshold_assert_value_wrch=1023
-CSET full_threshold_negate_value=64
+CSET full_threshold_negate_value=29
 CSET id_width=4
 CSET inject_dbit_error=false
 CSET inject_dbit_error_axis=false
@@ -140,8 +140,8 @@ CSET inject_sbit_error_rdch=false
 CSET inject_sbit_error_wach=false
 CSET inject_sbit_error_wdch=false
 CSET inject_sbit_error_wrch=false
-CSET input_data_width=256
-CSET input_depth=128
+CSET input_data_width=512
+CSET input_depth=32
 CSET input_depth_axis=1024
 CSET input_depth_rach=16
 CSET input_depth_rdch=1024
@@ -149,9 +149,9 @@ CSET input_depth_wach=16
 CSET input_depth_wdch=1024
 CSET input_depth_wrch=16
 CSET interface_type=Native
-CSET output_data_width=256
-CSET output_depth=128
-CSET overflow_flag=true
+CSET output_data_width=512
+CSET output_depth=32
+CSET overflow_flag=false
 CSET overflow_flag_axi=false
 CSET overflow_sense=Active_High
 CSET overflow_sense_axi=Active_High
@@ -163,7 +163,7 @@ CSET programmable_empty_type_rdch=Empty
 CSET programmable_empty_type_wach=Empty
 CSET programmable_empty_type_wdch=Empty
 CSET programmable_empty_type_wrch=Empty
-CSET programmable_full_type=Multiple_Programmable_Full_Threshold_Constants
+CSET programmable_full_type=No_Programmable_Full_Threshold
 CSET programmable_full_type_axis=Full
 CSET programmable_full_type_rach=Full
 CSET programmable_full_type_rdch=Full
@@ -174,7 +174,7 @@ CSET rach_type=FIFO
 CSET rdch_type=FIFO
 CSET read_clock_frequency=1
 CSET read_data_count=false
-CSET read_data_count_width=7
+CSET read_data_count_width=5
 CSET register_slice_mode_axis=Fully_Registered
 CSET register_slice_mode_rach=Fully_Registered
 CSET register_slice_mode_rdch=Fully_Registered
@@ -209,11 +209,11 @@ CSET write_acknowledge_flag=false
 CSET write_acknowledge_sense=Active_High
 CSET write_clock_frequency=1
 CSET write_data_count=false
-CSET write_data_count_width=7
+CSET write_data_count_width=5
 CSET wuser_width=1
 # END Parameters
 # BEGIN Extra information
 MISC pkg_timestamp=2011-10-22T06:08:52Z
 # END Extra information
 GENERATE
-# CRC: 4b42f25b
+# CRC: 298d2b9e
