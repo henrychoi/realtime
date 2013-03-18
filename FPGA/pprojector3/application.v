@@ -1000,7 +1000,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire zmw_from_ram_fifo_ack, zmw_from_ram_fifo_empty, zmw_from_ram_fifo_valid
      , zmw_from_ram_fifo_high, zmw_from_ram_fifo_full
      , zmw_from_ram_fifo_almost_full;
-  wire[3:0] zmw_from_ram_fifo_dout_meta;
+  wire[3:0] zmw_from_ram_fifo_meta;
   // register the inputs for timing margin
   reg  zmw_from_ram_fifo_wren;
   reg [RAM_DATA_SIZE-1:0] zmw_from_ram_fifo_din;
@@ -1029,7 +1029,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
              , zmw_from_ram_spectral_mx_idx[2]
              , zmw_from_ram_photonic_bias[3], zmw_from_ram_photonic_gain[3]
              , zmw_from_ram_spectral_mx_idx[3]
-             , zmw_from_ram_fifo_dout_meta})
+             , zmw_from_ram_fifo_meta})
       , .empty(zmw_from_ram_fifo_empty), .almost_empty());
   assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
 
