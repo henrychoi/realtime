@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<model version="2.2.03">
+<model version="2.2.00">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
   <class name="PulseDramManager" superclass="qpn::QHsm">
@@ -647,8 +647,8 @@
      </initial_glyph>
     </initial>
     <state name="INITIALIZING">
-     <tran trig="zmw_ram_state == PLAY_BACK &amp;&amp; PSF pool inited" target="../../2">
-      <tran_glyph conn="16,9,1,3,13">
+     <tran trig="zmw_ram_state == PLAY_BACK &amp;&amp; FSP/SpMx pool inited" target="../../2">
+      <tran_glyph conn="16,7,1,3,13">
        <action box="0,-6,12,6"/>
       </tran_glyph>
      </tran>
@@ -656,16 +656,21 @@
     </state>
     <state name="RUNNING">
      <tran trig="zmw_from_ram_meta != kinetic_trace_zmw[3:0]" target="../../3">
-      <tran_glyph conn="53,7,1,3,17">
-       <action box="1,-4,15,5"/>
+      <tran_glyph conn="64,7,1,3,14">
+       <action box="0,-6,14,6"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="29,2,24,10"/>
+     <tran trig="zmw_ram_state != PLAY_BACK" target="../../1">
+      <tran_glyph conn="29,9,3,1,-13">
+       <action box="-12,0,12,4"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="29,2,35,10"/>
     </state>
     <state name="ERROR">
-     <state_glyph node="70,3,7,6"/>
+     <state_glyph node="78,3,7,6"/>
     </state>
-    <state_diagram size="80,50"/>
+    <state_diagram size="89,28"/>
    </statechart>
   </class>
  </package>

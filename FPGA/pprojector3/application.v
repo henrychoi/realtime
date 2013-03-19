@@ -1007,11 +1007,15 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   localparam SMALL_FP_SIZE = 24;
   wire[11:0] zmw_from_ram_pixel_row, zmw_from_ram_pixel_col;
-  wire[7:0] zmw_from_ram_grn_psf_idx, zmw_from_ram_red_psf_idx;
+  wire[7:0] zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx;
   wire[SMALL_FP_SIZE-1:0] zmw_from_ram_photonic_bias[N_DYE-1:0]
                         , zmw_from_ram_photonic_gain[N_DYE-1:0];
   wire[3:0] zmw_from_ram_spectral_mx_idx[N_DYE-1:0];
 
+  localparam PTRACER_ERROR = 0, PTRACER_INITIALIZING = 1, PTRACER_RUNNING = 2
+           , PTRACER_N_STATE = 3;
+  reg [log2(PTRACER_N_STATE)-1:0] ptracer_state;
+  
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   zmw_from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
       , .wren(zmw_from_ram_fifo_wren), .din(zmw_from_ram_fifo_din)
@@ -1020,7 +1024,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       , .overflow(zmw_from_ram_fifo_overflow)
       , .rden(zmw_from_ram_fifo_ack)
       , .dout({zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
-             , zmw_from_ram_grn_psf_idx, zmw_from_ram_red_psf_idx
+             , zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx
              , zmw_from_ram_photonic_bias[0], zmw_from_ram_photonic_gain[0]
              , zmw_from_ram_spectral_mx_idx[0]
              , zmw_from_ram_photonic_bias[1], zmw_from_ram_photonic_gain[1]
@@ -1058,6 +1062,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       zmw_ram_addr <= #DELAY 0;
       zmw_ram_n_read <= #DELAY 0;
       zmw_ram_state <= #DELAY ZMW_RAM_MSG_WAIT;
+      
+      ptracer_state <= #DELAY PTRACER_INITIALIZING;
     end else begin
       if(zmw_from_ram_fifo_overflow) begin//assertion
         zmw_ram_read <= #DELAY `FALSE;
@@ -1139,11 +1145,29 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             end
           default: begin // What shall we do in ERROR?
           end
-        endcase
+        endcase//zmw_ram_state
+        
+        case(ptracer_state)
+          PTRACER_INITIALIZING: //TODO: initialize the PSF pool
+            if(zmw_ram_state == ZMW_RAM_READING)
+              // TODO: correct action
+              ptracer_state <= #DELAY PTRACER_RUNNING;
+          PTRACER_RUNNING:
+            if(!(zmw_from_ram_fifo_empty || kt_fifo_empty || kinetic_trace_xof)
+               && zmw_from_ram_fifo_meta != kinetic_trace_zmw[3:0]) begin
+              // TODO: correct action
+              ptracer_state <= #DELAY PTRACER_ERROR;
+            end else if(!(zmw_ram_state == ZMW_RAM_READING
+                          || zmw_ram_state == ZMW_RAM_THROTTLED)) begin
+              // TODO: correct action
+              ptracer_state <= #DELAY PTRACER_INITIALIZING;
+            end
+          default: begin//ERROR
+          end
+        endcase//ptracer_state
       end
     end
   end//always @(posedge CLK)
-
 
 
   // Trace to pixel projector code /////////////////////////////////////////
