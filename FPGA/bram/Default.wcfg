@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="16" />
    <wvobject fp_name="/simmain/main/CLK" type="logic" db_ref_id="1">
       <obj_property name="ElementShortName">CLK</obj_property>
       <obj_property name="ObjectShortName">CLK</obj_property>
@@ -29,8 +29,8 @@
       <obj_property name="ObjectShortName">wren[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/qhead" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">qhead[4:0,10:0]</obj_property>
-      <obj_property name="ObjectShortName">qhead[4:0,10:0]</obj_property>
+      <obj_property name="ElementShortName">qhead[4:0,9:0]</obj_property>
+      <obj_property name="ObjectShortName">qhead[4:0,9:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/qfull" type="array" db_ref_id="1">
@@ -47,8 +47,8 @@
       <obj_property name="ObjectShortName">qempty[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/qtail" type="array" db_ref_id="1">
-      <obj_property name="ElementShortName">qtail[4:0,10:0]</obj_property>
-      <obj_property name="ObjectShortName">qtail[4:0,10:0]</obj_property>
+      <obj_property name="ElementShortName">qtail[4:0,9:0]</obj_property>
+      <obj_property name="ObjectShortName">qtail[4:0,9:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/dout" type="array" db_ref_id="1">
@@ -60,17 +60,27 @@
       <obj_property name="ElementShortName">vout[4:0]</obj_property>
       <obj_property name="ObjectShortName">vout[4:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/wr_valid_bit" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">wr_valid_bit</obj_property>
-      <obj_property name="ObjectShortName">wr_valid_bit</obj_property>
+   <wvobject fp_name="/simmain/main/wr_valid_bit" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">wr_valid_bit[4:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_valid_bit[4:0]</obj_property>
    </wvobject>
-   <wvobject fp_name="/simmain/main/rd_valid_bit" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">rd_valid_bit</obj_property>
-      <obj_property name="ObjectShortName">rd_valid_bit</obj_property>
+   <wvobject fp_name="/simmain/main/rd_valid_bit" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">rd_valid_bit[4:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_valid_bit[4:0]</obj_property>
    </wvobject>
    <wvobject fp_name="/simmain/main/expected_data" type="array" db_ref_id="1">
       <obj_property name="ElementShortName">expected_data[19:0]</obj_property>
       <obj_property name="ObjectShortName">expected_data[19:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/ro_bram_addr" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ro_bram_addr[6:0]</obj_property>
+      <obj_property name="ObjectShortName">ro_bram_addr[6:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject fp_name="/simmain/main/ro_bram_dout" type="array" db_ref_id="1">
+      <obj_property name="ElementShortName">ro_bram_dout[15:0]</obj_property>
+      <obj_property name="ObjectShortName">ro_bram_dout[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 </wave_config>

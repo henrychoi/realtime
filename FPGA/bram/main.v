@@ -100,4 +100,13 @@ module main(input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED);
         end
       endcase
     end
+    
+  reg [6:0] ro_bram_addr;
+  wire[15:0] ro_bram_dout;
+  RO_BRAM ro_bram(.clka(CLK), .wea(`FALSE), .addra(ro_bram_addr), .dina(16'h0000)
+      , .douta(ro_bram_dout));
+      
+  always @(posedge CLK)
+    if(RESET) ro_bram_addr <= #DELAY 0;
+    else ro_bram_addr <= #DELAY ro_bram_addr + `TRUE;
 endmodule
