@@ -1250,7 +1250,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
                   ? 0 : zmw_ram_n_read + `TRUE;
                 zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE]
-                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:4];
+                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
+                //Slight switcheroo of the metadata, to encode the ZMW num
                 zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
                   <= #DELAY {0, zmw_ram_n_read};
                 zmw_from_ram_fifo_wren <= #DELAY `TRUE;
