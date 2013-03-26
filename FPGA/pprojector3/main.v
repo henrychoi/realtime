@@ -55,6 +55,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
       assign xb_rd_open = `TRUE;
       assign xb_rd_rden = `TRUE;
       assign xb_loop_rden = `TRUE;
+      assign fpga_msg_high = `FALSE;
 
       initial begin
         binf = $fopen("pulse.bin", "rb");

@@ -134,7 +134,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                      , pulse_intensity_zmw[MAX_PULSE_PER_ZMW-1:0]
                      , pulse_dye_zmw, pulse_dye_zmw_d
                      , strength2_zmw[N_DYE-1:0];
-  reg [N_ZMW_SIZE-1:0] current_pulse_zmw_number_dd;
+  reg [N_ZMW_SIZE-1:0] current_pulse_zmw_number_dd, pulse_dye_zmw_r;
   reg [FP_SIZE-1:0] time1[MAX_PULSE_PER_ZMW-1:0]
     , time2_d[MAX_PULSE_PER_ZMW-1:0][FCOMP_LATENCY-1:0]
     , current_pulse_t1_dd[MAX_PULSE_PER_ZMW-1:0][FCOMP_LATENCY-1:0]
@@ -392,8 +392,11 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   localparam KT_TRACE_SIZE = 1 + N_ZMW_SIZE + N_DYE*FP_SIZE;
   wire kt_fifo_overflow, kt_fifo_high, kt_fifo_full, kt_fifo_empty;
   wire[FP_SIZE-1:0] kinetic_trace[N_DYE-1:0];
+  reg [FP_SIZE-1:0] ktrace[N_DYE-1:0];
   wire[N_ZMW_SIZE-1:0] kinetic_trace_zmw;
   wire kinetic_trace_xof, kt_fifo_ack;
+  reg kt_fifo_wren, xof_dd_r;
+
   better_fifo#(.TYPE("KineticTrace"), .WIDTH(KT_TRACE_SIZE), .DELAY(DELAY))
   kt_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
         , .din({strength012[3], strength012[2], strength012[1], strength012[0]
@@ -405,7 +408,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                , kinetic_trace[1], kinetic_trace[0]
                , kinetic_trace_zmw, kinetic_trace_xof}));
 
-  //sequential logic ////////////////////////////////////////////////////////
+  //pprojector sequential logic /////////////////////////////////////////
   always @(posedge CLK) begin
     current_pulse_zmw_number_dd <= #DELAY current_pulse_zmw_number_d[0];
     
@@ -445,6 +448,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
     pulse_from_ram_fifo_wren <= #DELAY pulse_ram_rd_data_valid[pulse_from_ram_src];
 
+    //Delay to avoid weird FIFO timing
+    kt_fifo_wren <= #DELAY zmwxof_d_fifo_ack;
+    pulse_dye_zmw_r <= #DELAY pulse_dye_zmw_d;
+    xof_dd_r <= #DELAY xof_dd;
+    for(i=0; i <N_DYE; i=i+1) ktrace[i] <= #DELAY strength012[i];
+    
     if(RESET) begin
       //For now, hard code the intensity pool values
       pulse_intensity_pool[0] <= #DELAY 'h3e800000; //0.25f
@@ -992,7 +1001,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire[RAM_DATA_SIZE-1:0] zmw_ram_rd_data;
   reg [RAM_DATA_SIZE-1:0] zmw_ram_wdf_data;
 
-  bram256x128//BRAM to fake 256 bit DDR3 SODIMM for 128 ZMWs
+  ZMW_BRAM//BRAM to fake 256 bit DDR3 SODIMM for 128 ZMWs
   zmw_ram(.clka(CLK), .douta(zmw_ram_rd_data), .addra(zmw_ram_addr)
         , .dina(zmw_ram_wdf_data), .wea(zmw_ram_wdf_wren));
 
@@ -1000,7 +1009,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire zmw_from_ram_fifo_ack, zmw_from_ram_fifo_empty, zmw_from_ram_fifo_valid
      , zmw_from_ram_fifo_high, zmw_from_ram_fifo_full
      , zmw_from_ram_fifo_almost_full;
-  wire[3:0] zmw_from_ram_fifo_meta;
+  localparam ZMW_RAM_META_SIZE = 8;
+  wire[ZMW_RAM_META_SIZE-1:0] zmw_from_ram_fifo_meta;
   // register the inputs for timing margin
   reg  zmw_from_ram_fifo_wren;
   reg [RAM_DATA_SIZE-1:0] zmw_from_ram_fifo_din;
@@ -1038,11 +1048,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       , .empty(zmw_from_ram_fifo_empty), .almost_empty());
   assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
 
-  assign #DELAY zmw_from_ram_fifo_ack =
+  //Delaying the ack throws off simulation timing
+  assign zmw_from_ram_fifo_ack =
     !(zmw_from_ram_fifo_empty || kt_fifo_empty
       || kinetic_trace_xof || downstream_high);
-  assign #DELAY kt_fifo_ack = !kt_fifo_empty
-    && (kinetic_trace_xof || zmw_from_ram_fifo_valid)
+  assign kt_fifo_ack = !kt_fifo_empty
+    && (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 
   localparam FSP_SIZE = 3;  
@@ -1201,6 +1212,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               zmw_ram_en <= #DELAY `TRUE;
               zmw_ram_state <= #DELAY ZMW_RAM_WR_WAIT;
             end else if(!kt_fifo_empty && kinetic_trace_xof) begin
+              //The BRAM initialization had better be over by this time!
               zmw_ram_en <= #DELAY `TRUE;
               zmw_ram_addr <= #DELAY 0;
               zmw_ram_read <= #DELAY `TRUE;
@@ -1237,9 +1249,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 //to require N_ZMW to power of 2 ultimately
                 zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
                   ? 0 : zmw_ram_n_read + `TRUE;
-                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:4]
+                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE]
                   <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:4];
-                zmw_from_ram_fifo_din[3:0] <= #DELAY zmw_ram_n_read[3:0];
+                zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
+                  <= #DELAY {0, zmw_ram_n_read};
                 zmw_from_ram_fifo_wren <= #DELAY `TRUE;
               end
               if(zmw_from_ram_fifo_high) begin
@@ -1273,6 +1286,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           end
         endcase//zmw_ram_state
         
+        // Photonic trace code /////////////////////////////////////
         case(ptracer_state)
           PTRACER_INITIALIZING: //TODO: initialize the PSF pool
             if(zmw_ram_state == ZMW_RAM_READING)
@@ -1280,19 +1294,21 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               ptracer_state <= #DELAY PTRACER_RUNNING;
           PTRACER_RUNNING:
             if(!(zmw_from_ram_fifo_empty || kt_fifo_empty || kinetic_trace_xof)
-               && zmw_from_ram_fifo_meta != kinetic_trace_zmw[3:0]) begin
-              // TODO: correct action
+               && zmw_from_ram_fifo_meta != kinetic_trace_zmw[0+:ZMW_RAM_META_SIZE-1])
+            begin
+              // TODO: appropriate action on error
               ptracer_state <= #DELAY PTRACER_ERROR;
             end else if(!(zmw_ram_state == ZMW_RAM_READING
                           || zmw_ram_state == ZMW_RAM_THROTTLED)) begin
-              // TODO: correct action
+              // TODO: appropriate action on error
               ptracer_state <= #DELAY PTRACER_INITIALIZING;
             end
           default: begin//ERROR
           end
         endcase//ptracer_state
-      end
-    end
+
+      end//!assertion (i.e. things are fine)
+    end//!RESET
   end//always @(posedge CLK)
 
 
@@ -1309,6 +1325,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     end else begin
     end
   end//always @(posedge CLK)
+  
 
   /////////////////////////////////////////////////////////////////////////////
   //PC message assembler code comes last because it is aware of the FIFO and
