@@ -258,6 +258,16 @@
    <wvobject fp_name="group99" type="group">
       <obj_property name="label">ptracer</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <wvobject fp_name="/simmain/main/app/zmw_ram_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">zmw_ram_state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">zmw_ram_state[2:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ptracer_state" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ptracer_state[1:0]</obj_property>
+         <obj_property name="ObjectShortName">ptracer_state[1:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
       <wvobject fp_name="/simmain/main/app/kinetic_trace" type="array" db_ref_id="1">
          <obj_property name="ElementShortName">kinetic_trace[3:0,31:0]</obj_property>
          <obj_property name="ObjectShortName">kinetic_trace[3:0,31:0]</obj_property>
@@ -284,19 +294,9 @@
          <obj_property name="ElementShortName">zmw_ram_rd_data_valid</obj_property>
          <obj_property name="ObjectShortName">zmw_ram_rd_data_valid</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_ram_rd_data" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_ram_rd_data[255:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_ram_rd_data[255:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
       <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_wren" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">zmw_from_ram_fifo_wren</obj_property>
          <obj_property name="ObjectShortName">zmw_from_ram_fifo_wren</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_din" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_from_ram_fifo_din[255:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_from_ram_fifo_din[255:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_empty" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">zmw_from_ram_fifo_empty</obj_property>
@@ -310,25 +310,6 @@
       <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_ack" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">zmw_from_ram_fifo_ack</obj_property>
          <obj_property name="ObjectShortName">zmw_from_ram_fifo_ack</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_ram_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_ram_state[2:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_ram_state[2:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/ptracer_state" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">ptracer_state[1:0]</obj_property>
-         <obj_property name="ObjectShortName">ptracer_state[1:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/photonic_trace" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">photonic_trace[3:0,31:0]</obj_property>
-         <obj_property name="ObjectShortName">photonic_trace[3:0,31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject fp_name="/simmain/main/app/photonic_trace_rdy" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">photonic_trace_rdy[3:0]</obj_property>
-         <obj_property name="ObjectShortName">photonic_trace_rdy[3:0]</obj_property>
       </wvobject>
       <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_empty" type="logic" db_ref_id="1">
          <obj_property name="ElementShortName">zmw_from_ram_fifo_empty</obj_property>
@@ -354,19 +335,86 @@
          <obj_property name="ObjectShortName">zmw_from_ram_red_fsp_idx[7:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_from_ram_photonic_bias" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_from_ram_photonic_bias[3:0,23:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_from_ram_photonic_bias[3:0,23:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/photonic_trace_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">photonic_trace_rdy[3:0]</obj_property>
+         <obj_property name="ObjectShortName">photonic_trace_rdy[3:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/photonic_trace" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">photonic_trace[3:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">photonic_trace[3:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/photonic_trace[3]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[3,31:0]</obj_property>
+            <obj_property name="ObjectShortName">photonic_trace[3,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/photonic_trace[2]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[2,31:0]</obj_property>
+            <obj_property name="ObjectShortName">photonic_trace[2,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/photonic_trace[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1,31:0]</obj_property>
+            <obj_property name="ObjectShortName">photonic_trace[1,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/photonic_trace[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">photonic_trace[0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/inv_dye_mx_addr" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">inv_dye_mx_addr[3:0,3:0]</obj_property>
+         <obj_property name="ObjectShortName">inv_dye_mx_addr[3:0,3:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_from_ram_photonic_gain" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_from_ram_photonic_gain[3:0,23:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_from_ram_photonic_gain[3:0,23:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_ack_d" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">zmw_from_ram_fifo_ack_d[2:0]</obj_property>
+         <obj_property name="ObjectShortName">zmw_from_ram_fifo_ack_d[2:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/inv_dye_mx_dout" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">inv_dye_mx_dout[1:0,3:0,23:0]</obj_property>
+         <obj_property name="ObjectShortName">inv_dye_mx_dout[1:0,3:0,23:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
-      <wvobject fp_name="/simmain/main/app/zmw_from_ram_spectral_mx_idx" type="array" db_ref_id="1">
-         <obj_property name="ElementShortName">zmw_from_ram_spectral_mx_idx[3:0,3:0]</obj_property>
-         <obj_property name="ObjectShortName">zmw_from_ram_spectral_mx_idx[3:0,3:0]</obj_property>
+      <wvobject fp_name="/simmain/main/app/inv_dye_mx" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">inv_dye_mx[1:0,3:0,23:0]</obj_property>
+         <obj_property name="ObjectShortName">inv_dye_mx[1:0,3:0,23:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/inv_dye_mx_fifo_empty" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">inv_dye_mx_fifo_empty[1:0,3:0]</obj_property>
+         <obj_property name="ObjectShortName">inv_dye_mx_fifo_empty[1:0,3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ptXinvsp_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ptXinvsp_rdy[1:0,3:0]</obj_property>
+         <obj_property name="ObjectShortName">ptXinvsp_rdy[1:0,3:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/ptXinvsp" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">ptXinvsp[1:0,3:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">ptXinvsp[1:0,3:0,31:0]</obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/ptXinvsp[1]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[1,3:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">ptXinvsp[1,3:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ptXinvsp[0]" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">[0,3:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">ptXinvsp[0,3:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/cam_trace_rdy" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cam_trace_rdy[1:0]</obj_property>
+         <obj_property name="ObjectShortName">cam_trace_rdy[1:0]</obj_property>
+      </wvobject>
+      <wvobject fp_name="/simmain/main/app/cam_trace" type="array" db_ref_id="1">
+         <obj_property name="ElementShortName">cam_trace[1:0,31:0]</obj_property>
+         <obj_property name="ObjectShortName">cam_trace[1:0,31:0]</obj_property>
          <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
    </wvobject>

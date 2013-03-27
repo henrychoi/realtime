@@ -5,7 +5,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 , input downstream_high, downstream_overflow
 , output app_running, app_error);
 `include "function.v"
-  genvar geni, genj;
+  genvar geni, genj, genk;
   integer i, j;
 
   localparam N_ZMW_SIZE = log2(4 * 1024 * 1024);
@@ -25,7 +25,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   reg [2*RAM_DATA_SIZE-1:0] whole_pc_msg;
 
-  localparam N_ZMW = 128;
+  localparam N_ZMW = 128, N_CAM = 2;
   localparam RAM_ADDR_INCR = `TRUE //my way of saying 1 while avoiding warning
            , BRAM_READ_LATENCY = 3;
 
@@ -1058,29 +1058,27 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
   localparam FSP_SIZE = 3;  
   wire[FP_SIZE-1:0] ktXgain[N_DYE-1:0], photonic_trace[N_DYE-1:0]
-                  , ptXinvsp[N_DYE-1:0][N_DYE-1:0]
-                  , ctrace_p[N_DYE-1:0][N_DYE/2-1:0]//1st stage add result
-                  , cam_trace[N_DYE-1:0]; //final add result
-  wire[N_DYE-1:0] cam_trace_rdy;
-  wire[N_DYE/2-1:0] ctrace_p_rdy[N_DYE-1:0];
+                  , ptXinvsp[N_CAM-1:0][N_DYE-1:0]
+                  , ctrace_p[N_CAM-1:0][N_DYE/2-1:0]//1st stage add result
+                  , cam_trace[N_CAM-1:0]; //final add result
+  wire[N_CAM-1:0] cam_trace_rdy;
+  wire[N_DYE/2-1:0] ctrace_p_rdy[N_CAM-1:0];
   reg [SMALL_FP_SIZE-1:0] inv_dye_mx_din, fsp_mx_din;
   wire[SMALL_FP_SIZE-1:0] photonic_bias[N_DYE-1:0]
-                        , inv_dye_mx_dout[N_DYE-1:0][N_DYE-1:0]
-                        , inv_dye_mx[N_DYE-1:0][N_DYE-1:0]
-                        , grn_fsp_mx_dout[FSP_SIZE-1:0][FSP_SIZE-1:0]
-                        , grn_fsp_mx[FSP_SIZE-1:0][FSP_SIZE-1:0]
-                        , red_fsp_mx_dout[FSP_SIZE-1:0][FSP_SIZE-1:0]
-                        , red_fsp_mx[FSP_SIZE-1:0][FSP_SIZE-1:0];
+                        , inv_dye_mx_dout[N_CAM-1:0][N_DYE-1:0]
+                        , inv_dye_mx[N_CAM-1:0][N_DYE-1:0]
+                        , fsp_mx_dout[N_CAM-1:0][FSP_SIZE-1:0][FSP_SIZE-1:0]
+                        , fsp_mx[N_CAM-1:0][FSP_SIZE-1:0][FSP_SIZE-1:0];
   wire[N_DYE-1:0] photonic_bias_d_fifo_empty, photonic_bias_d_fifo_full
                 , ktXgain_rdy, photonic_trace_rdy
-                , inv_dye_mx_fifo_empty[N_DYE-1:0]
-                , ptXinvsp_rdy[N_DYE-1:0];
-  reg [N_DYE-1:0] inv_dye_mx_wren[N_DYE-1:0];
+                , inv_dye_mx_fifo_empty[N_CAM-1:0]
+                , ptXinvsp_rdy[N_CAM-1:0];
+  reg [N_DYE-1:0] inv_dye_mx_wren[N_CAM-1:0];
   reg [3:0] inv_dye_mx_addr[N_DYE-1:0];
-  reg [BRAM_READ_LATENCY-1:0] zmw_from_ram_fifo_ack_d;
-  reg [FSP_SIZE-1:0] grn_fsp_mx_wren[FSP_SIZE-1:0], red_fsp_mx_wren[FSP_SIZE-1:0];
-  wire[FSP_SIZE-1:0] grn_fsp_mx_fifo_empty[FSP_SIZE-1:0]
-                   , red_fsp_mx_fifo_empty[FSP_SIZE-1:0];
+  reg [BRAM_READ_LATENCY:0] zmw_from_ram_fifo_ack_d;
+  reg [7:0] fsp_mx_addr[N_CAM-1:0];
+  reg [FSP_SIZE-1:0] fsp_mx_wren[N_CAM-1:0][FSP_SIZE-1:0];
+  wire[FSP_SIZE-1:0] fsp_mx_fifo_empty[N_CAM-1:0][FSP_SIZE-1:0];
 
   generate
     for(geni=0; geni < N_DYE; geni=geni+1) begin
@@ -1099,66 +1097,73 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
       fadd add_photonic_bias(.clk(CLK), .sclr(RESET)
           , .operation_nd(ktXgain_rdy[geni]), .a(ktXgain[geni])
-          , .b({photonic_bias[geni], 8'h00})
+          , .b({photonic_bias[geni]
+              , {(FP_SIZE-SMALL_FP_SIZE){`FALSE}}})//Append missing LSB
           , .result(photonic_trace[geni]), .rdy(photonic_trace_rdy[geni]));
+    end//for(N_DYE)
 
+    for(geni=0; geni < N_CAM; geni=geni+1) begin
       for(genj=0; genj < N_DYE; genj=genj+1) begin
+        //The inverse spectral mx pool is organized as [sensor][channel][index].  
+        //That is, contribution of pulse channel j to i sensor.  So when you
+        //specify the inv spectral mx index for a ZMW (again, time invariant),
+        //the contribution of the i channel on j camera is fixed
         bram24x256 inv_dye_mx_bram(.clka(CLK), .wea(inv_dye_mx_wren[geni][genj])
-          , .addra({4'h0, inv_dye_mx_addr[geni]}), .dina(inv_dye_mx_din)
+          , .addra({4'h0, inv_dye_mx_addr[genj]}), .dina(inv_dye_mx_din)
           , .douta(inv_dye_mx_dout[geni][genj]));
 
         better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
         inv_dye_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
           , .din(inv_dye_mx_dout[geni][genj])
-          , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY-1])
+          //Extra clock delay, because inv_dye_mx_addr above is registered
+          , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY])
           , .full(), .high(), .almost_full()
-          , .rden(), .dout(inv_dye_mx[geni][genj])
+          , .rden(photonic_trace_rdy[genj])//consume ISM when ptrace rdy
+          , .dout(inv_dye_mx[geni][genj])
           , .empty(inv_dye_mx_fifo_empty[geni][genj]), .almost_empty());
 
         //When you have the inv_dye_mx, can multiply against the photonic_trace
         fmult ptraceXinvsp_module(.clk(CLK), .sclr(RESET)
-          , .operation_nd(photonic_trace_rdy[geni]), .a(photonic_trace[genj])
-          , .b({inv_dye_mx[geni][genj], 8'h00})
+          , .operation_nd(photonic_trace_rdy[genj]), .a(photonic_trace[genj])
+          , .b({inv_dye_mx[geni][genj]
+              , {(FP_SIZE-SMALL_FP_SIZE){`FALSE}}})//Append missing LSB
           , .result(ptXinvsp[geni][genj]), .rdy(ptXinvsp_rdy[geni][genj]));
       end//for(N_DYE)
-      
-      for(genj=0; genj < N_DYE/2; genj=genj+1)//1st addition for camera trace
+
+      for(genj=0; genj < N_DYE/2; genj=genj+1)begin
+        //1st stage addition for camera trace: "t" + "g", or "a" + "c"
         fadd add_ptXinvsp(.clk(CLK), .sclr(RESET)
             , .operation_nd(ptXinvsp_rdy[geni][2*genj])
             , .a(ptXinvsp[geni][2*genj]), .b(ptXinvsp[geni][2*genj+1])
             , .result(ctrace_p[geni][genj]), .rdy(ctrace_p_rdy[geni][genj]));
-
-      fadd add_ctrace_p(.clk(CLK), .sclr(RESET)//last stage addition for ctrace
+      end
+      
+      //Note: programming Verilog to put in possible additional stages is probably
+      //possible, but given that N_DYE = 4 is pretty much written in stone, just
+      //not necessary
+      
+      //last stage addition for ctrace: ("t" + "g") + ("a" + "c")
+      fadd add_ctrace_p(.clk(CLK), .sclr(RESET)
           , .operation_nd(ctrace_p_rdy[geni][0])
           , .a(ctrace_p[geni][0]), .b(ctrace_p[geni][1])
           , .result(cam_trace[geni]), .rdy(cam_trace_rdy[geni]));
-    end//for(N_DYE)
 
-    for(geni=0; geni<FSP_SIZE; geni=geni+1) begin
       for(genj=0; genj<FSP_SIZE; genj=genj+1) begin
-        bram24x256 grn_fsp_mx_bram(.clka(CLK), .wea(grn_fsp_mx_wren[geni][genj])
-          , .addra(grn_fsp_mx_addr), .dina(fsp_mx_din)
-          , .douta(grn_fsp_mx_dout[geni][genj]));
-        better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
-        grn_fsp_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-          , .din(grn_fsp_mx_dout[geni][genj])
-          , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY-1])
-          , .full(), .high(), .almost_full()
-          , .rden(), .dout(grn_fsp_mx[geni][genj])
-          , .empty(grn_fsp_mx_fifo_empty[geni][genj]), .almost_empty());
-
-        bram24x256 red_fsp_mx_bram(.clka(CLK), .wea(red_fsp_mx_wren[geni][genj])
-          , .addra(red_fsp_mx_addr), .dina(fsp_mx_din)
-          , .douta(red_fsp_mx_dout[geni][genj]));
-        better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
-        red_fsp_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-          , .din(red_fsp_mx_dout[geni][genj])
-          , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY-1])
-          , .full(), .high(), .almost_full()
-          , .rden(), .dout(red_fsp_mx[geni][genj])
-          , .empty(red_fsp_mx_fifo_empty[geni][genj]), .almost_empty());
-      end //for(FSP_SIZE)
-    end//for(FSP_SIZE)
+        for(genk=0; genk<FSP_SIZE; genk=genk+1) begin
+          bram24x256 fsp_mx_bram(.clka(CLK), .wea(fsp_mx_wren[geni][genj][genk])
+            , .addra(fsp_mx_addr[geni]), .dina(fsp_mx_din)
+            , .douta(fsp_mx_dout[geni][genj][genk]));
+            
+          better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
+          fsp_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+            , .din(fsp_mx_dout[geni][genj][genk])
+            , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY-1])
+            , .full(), .high(), .almost_full()
+            , .rden(), .dout(fsp_mx[geni][genj][genk])
+            , .empty(fsp_mx_fifo_empty[geni][genj][genk]), .almost_empty());
+        end //for(FSP_SIZE)
+      end//for(FSP_SIZE)
+    end//for(N_CAM)      
   endgenerate
 
   wire[N_ZMW_SIZE-1:0] ctrace_zmw;
@@ -1189,8 +1194,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     zmw_ram_wdf_wren <= #DELAY `FALSE;
     
     zmw_from_ram_fifo_ack_d[0] <= #DELAY zmw_from_ram_fifo_ack;
-    for(i=1; i<BRAM_READ_LATENCY; i=i+1)
+    for(i=1; i<=BRAM_READ_LATENCY; i=i+1)
       zmw_from_ram_fifo_ack_d[i] <= #DELAY zmw_from_ram_fifo_ack_d[i-1];
+
+    for(i=0; i<N_DYE; i=i+1)
+      for(j=0; j<N_DYE; j=j+1)
+        inv_dye_mx_wren[i][j] <= #DELAY `FALSE;
     
     // And override defaults below
     if(RESET) begin
@@ -1293,7 +1302,13 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             if(zmw_ram_state == ZMW_RAM_READING)
               // TODO: correct action
               ptracer_state <= #DELAY PTRACER_RUNNING;
-          PTRACER_RUNNING:
+          PTRACER_RUNNING: begin
+            if(zmw_from_ram_fifo_valid) begin
+              for(i=0; i<N_DYE; i=i+1) begin
+                inv_dye_mx_addr[i] <= #DELAY zmw_from_ram_spectral_mx_idx[i];
+              end
+            end
+            
             if(!(zmw_from_ram_fifo_empty || kt_fifo_empty || kinetic_trace_xof)
                && zmw_from_ram_fifo_meta != kinetic_trace_zmw[0+:ZMW_RAM_META_SIZE-1])
             begin
@@ -1304,6 +1319,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               // TODO: appropriate action on error
               ptracer_state <= #DELAY PTRACER_INITIALIZING;
             end
+          end
+          
           default: begin//ERROR
           end
         endcase//ptracer_state
