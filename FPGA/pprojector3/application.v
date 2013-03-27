@@ -25,7 +25,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   reg [2*RAM_DATA_SIZE-1:0] whole_pc_msg;
 
-  localparam N_ZMW = 128, N_CAM = 2;
+  localparam N_ZMW = 128;
   localparam RAM_ADDR_INCR = `TRUE //my way of saying 1 while avoiding warning
            , BRAM_READ_LATENCY = 3;
 
@@ -984,7 +984,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
   // Trace stage ///////////////////////////////////////////////////////
   reg zmw_msg_valid;//Is there a message from the PC to this logic?
-  
+  localparam N_CAM = 2, CAM_ROW_SIZE = 12, CAM_COL_SIZE = 12;
   localparam ZMW_RAM_ERROR = 0
            , ZMW_RAM_MSG_WAIT = 1, ZMW_RAM_WR_WAIT = 2, ZMW_RAM_WR1 = 3
            , ZMW_RAM_WR2 = 4, ZMW_RAM_READING = 5, ZMW_RAM_THROTTLED = 6
@@ -1049,11 +1049,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
 
   //Delaying the ack throws off simulation timing
-  assign zmw_from_ram_fifo_ack =
-    !(zmw_from_ram_fifo_empty || kt_fifo_empty
-      || kinetic_trace_xof || downstream_high);
-  assign kt_fifo_ack = !kt_fifo_empty
-    && (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
+  assign zmw_from_ram_fifo_ack = !(zmw_from_ram_fifo_empty
+    || kt_fifo_empty || kinetic_trace_xof || downstream_high);
+  assign kt_fifo_ack = !kt_fifo_empty &&
+    (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 
   localparam FSP_SIZE = 3;  
@@ -1167,20 +1166,23 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   endgenerate
 
   wire[N_ZMW_SIZE-1:0] ctrace_zmw;
-  wire zmw_rowcol_d_fifo_full, zmw_rowcol_d_fifo_empty;
-  wire[(FP_SIZE-2*12)-1:0] zmw_rowcol_d_fifo_bitbucket;
-
+  wire ctrace_xof, zmw_rowcol_d_fifo_full, zmw_rowcol_d_fifo_empty;
+  wire[FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-2:0] zmw_rowcol_d_fifo_bitbucket;
+  wire zmw_rowcol_d_fifo_ack;
   better_fifo#(.TYPE("FPandZMW"), .WIDTH(FP_SIZE+N_ZMW_SIZE), .DELAY(DELAY))
   zmw_rowcol_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-                  , .wren(zmw_from_ram_fifo_ack)
-                  , .din({{(FP_SIZE-2*12){`FALSE}}
+                  , .wren(kt_fifo_ack)
+                  , .din({{(FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-1){`FALSE}}
                         , zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
-                        , kinetic_trace_zmw})
+                        , kinetic_trace_zmw, kinetic_trace_xof})
                   , .high(), .full(zmw_rowcol_d_fifo_full), .almost_full()
-                  , .rden()
+                  , .rden(zmw_rowcol_d_fifo_ack)
                   , .dout({zmw_rowcol_d_fifo_bitbucket
-                         , ctrace_row, ctrace_col, ctrace_zmw})
+                         , ctrace_row, ctrace_col, ctrace_zmw, ctrace_xof})
                   , .empty(zmw_rowcol_d_fifo_empty), .almost_empty());
+
+  assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
+    && (ctrace_xof || cam_trace_rdy[0]);
   
   always @(posedge CLK) begin //Trace domain sequential logic///////////////
     // Setup defaults
