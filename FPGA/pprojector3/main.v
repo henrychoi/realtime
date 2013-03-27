@@ -1,3 +1,4 @@
+`timescale 1 ns / 1 ns
 module main#(parameter SIMULATION=0, DELAY=1)
 (input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED
 , input PCIE_PERST_B_LS //The host's master bus reset

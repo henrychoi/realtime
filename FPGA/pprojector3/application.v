@@ -1,3 +1,4 @@
+`timescale 1 ns / 1 ns
 module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 (input CLK, RESET, output[7:4] GPIO_LED
 , input pc_msg_valid, input[XB_SIZE-1:0] pc_msg, output pc_msg_ack
@@ -236,7 +237,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                                                  ? durationXintensity[geni] : 0;
     end//for(MAX_PULSE_PER_ZMW)/////////////////////////////////////
 
-    better_fifo#(.TYPE("DYEandZMW"), .WIDTH(N_DYE*DYE_SIZE+N_ZMW_SIZE+1)
+    better_fifo#(.TYPE("DYEandZMW")
+	            , .WIDTH(MAX_PULSE_PER_ZMW*DYE_SIZE+N_ZMW_SIZE+1)
                , .DELAY(DELAY))
     dye_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
              , .wren(updater_d_fifo_ack || xof)
@@ -266,7 +268,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
           , .result(strength012[geni]), .rdy(strength012_rdy[geni]));
     end//for(N_DYE)
 
-    better_fifo#(.TYPE("DYEandZMW"), .WIDTH(N_DYE*DYE_SIZE+N_ZMW_SIZE+1)
+    better_fifo#(.TYPE("DYEandZMW")
+	            , .WIDTH(MAX_PULSE_PER_ZMW*DYE_SIZE+N_ZMW_SIZE+1)
                , .DELAY(DELAY))
     zmwxof_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
                 , .wren(dye_d_fifo_ack)
@@ -1009,7 +1012,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   wire zmw_from_ram_fifo_ack, zmw_from_ram_fifo_empty, zmw_from_ram_fifo_valid
      , zmw_from_ram_fifo_high, zmw_from_ram_fifo_full
      , zmw_from_ram_fifo_almost_full;
-  localparam ZMW_RAM_META_SIZE = 8;
+  localparam ZMW_RAM_META_SIZE = 16;
   wire[ZMW_RAM_META_SIZE-1:0] zmw_from_ram_fifo_meta;
   // register the inputs for timing margin
   reg  zmw_from_ram_fifo_wren;
@@ -1018,11 +1021,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   localparam SMALL_FP_SIZE = 24;
   wire[11:0] zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
            , ctrace_row, ctrace_col;
-  wire[7:0] zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx;
+  wire[7:0] zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx
+          , zmw_from_ram_spectral_mx_idx;
   wire[SMALL_FP_SIZE-1:0] zmw_from_ram_photonic_bias[N_DYE-1:0]
                         , zmw_from_ram_photonic_gain[N_DYE-1:0];
-  wire[3:0] zmw_from_ram_spectral_mx_idx[N_DYE-1:0];
-
   localparam PTRACER_ERROR = 0, PTRACER_INITIALIZING = 1, PTRACER_RUNNING = 2
            , PTRACER_N_STATE = 3;
   reg [log2(PTRACER_N_STATE)-1:0] ptracer_state;
@@ -1036,14 +1038,11 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       , .rden(zmw_from_ram_fifo_ack)
       , .dout({zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
              , zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx
+             , zmw_from_ram_spectral_mx_idx
              , zmw_from_ram_photonic_bias[0], zmw_from_ram_photonic_gain[0]
-             , zmw_from_ram_spectral_mx_idx[0]
              , zmw_from_ram_photonic_bias[1], zmw_from_ram_photonic_gain[1]
-             , zmw_from_ram_spectral_mx_idx[1]
              , zmw_from_ram_photonic_bias[2], zmw_from_ram_photonic_gain[2]
-             , zmw_from_ram_spectral_mx_idx[2]
              , zmw_from_ram_photonic_bias[3], zmw_from_ram_photonic_gain[3]
-             , zmw_from_ram_spectral_mx_idx[3]
              , zmw_from_ram_fifo_meta})
       , .empty(zmw_from_ram_fifo_empty), .almost_empty());
   assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
@@ -1073,9 +1072,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 , inv_dye_mx_fifo_empty[N_CAM-1:0]
                 , ptXinvsp_rdy[N_CAM-1:0];
   reg [N_DYE-1:0] inv_dye_mx_wren[N_CAM-1:0];
-  reg [3:0] inv_dye_mx_addr[N_DYE-1:0];
   reg [BRAM_READ_LATENCY:0] zmw_from_ram_fifo_ack_d;
-  reg [7:0] fsp_mx_addr[N_CAM-1:0];
+  reg [7:0] inv_dye_mx_addr, fsp_mx_addr[N_CAM-1:0];
   reg [FSP_SIZE-1:0] fsp_mx_wren[N_CAM-1:0][FSP_SIZE-1:0];
   wire[FSP_SIZE-1:0] fsp_mx_fifo_empty[N_CAM-1:0][FSP_SIZE-1:0];
 
@@ -1108,7 +1106,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
         //specify the inv spectral mx index for a ZMW (again, time invariant),
         //the contribution of the i channel on j camera is fixed
         bram24x256 inv_dye_mx_bram(.clka(CLK), .wea(inv_dye_mx_wren[geni][genj])
-          , .addra({4'h0, inv_dye_mx_addr[genj]}), .dina(inv_dye_mx_din)
+          , .addra(inv_dye_mx_addr), .dina(inv_dye_mx_din)
           , .douta(inv_dye_mx_dout[geni][genj]));
 
         better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
@@ -1199,7 +1197,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     for(i=1; i<=BRAM_READ_LATENCY; i=i+1)
       zmw_from_ram_fifo_ack_d[i] <= #DELAY zmw_from_ram_fifo_ack_d[i-1];
 
-    for(i=0; i<N_DYE; i=i+1)
+    for(i=0; i<N_CAM; i=i+1)
       for(j=0; j<N_DYE; j=j+1)
         inv_dye_mx_wren[i][j] <= #DELAY `FALSE;
     
@@ -1264,7 +1262,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                   <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
                 //Slight switcheroo of the metadata, to encode the ZMW num
                 zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
-                  <= #DELAY {0, zmw_ram_n_read};
+                  <= #DELAY {{(ZMW_RAM_META_SIZE-log2(N_ZMW)){`FALSE}}
+						         , zmw_ram_n_read};
                 zmw_from_ram_fifo_wren <= #DELAY `TRUE;
               end
               if(zmw_from_ram_fifo_high) begin
@@ -1305,14 +1304,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               // TODO: correct action
               ptracer_state <= #DELAY PTRACER_RUNNING;
           PTRACER_RUNNING: begin
-            if(zmw_from_ram_fifo_valid) begin
-              for(i=0; i<N_DYE; i=i+1) begin
-                inv_dye_mx_addr[i] <= #DELAY zmw_from_ram_spectral_mx_idx[i];
-              end
-            end
+            if(zmw_from_ram_fifo_valid)
+				  inv_dye_mx_addr <= #DELAY zmw_from_ram_spectral_mx_idx;
             
             if(!(zmw_from_ram_fifo_empty || kt_fifo_empty || kinetic_trace_xof)
-               && zmw_from_ram_fifo_meta != kinetic_trace_zmw[0+:ZMW_RAM_META_SIZE-1])
+				      // Just compare what you can
+               && zmw_from_ram_fifo_meta != kinetic_trace_zmw[0+:ZMW_RAM_META_SIZE])
             begin
               // TODO: appropriate action on error
               ptracer_state <= #DELAY PTRACER_ERROR;
