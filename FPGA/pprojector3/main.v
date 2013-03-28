@@ -1,4 +1,3 @@
-`timescale 1 ns / 1 ns
 module main#(parameter SIMULATION=0, DELAY=1)
 (input RESET, CLK_P, CLK_N, output[7:0] GPIO_LED
 , input PCIE_PERST_B_LS //The host's master bus reset
@@ -59,7 +58,6 @@ module main#(parameter SIMULATION=0, DELAY=1)
       assign fpga_msg_high = `FALSE;
 
       initial begin
-        binf = $fopen("pulse.bin", "rb");
         bus_clk_r = #DELAY `FALSE;
         xb_wr_wren_r = #DELAY `FALSE;
         
@@ -85,19 +83,25 @@ module main#(parameter SIMULATION=0, DELAY=1)
 #8      xb_wr_wren_r = `FALSE;
 
 #24      xb_wr_wren_r = `TRUE;
-        //A valid START message is {'h3c23d70a,'h0012_0000,'h0000_0140}
-        xb_wr_data_r = 'h0000_0940;
-#8      xb_wr_data_r = 'h0000_0100;
-#8      xb_wr_data_r = 'h3c23_d70a;
+        //START
+        xb_wr_data_r = 'h0000_0940;//XB msg #0
+#8      xb_wr_data_r = 'h0000_0100;//Stride, exposure clocks
+#8      xb_wr_data_r = 'h3c23_d70a;//Floating point exposure time
 #8      xb_wr_wren_r = `FALSE;
+
+`ifdef READ_PULSE_FROM_BINF
+        binf = $fopen("pulse.bin", "rb");
+`endif//READ_PULSE_FROM_BINF
       end
 
+`ifdef READ_PULSE_FROM_BINF
       always @(posedge BUS_CLK)
         if(app_running)
           for(idx=0; idx < XB_SIZE; idx = idx + 8) begin
             rc = $fread(pool_byte, binf);
             xb_wr_data_r[idx+:8] <= #DELAY pool_byte;
           end
+`endif//READ_PULSE_FROM_BINF
     end else begin// !SIMULATION
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
         , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:

@@ -275,7 +275,7 @@
          <wvobject fp_name="/simmain/main/app/kinetic_trace_zmw" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">kinetic_trace_zmw[21:0]</obj_property>
             <obj_property name="ObjectShortName">kinetic_trace_zmw[21:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/kt_fifo_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">kt_fifo_ack</obj_property>
@@ -294,6 +294,11 @@
             <obj_property name="ObjectShortName">zmw_ram_rd_data[255:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_din" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">zmw_from_ram_fifo_din[255:0]</obj_property>
+            <obj_property name="ObjectShortName">zmw_from_ram_fifo_din[255:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_wren" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_wren</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_fifo_wren</obj_property>
@@ -305,7 +310,7 @@
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_meta" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_meta[15:0]</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_fifo_meta[15:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_ack</obj_property>
@@ -318,7 +323,7 @@
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_pixel_row" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_pixel_row[11:0]</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_pixel_row[11:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_pixel_col" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_pixel_col[11:0]</obj_property>
@@ -437,12 +442,12 @@
          <wvobject fp_name="/simmain/main/app/ctrace_row" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">ctrace_row[11:0]</obj_property>
             <obj_property name="ObjectShortName">ctrace_row[11:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/ctrace_col" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">ctrace_col[11:0]</obj_property>
             <obj_property name="ObjectShortName">ctrace_col[11:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
       </wvobject>
    </wvobject>

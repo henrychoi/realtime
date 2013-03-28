@@ -1,4 +1,3 @@
-`timescale 1 ns / 1 ns
 module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 (input CLK, RESET, output[7:4] GPIO_LED
 , input pc_msg_valid, input[XB_SIZE-1:0] pc_msg, output pc_msg_ack
@@ -1048,9 +1047,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   assign zmw_from_ram_fifo_valid = !zmw_from_ram_fifo_empty;
 
   //Delaying the ack throws off simulation timing
-  assign zmw_from_ram_fifo_ack = !(zmw_from_ram_fifo_empty
-    || kt_fifo_empty || kinetic_trace_xof || downstream_high);
-  assign kt_fifo_ack = !kt_fifo_empty &&
+  assign zmw_from_ram_fifo_ack = ptracer_state
+    && !(zmw_from_ram_fifo_empty
+         || kt_fifo_empty || kinetic_trace_xof || downstream_high);
+  assign kt_fifo_ack = ptracer_state &&!kt_fifo_empty &&
     (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 
@@ -1283,9 +1283,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               if(zmw_ram_rd_data_valid) begin
                 zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
                   ? 0 : zmw_ram_n_read + `TRUE;
-                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:4]
-                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:4];
-                zmw_from_ram_fifo_din[3:0] <= #DELAY zmw_ram_n_read[3:0];
+                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE]
+                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
+                //Slight switcheroo of the metadata, to encode the ZMW num
+                zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
+                  <= #DELAY {{(ZMW_RAM_META_SIZE-log2(N_ZMW)){`FALSE}}
+						         , zmw_ram_n_read};
                 zmw_from_ram_fifo_wren <= #DELAY `TRUE;
               end
               if(!zmw_from_ram_fifo_high) begin
