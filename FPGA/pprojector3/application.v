@@ -6,7 +6,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
 , output app_running, app_error);
 `include "function.v"
   genvar geni, genj, genk;
-  integer i, j;
+  integer i, j, k;
 
   localparam N_ZMW_SIZE = log2(4 * 1024 * 1024);
   localparam PULSE_RAM_HEADER_SIZE = 8
@@ -1209,6 +1209,9 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
       for(j=0; j<N_DYE; j=j+1)
         inv_dye_mx_wren[i][j] <= #DELAY `FALSE;
     
+	 zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE] <= #DELAY
+	     zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
+		  
     // And override defaults below
     if(RESET) begin
       zmw_ram_en <= #DELAY `FALSE;
@@ -1255,8 +1258,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             else zmw_ram_state <= #DELAY ZMW_RAM_ERROR;//assertion
           ZMW_RAM_READING:
             if(zmw_msg_valid) begin//stop read and jump over to SAVING
-              zmw_ram_read <= #DELAY `FALSE;
-              zmw_ram_addr <= #DELAY 0;
+              zmw_ram_read <= #DELAY `FALSE;//start write
+              zmw_ram_addr <= #DELAY 0;//at the head of the DRAM
               zmw_ram_en <= #DELAY `TRUE;
               zmw_ram_state <= #DELAY ZMW_RAM_WR_WAIT;
             end else begin
@@ -1266,9 +1269,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                 //to require N_ZMW to power of 2 ultimately
                 zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
                   ? 0 : zmw_ram_n_read + `TRUE;
-                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE]
-                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
-                //Slight switcheroo of the metadata, to encode the ZMW num
+                //switcheroo of the metadata, to encode the ZMW num
                 zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
                   <= #DELAY {{(ZMW_RAM_META_SIZE-log2(N_ZMW)){`FALSE}}
 						         , zmw_ram_n_read};
@@ -1291,15 +1292,16 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
               if(zmw_ram_rd_data_valid) begin
                 zmw_ram_n_read <= #DELAY zmw_ram_n_read == (N_ZMW-1)
                   ? 0 : zmw_ram_n_read + `TRUE;
-                zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE]
-                  <= #DELAY zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
-                //Slight switcheroo of the metadata, to encode the ZMW num
+                //switcheroo of the metadata, to encode the ZMW num
                 zmw_from_ram_fifo_din[0+:ZMW_RAM_META_SIZE]
                   <= #DELAY {{(ZMW_RAM_META_SIZE-log2(N_ZMW)){`FALSE}}
 						         , zmw_ram_n_read};
                 zmw_from_ram_fifo_wren <= #DELAY `TRUE;
               end
               if(!zmw_from_ram_fifo_high) begin
+				    //Get next data
+                zmw_ram_addr <= #DELAY zmw_ram_addr == (N_ZMW-1) //xADDR_INCR
+                  ? 0 : zmw_ram_addr + RAM_ADDR_INCR;//Move pointer
                 zmw_ram_en <= #DELAY `TRUE;//resume READING
                 zmw_ram_state <= #DELAY ZMW_RAM_READING;
               end

@@ -391,6 +391,11 @@
             <obj_property name="ElementShortName">kt_fifo_empty</obj_property>
             <obj_property name="ObjectShortName">kt_fifo_empty</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/zmw_ram_addr" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">zmw_ram_addr[6:0]</obj_property>
+            <obj_property name="ObjectShortName">zmw_ram_addr[6:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_ram_rd_data_valid" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_ram_rd_data_valid</obj_property>
             <obj_property name="ObjectShortName">zmw_ram_rd_data_valid</obj_property>
@@ -409,6 +414,10 @@
             <obj_property name="ElementShortName">zmw_from_ram_fifo_wren</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_fifo_wren</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_high" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">zmw_from_ram_fifo_high</obj_property>
+            <obj_property name="ObjectShortName">zmw_from_ram_fifo_high</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_empty" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_empty</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_fifo_empty</obj_property>
@@ -416,7 +425,7 @@
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_meta" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_meta[15:0]</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_fifo_meta[15:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_fifo_ack" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_fifo_ack</obj_property>
