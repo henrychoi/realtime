@@ -32,7 +32,8 @@ module main#(parameter SIMULATION=0, DELAY=1)
   IBUFGDS sysclk_buf(.I(CLK_P), .IB(CLK_N), .O(CLK));
   
   wire app_running, app_error;
-  application#(.DELAY(DELAY), .XB_SIZE(XB_SIZE), .RAM_DATA_SIZE(256))
+  application#(.SIMULATION(1), .DELAY(DELAY), .XB_SIZE(XB_SIZE)
+             , .RAM_DATA_SIZE(256))
     app(.CLK(CLK), .RESET(RESET), .GPIO_LED(GPIO_LED[7:4])
       , .pc_msg_valid(!pc_msg_empty), .pc_msg(pc_msg), .pc_msg_ack(pc_msg_ack)
       , .downstream_wren(fpag_msg_wren), .downstream_din(fpga_msg)
@@ -62,21 +63,18 @@ module main#(parameter SIMULATION=0, DELAY=1)
         xb_wr_wren_r = #DELAY `FALSE;
         
 #36     xb_wr_wren_r = `TRUE;
-        //A valid STOP message is {'h0000_0000, 'h0000_0000, 'h0000_0000}
         xb_wr_data_r = 0;
 #8      xb_wr_data_r = 0;
 #8      xb_wr_data_r = 0;
 #8      xb_wr_wren_r = `FALSE;
 
 #16      xb_wr_wren_r = `TRUE;
-        //A valid START message is {'h3c23d70a,'h0012_0000,'h0000_0140}
-        xb_wr_data_r = 'h0000_0140;
-#8      xb_wr_data_r = 'h0012_0000;
-#8      xb_wr_data_r = 'h3c23_d70a;
+        xb_wr_data_r = 'h0000_0108;//XB msg #0
+#8      xb_wr_data_r = 'h0012_0000;//Stride, exposure clocks
+#8      xb_wr_data_r = 'h3c23_d70a;//Floating point exposure time
 #8      xb_wr_wren_r = `FALSE;
 
 #32     xb_wr_wren_r = `TRUE;
-        //A valid STOP message is {'h0000_0000, 'h0000_0000, 'h0000_0000}
         xb_wr_data_r = 0;
 #8      xb_wr_data_r = 0;
 #8      xb_wr_data_r = 0;
@@ -84,7 +82,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
 
 #24      xb_wr_wren_r = `TRUE;
         //START
-        xb_wr_data_r = 'h0000_0940;//XB msg #0
+        xb_wr_data_r = 'h0000_0908;//XB msg #0
 #8      xb_wr_data_r = 'h0000_0100;//Stride, exposure clocks
 #8      xb_wr_data_r = 'h3c23_d70a;//Floating point exposure time
 #8      xb_wr_wren_r = `FALSE;
@@ -102,6 +100,7 @@ module main#(parameter SIMULATION=0, DELAY=1)
             xb_wr_data_r[idx+:8] <= #DELAY pool_byte;
           end
 `endif//READ_PULSE_FROM_BINF
+
     end else begin// !SIMULATION
       xillybus xb(.GPIO_LED(GPIO_LED[3:0]) //For debugging
         , .PCIE_PERST_B_LS(PCIE_PERST_B_LS) // Signals to top level:

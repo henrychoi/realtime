@@ -1,4 +1,4 @@
-module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
+module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 (input CLK, RESET, output[7:4] GPIO_LED
 , input pc_msg_valid, input[XB_SIZE-1:0] pc_msg, output pc_msg_ack
 , output reg downstream_wren, output reg [2*XB_SIZE-1:0] downstream_din
@@ -12,7 +12,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   localparam PULSE_RAM_HEADER_SIZE = 8
            , PULSES_DESC_SIZE = RAM_DATA_SIZE - PULSE_RAM_HEADER_SIZE
            , FP_SIZE = 32, DYE_SIZE = 2, N_DYE = 2**DYE_SIZE
-           , INTENSITY_INDEX_SIZE = 2
+           , INTENSITY_INDEX_SIZE = 4
            , MAX_STRIDE = 2**8 - 1, MAX_CLOCK_PER_FRAME = 2**24 - 1
            , MAX_FRAME = 2**24 - 1;
   reg [log2(MAX_STRIDE)-1:0] max_stride, n_stride;
@@ -61,8 +61,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
   reg [log2(N_ZMW)-1:0] pulse_ram_addr[1:0]
                       , pulse_wr_zmw, pulse_rd_zmw;
-  //reg [1:0] ram_wren;
-  wire[RAM_DATA_SIZE-1:0] pulse_ram_rd_data[1:0], pulse_to_ram_fifo_dout[1:0];
+  reg [6:0] pulse_rom_addr;
+  wire[RAM_DATA_SIZE-1:0] pulse_rom_rd_data
+                        , pulse_ram_rd_data[1:0], pulse_to_ram_fifo_dout[1:0];
   reg [RAM_DATA_SIZE-1:0] pulse_to_ram_cache[1:0], pulse_ram_wdf_data;
   reg [PULSE_RAM_HEADER_SIZE-1:0] pulse_to_ram_fifo_header[1:0];
   reg [PULSES_DESC_SIZE-1:0]   pulse_to_ram_fifo_data;
@@ -124,7 +125,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                    , current_pulse_dye_d[MAX_PULSE_PER_ZMW-1:0]
                    , pulse_dye[MAX_PULSE_PER_ZMW-1:0]
                    , pulse_dye_d[MAX_PULSE_PER_ZMW-1:0];
-  wire[1:0] current_pulse_zz[1:0][MAX_PULSE_PER_ZMW-1:0];
+  wire[(4-DYE_SIZE)-1:0] current_pulse_zz[MAX_PULSE_PER_ZMW-1:0];
   wire[INTENSITY_INDEX_SIZE-1:0] current_pulse_in_idx[MAX_PULSE_PER_ZMW-1:0]
                                , current_pulse_in_idx_d[MAX_PULSE_PER_ZMW-1:0];
   wire[9:0] current_pulse_10z;
@@ -145,30 +146,26 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                   //4 possible dyes for each pulse possibility
                   , pulse_strength[MAX_PULSE_PER_ZMW-1:0][N_DYE-1:0]
                   , strength01[N_DYE-1:0], strength2_d[N_DYE-1:0]
-                  , strength012[N_DYE-1:0];
-  reg [FP_SIZE-1:0] pulse_intensity_pool[2**2-1:0]
+                  , strength012[N_DYE-1:0]
                   , current_pulse_intensity[MAX_PULSE_PER_ZMW-1:0];
   wire[N_DYE-1:0] strength01_rdy, strength012_rdy;
   reg pprojector_msg_valid;
 
   better_fifo#(.TYPE("FromRAM"), .WIDTH(RAM_DATA_SIZE), .DELAY(DELAY))
   pulse_from_ram_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-              , .wren(pulse_from_ram_fifo_wren), .din(pulse_from_ram_fifo_din)
-              , .high(pulse_from_ram_fifo_high), .full(pulse_from_ram_fifo_full)
-              , .almost_full(pulse_from_ram_fifo_almost_full)
-              , .rden(pulse_from_ram_fifo_ack)
-              , .dout({current_pulse_t1[0], current_pulse_dt[0]
-                     , current_pulse_t1[1], current_pulse_dt[1]
-                     , current_pulse_t1[2], current_pulse_dt[2]
-                     , current_pulse_zz[0][0], current_pulse_dye[0]
-                     , current_pulse_zz[1][0], current_pulse_in_idx[0]
-                     , current_pulse_zz[0][1], current_pulse_dye[1]
-                     , current_pulse_zz[1][1], current_pulse_in_idx[1]
-                     , current_pulse_zz[0][2], current_pulse_dye[2]
-                     , current_pulse_zz[1][2], current_pulse_in_idx[2]
-                     , current_pulse_10z, current_pulse_zmw_number
-                     , pulse_from_ram_fifo_header})
-              , .empty(pulse_from_ram_fifo_empty), .almost_empty());
+    , .wren(pulse_from_ram_fifo_wren), .din(pulse_from_ram_fifo_din)
+    , .high(pulse_from_ram_fifo_high), .full(pulse_from_ram_fifo_full)
+    , .almost_full(pulse_from_ram_fifo_almost_full)
+    , .rden(pulse_from_ram_fifo_ack)
+    , .dout({current_pulse_t1[0], current_pulse_dt[0]
+           , current_pulse_t1[1], current_pulse_dt[1]
+           , current_pulse_t1[2], current_pulse_dt[2]
+           , current_pulse_zz[0], current_pulse_dye[0], current_pulse_in_idx[0]
+           , current_pulse_zz[1], current_pulse_dye[1], current_pulse_in_idx[1]
+           , current_pulse_zz[2], current_pulse_dye[2], current_pulse_in_idx[2]
+           , current_pulse_10z, current_pulse_zmw_number
+           , pulse_from_ram_fifo_header})
+    , .empty(pulse_from_ram_fifo_empty), .almost_empty());
   assign pulse_from_ram_fifo_valid = !pulse_from_ram_fifo_empty;
   assign pulse_from_ram_fifo_ack = pulse_from_ram_fifo_valid //is there anything to ACK?
                           && !pulse_to_ram_fifo_full
@@ -176,6 +173,10 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   
   generate
     for(geni=0; geni < MAX_PULSE_PER_ZMW; geni=geni+1) begin
+      PulseIntensityROM
+      pulse_intensity_LUT(.clka(CLK), .addra(current_pulse_in_idx_d[geni])
+                        , .douta(current_pulse_intensity[geni]));
+
       fadd t1Pdt(.clk(CLK), .sclr(RESET), .operation_nd(pulse_from_ram_fifo_valid)
                , .a(current_pulse_t1[geni]), .b(current_pulse_dt[geni])
                , .result(current_pulse_tf[geni])
@@ -201,29 +202,27 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
 
       better_fifo#(.TYPE("Pulse"), .WIDTH(PULSE_DESC_SIZE), .DELAY(DELAY))
       updater_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-                   , .din({current_pulse_t1[geni], current_pulse_dt[geni]
-                         , current_pulse_dye[geni]
-                         , current_pulse_in_idx[geni]
-                         , current_pulse_zmw_number})
-                   , .wren(pulse_from_ram_fifo_valid)
-                   , .full(updater_d_fifo_full[geni]), .high(), .almost_full()
-                   , .rden(updater_d_fifo_ack)
-                   , .dout({current_pulse_t1_d[geni], current_pulse_dt_d[geni]
-                          , current_pulse_dye_d[geni]
-                          , current_pulse_in_idx_d[geni]
-                          , current_pulse_zmw_number_d[geni]})
-                  , .empty(updater_d_fifo_empty[geni]), .almost_empty());
+           , .din({current_pulse_t1[geni], current_pulse_dt[geni]
+                 , current_pulse_in_idx[geni]
+                 , current_pulse_dye[geni], current_pulse_zmw_number})
+           , .wren(pulse_from_ram_fifo_valid)
+           , .full(updater_d_fifo_full[geni]), .high(), .almost_full()
+           , .rden(updater_d_fifo_ack)
+           , .dout({current_pulse_t1_d[geni], current_pulse_dt_d[geni]
+                  , current_pulse_in_idx_d[geni]
+                  , current_pulse_dye_d[geni], current_pulse_zmw_number_d[geni]})
+          , .empty(updater_d_fifo_empty[geni]), .almost_empty());
 
       better_fifo#(.TYPE("FPandZMW"), .WIDTH(FP_SIZE+N_ZMW_SIZE)
                  , .DELAY(DELAY))
       intensity_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
-                     , .wren(pulse_desc_valid_d[0])//updater_d_fifo_ack delayed
-                     , .din({current_pulse_intensity[geni]
-                           , current_pulse_zmw_number_dd})
-                     , .high(), .full(), .almost_full()
-                     , .rden(projection_duration_rdy[geni])
-                     , .dout({pulse_intensity[geni], pulse_intensity_zmw[geni]})
-                     , .empty(intensity_d_fifo_empty[geni]), .almost_empty());
+           , .wren(pulse_desc_valid_d[0])//updater_d_fifo_ack delayed
+           //because the looked up intensity value from BRAM is delayed 1 clk
+           , .din({current_pulse_intensity[geni], current_pulse_zmw_number_dd})
+           , .high(), .full(), .almost_full()
+           , .rden(projection_duration_rdy[geni])
+           , .dout({pulse_intensity[geni], pulse_intensity_zmw[geni]})
+           , .empty(intensity_d_fifo_empty[geni]), .almost_empty());
 
       fmult duraXintens(.clk(CLK), .sclr(RESET)
                   , .operation_nd(projection_duration_rdy[geni])
@@ -268,7 +267,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     end//for(N_DYE)
 
     better_fifo#(.TYPE("DYEandZMW")
-	            , .WIDTH(MAX_PULSE_PER_ZMW*DYE_SIZE+N_ZMW_SIZE+1)
+	             , .WIDTH(MAX_PULSE_PER_ZMW*DYE_SIZE+N_ZMW_SIZE+1)
                , .DELAY(DELAY))
     zmwxof_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
                 , .wren(dye_d_fifo_ack)
@@ -318,10 +317,16 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               , .addra(pulse_ram_addr[geni]), .dina(pulse_ram_wdf_data)
               , .wea(pulse_ram_wdf_wren[geni]));
     end//for Ping-Pong RAM/////////////////////////////////////////////
+
+    if(SIMULATION)
+      PULSE_BRAM//this is not going to meet timing, so use only for verification
+      pulse_rom(.clka(CLK), .douta(pulse_rom_rd_data), .addra(pulse_rom_addr));
+    else
+      assign pulse_rom_rd_data = {RAM_DATA_SIZE{`FALSE}};
   endgenerate
 
   localparam MSG_HEADER_TYPE_BIT = 0
-           , CONTROL_MSG_START_BIT = 6
+           , CONTROL_MSG_START_BIT = 3
            , CONTROL_MSG_N_FRAME_BIT = 8, CONTROL_MSG_N_FRAME_SIZE = 24
            , CONTROL_MSG_N_CLOCK_PER_FRAME_BIT = CONTROL_MSG_N_FRAME_BIT
                                                + CONTROL_MSG_N_FRAME_SIZE
@@ -331,7 +336,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
            , CONTROL_MSG_STRIDE_SIZE = 8
            , CONTROL_MSG_EXPOSURE_BIT = CONTROL_MSG_STRIDE_BIT
                                       + CONTROL_MSG_STRIDE_SIZE
-           , CONTROL_MSG_EXPOSURE_SIZE = FP_SIZE;
+           , CONTROL_MSG_EXPOSURE_SIZE = FP_SIZE
+           , PULSE_INTENSITY_INDEX_SIZE = 4;
   wire is_control_msg, is_start_msg, is_stop_msg, is_pulse_msg;
   //A PC message is either a camera control message (START/STOP; see design doc)
   //or data (pulse description) message
@@ -344,9 +350,12 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
              && whole_pc_msg[MSG_HEADER_TYPE_BIT] == `FALSE//control msg
              && whole_pc_msg[CONTROL_MSG_START_BIT] == `FALSE;//stop msg
 
-  localparam PULSE_DESC_SIZE = FP_SIZE + FP_SIZE + 2 + 2 + 22;//90;
+  localparam PULSE_DESC_SIZE = FP_SIZE + FP_SIZE //t1, duration
+                             + PULSE_INTENSITY_INDEX_SIZE
+                             + DYE_SIZE + N_ZMW_SIZE;
   wire[FP_SIZE-1:0] new_pulse_t1, new_pulse_dt;
-  wire[1:0]  new_pulse_dye, new_pulse_intensity;
+  wire[DYE_SIZE-1:0]  new_pulse_dye;
+  wire[PULSE_INTENSITY_INDEX_SIZE-1:0] new_pulse_intensity;
   wire[N_ZMW_SIZE-1:0] new_pulse_zmw_num;
   assign #DELAY is_pulse_msg = pprojector_msg_valid
                             && whole_pc_msg[MSG_HEADER_TYPE_BIT] == `TRUE;
@@ -359,8 +368,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 , .din(whole_pc_msg[CONTROL_MSG_START_BIT+:PULSE_DESC_SIZE])
                 , .high(), .full(assembler2updater_fifo_full), .almost_full()
                 , .rden(assembler2updater_fifo_ack)
-                , .dout({new_pulse_t1, new_pulse_dt, new_pulse_dye
-                       , new_pulse_intensity, new_pulse_zmw_num})
+                , .dout({new_pulse_t1, new_pulse_dt, new_pulse_intensity
+                       , new_pulse_dye, new_pulse_zmw_num})
                 , .empty(assembler2updater_fifo_empty), .almost_empty());
 
   assign #DELAY assembler2updater_fifo_ack = pacer_state == PACER_FRAME
@@ -419,8 +428,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
       pulse_desc_valid_d[j] <= #DELAY pulse_desc_valid_d[j-1];
 
     for(i=0; i < MAX_PULSE_PER_ZMW; i=i+1) begin
-      current_pulse_intensity[i] <= #DELAY
-        pulse_intensity_pool[current_pulse_in_idx_d[i]];
+      //current_pulse_intensity[i] <= #DELAY
+      //  pulse_intensity_pool[current_pulse_in_idx_d[i]];
 
       time1[i] <= #DELAY //MAX(current_pulse_t1_dd, gTime-exposure)
         gTime_exposureGTEcurrent_pulse_t1[i]
@@ -456,13 +465,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
     xof_dd_r <= #DELAY xof_dd;
     for(i=0; i <N_DYE; i=i+1) ktrace[i] <= #DELAY strength012[i];
     
+    pulse_rom_addr <= #DELAY 0;//default to the beginning of the ROM
+    
     if(RESET) begin
-      //For now, hard code the intensity pool values
-      pulse_intensity_pool[0] <= #DELAY 'h3e800000; //0.25f
-      pulse_intensity_pool[1] <= #DELAY 'h3f000000; //0.5f
-      pulse_intensity_pool[2] <= #DELAY 'h3f400000; //0.75f
-      pulse_intensity_pool[3] <= #DELAY 'h3f800000; //1.0f
-      
       gTime_cal_en <= #DELAY `FALSE;
       pacer_state <= #DELAY PACER_STOPPED;
       for(i=0; i<2; i=i+1) begin
@@ -504,6 +509,8 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
               exposure <= #DELAY whole_pc_msg[(3*XB_SIZE-1)-:FP_SIZE];
 
               // ^START to 1st RAM controller
+              //fetch 1st initialization value; doing it earlier since 2 clk delay
+              pulse_rom_addr <= #DELAY 1;
               pulse_to_ram_fifo_data <= #DELAY {PULSES_DESC_SIZE{`FALSE}};            
               pulse_to_ram_fifo_header[0][2:0] <= #DELAY 'b110;//START(WR)
               pulse_to_ram_fifo_wren[0] <= #DELAY `TRUE;
@@ -526,10 +533,16 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
             n_frame <= #DELAY 0;
             n_stride <= #DELAY 0;
             if(!pulse_to_ram_fifo_full[0]) begin
-              pulse_to_ram_fifo_header[0] <= #DELAY 'h01;//data message from now
               //writing 0 in this cycle, so write 1 next
               pulse_wr_zmw <= #DELAY pulse_wr_zmw + `TRUE;
               pulse_to_ram_fifo_wren[0] <= #DELAY `TRUE;
+              pulse_to_ram_fifo_data <= #DELAY
+                  {pulse_rom_rd_data[RAM_DATA_SIZE-1:32]
+                 , {(24-log2(N_ZMW)){`FALSE}}, pulse_wr_zmw};
+              //Indicate data message from now in the header
+              pulse_to_ram_fifo_header[0] <= #DELAY 'h01;
+              //fetch next initialization value; 2 clk delay
+              pulse_rom_addr <= #DELAY pulse_rom_addr + `TRUE;
               gTime_cal_en <= #DELAY `TRUE;
               pacer_state <= #DELAY PACER_INIT;
             end
@@ -551,7 +564,11 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                 n_clock_throttled <= #DELAY 0;
                 pacer_state <= #DELAY PACER_STARTING_FRAME;
               end else begin
-                pulse_to_ram_fifo_data[0+:log2(N_ZMW)] <= #DELAY pulse_wr_zmw;
+                pulse_to_ram_fifo_data <= #DELAY
+                    {pulse_rom_rd_data[RAM_DATA_SIZE-1:32]
+                   , {(24-log2(N_ZMW)){`FALSE}}, pulse_wr_zmw};
+                //fetch next initialization value; 1 clk delay
+                pulse_rom_addr <= #DELAY pulse_rom_addr + `TRUE;
                 pulse_wr_zmw <= #DELAY pulse_wr_zmw + `TRUE;            
               end
               pulse_to_ram_fifo_wren[0] <= #DELAY `TRUE;
@@ -614,12 +631,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                       current_pulse_t1_d[0], current_pulse_dt_d[0]
                     , current_pulse_t1_d[1], current_pulse_dt_d[1]
                     , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                    , 2'b00, current_pulse_dye_d[0]
-                    , 2'b00, current_pulse_in_idx_d[0]
-                    , 2'b00, current_pulse_dye_d[1]
-                    , 2'b00, current_pulse_in_idx_d[1]
-                    , 2'b00, current_pulse_dye_d[2]
-                    , 2'b00, current_pulse_in_idx_d[2]
+                    , 2'b00, current_pulse_dye_d[0], current_pulse_in_idx_d[0]
+                    , 2'b00, current_pulse_dye_d[1], current_pulse_in_idx_d[1]
+                    , 2'b00, current_pulse_dye_d[2], current_pulse_in_idx_d[2]
                     , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
                 end else begin // a new pulse has to be saved to the ALT RAM
                 //Which slot to grab?
@@ -628,11 +642,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                         new_pulse_t1, new_pulse_dt
                       , current_pulse_t1_d[1], current_pulse_dt_d[1]
                       , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                      , 2'b00, current_pulse_dye_d[1]
-                      , 2'b00, current_pulse_in_idx_d[1]
-                      , 2'b00, current_pulse_dye_d[2]
-                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 2'b00, new_pulse_dye, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[1], current_pulse_in_idx_d[1]
+                      , 2'b00, current_pulse_dye_d[2], current_pulse_in_idx_d[2]
                       , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
                   end else if(gTimeGTEcurrent_pulse_tf[1]) begin
                     //pulse[1] is expired => take slot 1
@@ -640,11 +652,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                         current_pulse_t1_d[0], current_pulse_dt_d[0]
                       , new_pulse_t1, new_pulse_dt
                       , current_pulse_t1_d[2], current_pulse_dt_d[2]
-                      , 2'b00, current_pulse_dye_d[0]
-                      , 2'b00, current_pulse_in_idx_d[0]
-                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
-                      , 2'b00, current_pulse_dye_d[2]
-                      , 2'b00, current_pulse_in_idx_d[2]
+                      , 2'b00, current_pulse_dye_d[0], current_pulse_in_idx_d[0]
+                      , 2'b00, new_pulse_dye, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[2], current_pulse_in_idx_d[2]
                       , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
                   end else if(gTimeGTEcurrent_pulse_tf[2]) begin
                     //pulse[2] is expired => take slot 2
@@ -652,11 +662,9 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
                         current_pulse_t1_d[0], current_pulse_dt_d[0]
                       , current_pulse_t1_d[1], current_pulse_dt_d[1]
                       , new_pulse_t1, new_pulse_dt
-                      , 2'b00, current_pulse_dye_d[0]
-                      , 2'b00, current_pulse_in_idx_d[0]
-                      , 2'b00, current_pulse_dye_d[1]
-                      , 2'b00, current_pulse_in_idx_d[1]
-                      , 2'b00, new_pulse_dye, 2'b00, new_pulse_intensity
+                      , 2'b00, current_pulse_dye_d[0], current_pulse_in_idx_d[0]
+                      , 2'b00, current_pulse_dye_d[1], current_pulse_in_idx_d[1]
+                      , 2'b00, new_pulse_dye, new_pulse_intensity
                       , 10'b00_0000_0000, current_pulse_zmw_number_d[0]};
                   end else begin
                     //full => can't update, don't ACK
@@ -1050,7 +1058,7 @@ module application#(parameter DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1)
   assign zmw_from_ram_fifo_ack = ptracer_state
     && !(zmw_from_ram_fifo_empty
          || kt_fifo_empty || kinetic_trace_xof || downstream_high);
-  assign kt_fifo_ack = ptracer_state &&!kt_fifo_empty &&
+  assign kt_fifo_ack = ptracer_state && !kt_fifo_empty &&
     (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 

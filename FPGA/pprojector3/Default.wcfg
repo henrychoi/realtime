@@ -10,7 +10,7 @@
          </top_modules>
       </db_ref>
    </db_ref_list>
-   <WVObjectSize size="3" />
+   <WVObjectSize size="2" />
    <wvobject fp_name="group17" type="group">
       <obj_property name="label">app</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -36,6 +36,10 @@
       <wvobject fp_name="group93" type="group">
          <obj_property name="label">pprojector</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">CLK</obj_property>
+            <obj_property name="ObjectShortName">CLK</obj_property>
+         </wvobject>
          <wvobject fp_name="group302" type="group">
             <obj_property name="label">pacer arguments</obj_property>
             <obj_property name="DisplayName">label</obj_property>
@@ -89,6 +93,11 @@
             <obj_property name="ObjectShortName">gTime_exposure[31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/pulse_rd_zmw" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">pulse_rd_zmw[6:0]</obj_property>
+            <obj_property name="ObjectShortName">pulse_rd_zmw[6:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/current_pulse_zmw_number" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">current_pulse_zmw_number[21:0]</obj_property>
             <obj_property name="ObjectShortName">current_pulse_zmw_number[21:0]</obj_property>
@@ -107,13 +116,91 @@
          <wvobject fp_name="group81" type="group">
             <obj_property name="label">RAM</obj_property>
             <obj_property name="DisplayName">label</obj_property>
-            <wvobject fp_name="group68" type="group">
-               <obj_property name="label">from_ram</obj_property>
-               <obj_property name="DisplayName">label</obj_property>
+            <wvobject fp_name="/simmain/main/app/pulse_rom_rd_data" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">pulse_rom_rd_data[255:0]</obj_property>
+               <obj_property name="ObjectShortName">pulse_rom_rd_data[255:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/pulse_ram_state" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">pulse_ram_state[1:0,3:0]</obj_property>
+               <obj_property name="ObjectShortName">pulse_ram_state[1:0,3:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
             </wvobject>
             <wvobject fp_name="group62" type="group">
                <obj_property name="label">to_ram</obj_property>
                <obj_property name="DisplayName">label</obj_property>
+               <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_data" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_to_ram_fifo_data[247:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_to_ram_fifo_data[247:0]</obj_property>
+                  <obj_property name="Radix">HEXRADIX</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_wren" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_to_ram_fifo_wren[1:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_to_ram_fifo_wren[1:0]</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_empty" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_to_ram_fifo_empty[1:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_to_ram_fifo_empty[1:0]</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_dout" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_to_ram_fifo_dout[1:0,255:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_to_ram_fifo_dout[1:0,255:0]</obj_property>
+                  <obj_property name="Radix">HEXRADIX</obj_property>
+                  <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_dout[1]" type="array" db_ref_id="1">
+                     <obj_property name="ElementShortName">[1,255:0]</obj_property>
+                     <obj_property name="ObjectShortName">pulse_to_ram_fifo_dout[1,255:0]</obj_property>
+                     <obj_property name="Radix">HEXRADIX</obj_property>
+                  </wvobject>
+                  <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_dout[0]" type="array" db_ref_id="1">
+                     <obj_property name="ElementShortName">[0,255:0]</obj_property>
+                     <obj_property name="ObjectShortName">pulse_to_ram_fifo_dout[0,255:0]</obj_property>
+                     <obj_property name="Radix">HEXRADIX</obj_property>
+                  </wvobject>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_to_ram_fifo_ack" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_to_ram_fifo_ack[1:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_to_ram_fifo_ack[1:0]</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_ram_wdf_wren" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_ram_wdf_wren[1:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_ram_wdf_wren[1:0]</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_ram_wdf_data" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_ram_wdf_data[255:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_ram_wdf_data[255:0]</obj_property>
+               </wvobject>
+            </wvobject>
+            <wvobject fp_name="group68" type="group">
+               <obj_property name="label">from_ram</obj_property>
+               <obj_property name="DisplayName">label</obj_property>
+               <wvobject fp_name="/simmain/main/app/pulse_ram_rd_data_valid" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_ram_rd_data_valid[1:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_ram_rd_data_valid[1:0]</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_ram_rd_data" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_ram_rd_data[1:0,255:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_ram_rd_data[1:0,255:0]</obj_property>
+                  <obj_property name="Radix">HEXRADIX</obj_property>
+                  <wvobject fp_name="/simmain/main/app/pulse_ram_rd_data[1]" type="array" db_ref_id="1">
+                     <obj_property name="ElementShortName">[1,255:0]</obj_property>
+                     <obj_property name="ObjectShortName">pulse_ram_rd_data[1,255:0]</obj_property>
+                     <obj_property name="Radix">HEXRADIX</obj_property>
+                  </wvobject>
+                  <wvobject fp_name="/simmain/main/app/pulse_ram_rd_data[0]" type="array" db_ref_id="1">
+                     <obj_property name="ElementShortName">[0,255:0]</obj_property>
+                     <obj_property name="ObjectShortName">pulse_ram_rd_data[0,255:0]</obj_property>
+                     <obj_property name="Radix">HEXRADIX</obj_property>
+                  </wvobject>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_from_ram_fifo_wren" type="logic" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_from_ram_fifo_wren</obj_property>
+                  <obj_property name="ObjectShortName">pulse_from_ram_fifo_wren</obj_property>
+               </wvobject>
+               <wvobject fp_name="/simmain/main/app/pulse_from_ram_fifo_din" type="array" db_ref_id="1">
+                  <obj_property name="ElementShortName">pulse_from_ram_fifo_din[255:0]</obj_property>
+                  <obj_property name="ObjectShortName">pulse_from_ram_fifo_din[255:0]</obj_property>
+                  <obj_property name="Radix">HEXRADIX</obj_property>
+               </wvobject>
             </wvobject>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/gTimeGTEcurrent_pulse_tf" type="array" db_ref_id="1">
@@ -157,6 +244,21 @@
          <wvobject fp_name="/simmain/main/app/intensity_d_fifo_empty" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">intensity_d_fifo_empty[2:0]</obj_property>
             <obj_property name="ObjectShortName">intensity_d_fifo_empty[2:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/current_pulse_in_idx_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">current_pulse_in_idx_d[2:0,3:0]</obj_property>
+            <obj_property name="ObjectShortName">current_pulse_in_idx_d[2:0,3:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/current_pulse_intensity" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">current_pulse_intensity[2:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">current_pulse_intensity[2:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/current_pulse_dye" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">current_pulse_dye[2:0,1:0]</obj_property>
+            <obj_property name="ObjectShortName">current_pulse_dye[2:0,1:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/pulse_intensity" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">pulse_intensity[2:0,31:0]</obj_property>
@@ -253,6 +355,10 @@
       <wvobject fp_name="group99" type="group">
          <obj_property name="label">ptracer</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">CLK</obj_property>
+            <obj_property name="ObjectShortName">CLK</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_ram_state" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_ram_state[2:0]</obj_property>
             <obj_property name="ObjectShortName">zmw_ram_state[2:0]</obj_property>
@@ -340,6 +446,16 @@
             <obj_property name="ObjectShortName">zmw_from_ram_red_fsp_idx[7:0]</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/zmw_from_ram_photonic_bias" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">zmw_from_ram_photonic_bias[3:0,23:0]</obj_property>
+            <obj_property name="ObjectShortName">zmw_from_ram_photonic_bias[3:0,23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/zmw_from_ram_photonic_gain" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">zmw_from_ram_photonic_gain[3:0,23:0]</obj_property>
+            <obj_property name="ObjectShortName">zmw_from_ram_photonic_gain[3:0,23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/photonic_trace_rdy" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">photonic_trace_rdy[3:0]</obj_property>
             <obj_property name="ObjectShortName">photonic_trace_rdy[3:0]</obj_property>
@@ -422,6 +538,11 @@
             <obj_property name="ObjectShortName">cam_trace[1:0,31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_zmw" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_zmw[21:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_zmw[21:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_rowcol_d_fifo_empty" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_rowcol_d_fifo_empty</obj_property>
             <obj_property name="ObjectShortName">zmw_rowcol_d_fifo_empty</obj_property>
@@ -434,11 +555,6 @@
             <obj_property name="ElementShortName">ctrace_xof</obj_property>
             <obj_property name="ObjectShortName">ctrace_xof</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/ctrace_zmw" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">ctrace_zmw[21:0]</obj_property>
-            <obj_property name="ObjectShortName">ctrace_zmw[21:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-         </wvobject>
          <wvobject fp_name="/simmain/main/app/ctrace_row" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">ctrace_row[11:0]</obj_property>
             <obj_property name="ObjectShortName">ctrace_row[11:0]</obj_property>
@@ -450,10 +566,6 @@
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
       </wvobject>
-   </wvobject>
-   <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
-      <obj_property name="ElementShortName">CLK</obj_property>
-      <obj_property name="ObjectShortName">CLK</obj_property>
    </wvobject>
    <wvobject fp_name="group35" type="group">
       <obj_property name="label">XB</obj_property>
