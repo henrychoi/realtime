@@ -544,8 +544,9 @@
      </state>
      <state name="THROTTLED">
       <tran trig="!zmw_from_ram_fifo_high" target="../../3">
+       <action brief="ram_addr++"/>
        <tran_glyph conn="62,10,3,1,-19">
-        <action box="-16,0,17,2"/>
+        <action box="-18,0,19,4"/>
        </tran_glyph>
       </tran>
       <state_glyph node="62,5,11,7"/>
