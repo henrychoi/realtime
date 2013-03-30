@@ -27,7 +27,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
 
   localparam N_ZMW = 128;
   localparam RAM_ADDR_INCR = `TRUE //my way of saying 1 while avoiding warning
-           , BRAM_READ_LATENCY = 3;
+           , BRAM_READ_LATENCY = 3;//minimum: 1 + 2 to register dout
 
   // Pulse stage ////////////////////////////////////////////////////////
   localparam PACER_ERROR = 0, PACER_STOPPED = 1, PACER_STOPPING = 2
@@ -1028,8 +1028,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   localparam SMALL_FP_SIZE = 24;
   wire[11:0] zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
            , ctrace_row, ctrace_col;
-  wire[7:0] zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx
-          , zmw_from_ram_spectral_mx_idx;
+  wire[7:0] zmw_from_ram_fsp_idx[N_CAM-1:0], zmw_from_ram_spectral_mx_idx;
   wire[SMALL_FP_SIZE-1:0] zmw_from_ram_photonic_bias[N_DYE-1:0]
                         , zmw_from_ram_photonic_gain[N_DYE-1:0];
   localparam PTRACER_ERROR = 0, PTRACER_INITIALIZING = 1, PTRACER_RUNNING = 2
@@ -1044,7 +1043,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
       , .overflow(zmw_from_ram_fifo_overflow)
       , .rden(zmw_from_ram_fifo_ack)
       , .dout({zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
-             , zmw_from_ram_grn_fsp_idx, zmw_from_ram_red_fsp_idx
+             , zmw_from_ram_fsp_idx[0], zmw_from_ram_fsp_idx[1]
              , zmw_from_ram_spectral_mx_idx
              , zmw_from_ram_photonic_bias[0], zmw_from_ram_photonic_gain[0]
              , zmw_from_ram_photonic_bias[1], zmw_from_ram_photonic_gain[1]
