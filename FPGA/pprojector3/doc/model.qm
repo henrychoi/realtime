@@ -697,7 +697,10 @@
       </initial_glyph>
      </initial>
      <state name="COLLECTING">
-      <state_glyph node="28,6,27,10"/>
+      <entry brief="n_recv = 0;"/>
+      <state_glyph node="28,6,27,10">
+       <entry box="1,2,24,2"/>
+      </state_glyph>
      </state>
      <state name="FINISHING">
       <state_glyph node="63,6,19,16"/>
