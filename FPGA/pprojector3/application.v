@@ -1341,7 +1341,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   end//always @(posedge CLK)
 
 
-  // Trace to pixel projector code /////////////////////////////////////////
+  //pixel processing code /////////////////////////////////////////
   localparam PIXEL_RAM_ERROR = 0
            , PIXEL_RAM_MSG_WAIT = 1, PIXEL_RAM_WR_WAIT = 2, PIXEL_RAM_WR1 = 3
            , PIXEL_RAM_WR2 = 4, PIXEL_RAM_READING = 5, PIXEL_RAM_THROTTLED = 6
