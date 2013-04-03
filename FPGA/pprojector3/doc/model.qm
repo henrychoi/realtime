@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<model version="2.2.03">
+<model version="2.2.00">
  <framework name="qpn"/>
  <package name="FPGA" stereotype="0x00">
   <class name="PulseDramManager" superclass="qpn::QHsm">
@@ -691,13 +691,14 @@
      <state_glyph node="1,6,10,9"/>
     </state>
     <state name="TAKEN">
+     <entry brief="n_recv = 0"/>
      <initial target="../1">
       <initial_glyph conn="72,6,5,0,6,2">
        <action box="0,-2,6,2"/>
       </initial_glyph>
      </initial>
      <state name="COLLECTING">
-      <entry brief="n_recv = 0;"/>
+      <exit brief="n_recv = 0"/>
       <tran trig="overlap(ctrace, fsp[N_FSP])">
        <action brief="save ctrace, fsp[me_col - ctrace_col];\n_recv++"/>
        <choice target="../../../3">
@@ -707,7 +708,7 @@
         </choice_glyph>
        </choice>
        <tran_glyph conn="61,19,3,-1,8">
-        <action box="1,-6,23,7"/>
+        <action box="1,-6,23,6"/>
        </tran_glyph>
       </tran>
       <tran trig="XOF || after overlap">
@@ -729,7 +730,7 @@
        </tran_glyph>
       </tran>
       <state_glyph node="61,8,24,15">
-       <entry box="1,2,20,2"/>
+       <exit box="1,2,20,2"/>
       </state_glyph>
      </state>
      <state name="DONE">
@@ -748,7 +749,9 @@
       </tran>
       <state_glyph node="27,16,15,8"/>
      </state>
-     <state_glyph node="25,2,62,24"/>
+     <state_glyph node="25,2,62,24">
+      <entry box="1,2,15,2"/>
+     </state_glyph>
     </state>
     <state name="ERROR">
      <state_glyph node="1,18,10,8"/>
