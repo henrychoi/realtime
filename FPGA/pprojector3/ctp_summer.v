@@ -1,25 +1,24 @@
 module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
 #(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, CAM_ROW_SIZE=12, CAM_COL_SIZE=12
-         , FSP_SIZE=3)
+          , N_FSP=3, FSP_ROW=2'd1)
 (input CLK, RESET, init, ctrace_valid, sum_ack, xof
 , input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
 , input[CAM_COL_SIZE-1:0] config_col, ctrace_col
-, input[FP_SIZE-1:0] ctrace, config_bias//global sensor background
-                   , config_fsp[FP_SIZE-1:0]
+, input[FP_SIZE-1:0] config_bias//global sensor background
+                   , ctrace, fsp0, fsp1, fsp2//will take one of these on overlap
 , output available, done, output reg[FP_SIZE-1:0] result);
 `include "function.v"
   genvar geni, genj, genk;
   integer i, j, k;
-  localparam FSP_SIZE=3;
   reg [CAM_ROW_SIZE-1:0] me_row;
   reg [CAM_COL_SIZE-1:0] me_col;
-  reg [FP_SIZE-1:0] me_bias, me_fsp[FSP_SIZE-1:0], me_ctrace[FSP_SIZE-1:0];
-  wire[FP_SIZE-1:0] ctraceXfsp[FSP_SIZE-1:0], partial_sum[FSP_SIZE/2:0]
+  reg [FP_SIZE-1:0] me_bias, me_fsp[N_FSP-1:0], me_ctrace[N_FSP-2:0];
+  wire[FP_SIZE-1:0] ctraceXfsp[N_FSP-1:0], partial_sum[N_FSP/2:0]
                   , sum;
-  wire[FSP_SIZE-1:0] ctraceXfsp_rdy;
-  wire[FSP_SIZE/2:0] first_stage_add_rdy;
+  wire[N_FSP-2:0] ctraceXfsp_rdy;
+  wire[N_FSP/2:0] first_stage_add_rdy;
   wire sum_rdy;
-  reg[log2(FSP_SIZE)-1:0] n_recv;
+  reg[log2(N_FSP)-1:0] n_recv, fsp_row;
 
   localparam ERROR = 0, FREE = 1, COLLECTING = 2, FINISHING = 3, DONE = 4
            , N_STATE = 5;
@@ -28,12 +27,12 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
   assign availabe = state == FREE;
   
   generate
-    for(geni=0; geni<FSP_SIZE; geni=geni+1)
+    for(geni=0; geni<N_FSP-1; geni=geni+1)
       fmult ctraceXfsp_module(.clk(CLK), .sclr(RESET), .operation_nd()
           , .a(me_ctrace[geni]), .b(me_fsp[geni])
           , .result(ctraceXfsp[geni]), .rdy(ctraceXfsp_rdy[geni]));
 
-    //This cascading of adders is specific to FSP_SIZE=3
+    //This cascading of adders is specific to N_FSP=3
     fadd partial_add_module0(.clk(CLK), .sclr(RESET)
         , .operation_nd(ctraceXfsp_rdy[0])
         , .a(me_bias), .b(ctraceXfsp[0])
@@ -60,10 +59,10 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
             me_row <= #DELAY config_row;
             me_col <= #DELAY config_col;
             me_bias <= #DELAY config_bias;
-            for(i=0; i<FSP_SIZE; i=i+1) begin
-              me_fsp[i] <= #DELAY config_fsp;
+            for(i=0; i<N_FSP; i=i+1) begin
+              me_fsp[i] <= #DELAY 0;
               me_ctrace[i] <= #DELAY 0;
-            end//for(FSP_SIZE)
+            end//for(N_FSP)
             n_recv <= #DELAY 0;
             state <= #DELAY COLLECTING;
           end

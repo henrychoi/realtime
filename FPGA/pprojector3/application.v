@@ -1061,7 +1061,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 
-  localparam FSP_SIZE = 3;  
+  localparam N_FSP = 3;  
   wire[FP_SIZE-1:0] ktXgain[N_DYE-1:0], photonic_trace[N_DYE-1:0]
                   , ptXinvsp[N_CAM-1:0][N_DYE-1:0]
                   , ctrace_p[N_CAM-1:0][N_DYE/2-1:0]//1st stage add result
@@ -1072,8 +1072,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire[SMALL_FP_SIZE-1:0] photonic_bias[N_DYE-1:0]
                         , inv_dye_mx_dout[N_CAM-1:0][N_DYE-1:0]
                         , inv_dye_mx[N_CAM-1:0][N_DYE-1:0]
-                        , fsp_mx_dout[N_CAM-1:0][FSP_SIZE-1:0][FSP_SIZE-1:0]
-                        , fsp_mx[N_CAM-1:0][FSP_SIZE-1:0][FSP_SIZE-1:0];
+                        , fsp_mx_dout[N_CAM-1:0][N_FSP-1:0][N_FSP-1:0]
+                        , fsp_mx[N_CAM-1:0][N_FSP-1:0][N_FSP-1:0];
   wire[N_DYE-1:0] photonic_bias_d_fifo_empty, photonic_bias_d_fifo_full
                 , ktXgain_rdy, photonic_trace_rdy
                 , inv_dye_mx_fifo_empty[N_CAM-1:0]
@@ -1081,8 +1081,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   reg [N_DYE-1:0] inv_dye_mx_wren[N_CAM-1:0];
   reg [BRAM_READ_LATENCY:0] zmw_from_ram_fifo_ack_d;
   reg [7:0] inv_dye_mx_addr, fsp_mx_addr[N_CAM-1:0];
-  reg [FSP_SIZE-1:0] fsp_mx_wren[N_CAM-1:0][FSP_SIZE-1:0];
-  wire[FSP_SIZE-1:0] fsp_mx_fifo_empty[N_CAM-1:0][FSP_SIZE-1:0];
+  reg [N_FSP-1:0] fsp_mx_wren[N_CAM-1:0][N_FSP-1:0];
+  wire[N_FSP-1:0] fsp_mx_fifo_empty[N_CAM-1:0][N_FSP-1:0];
 
   generate
     for(geni=0; geni < N_DYE; geni=geni+1) begin
@@ -1152,8 +1152,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
           , .a(ctrace_p[geni][0]), .b(ctrace_p[geni][1])
           , .result(cam_trace[geni]), .rdy(cam_trace_rdy[geni]));
 
-      for(genj=0; genj<FSP_SIZE; genj=genj+1) begin
-        for(genk=0; genk<FSP_SIZE; genk=genk+1) begin
+      for(genj=0; genj<N_FSP; genj=genj+1) begin
+        for(genk=0; genk<N_FSP; genk=genk+1) begin
           bram24x256 fsp_mx_bram(.clka(CLK), .wea(fsp_mx_wren[geni][genj][genk])
             , .addra(fsp_mx_addr[geni]), .dina(fsp_mx_din)
             , .douta(fsp_mx_dout[geni][genj][genk]));
@@ -1165,8 +1165,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             , .full(), .high(), .almost_full()
             , .rden(), .dout(fsp_mx[geni][genj][genk])
             , .empty(fsp_mx_fifo_empty[geni][genj][genk]), .almost_empty());
-        end //for(FSP_SIZE)
-      end//for(FSP_SIZE)
+        end //for(N_FSP)
+      end//for(N_FSP)
     end//for(N_CAM)      
   endgenerate
 

@@ -155,8 +155,7 @@ void GPIOPortA_IRQHandler(void) {
 
 /*..........................................................................*/
 void BSP_init(void) {
-                                          /* Enable the floating-point unit */
-    SCB->CPACR |= (0xFU << 20);
+    SCB->CPACR |= (0xFU << 20);// Enable the floating-point unit
 
     /* Enable lazy stacking for interrupt handlers. This allows FPU
     * instructions to be used within interrupt handlers, but at the
@@ -224,7 +223,7 @@ void BSP_terminate(int16_t result) {
 
 /*..........................................................................*/
 void QF_onStartup(void) {
-              /* set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate */
+    //CMSIS lib: set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate
     SysTick_Config(ROM_SysCtlClockGet() / BSP_TICKS_PER_SEC);
 
                        /* set priorities of all interrupts in the system... */
@@ -302,13 +301,13 @@ uint8_t QS_onStartup(void const *arg) {
     // UART pins are at GPIOA configure UART0 pins for UART operation
     tmp = (1U << 0) | (1U << 1);
     GPIOA->DIR   &= ~tmp;//bit 0 means input, 1 means output; compare w/ GPIOF
-    GPIOA->AFSEL |= tmp;
+    GPIOA->AFSEL |= tmp;//mode control select register
     GPIOA->DR2R  |= tmp;        /* set 2mA drive, DR4R and DR8R are cleared */
-    GPIOA->SLR   &= ~tmp;
-    GPIOA->ODR   &= ~tmp;
-    GPIOA->PUR   &= ~tmp;
-    GPIOA->PDR   &= ~tmp;
-    GPIOA->DEN   |= tmp;
+    GPIOA->SLR   &= ~tmp;//slew-rate control enable register
+    GPIOA->ODR   &= ~tmp;//open drain select register
+    GPIOA->PUR   &= ~tmp;//pull-up register
+    GPIOA->PDR   &= ~tmp;//pull-down register
+    GPIOA->DEN   |= tmp; //digital input enable register
 
            /* configure the UART for the desired baud rate, 8-N-1 operation */
     tmp = (((ROM_SysCtlClockGet() * 8U) / UART_BAUD_RATE) + 1U) / 2U;
