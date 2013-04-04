@@ -1028,8 +1028,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   reg [RAM_DATA_SIZE-1:0] zmw_from_ram_fifo_din;
   
   localparam SMALL_FP_SIZE = 24;
-  wire[11:0] zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
-           , ctrace_row, ctrace_col;
+  wire[CAM_ROW_SIZE-1:0] zmw_from_ram_pixel_row, ctrace_row;
+  wire[CAM_COL_SIZE-1:0] zmw_from_ram_pixel_col, ctrace_col;
   wire[7:0] zmw_from_ram_fsp_idx[N_CAM-1:0], zmw_from_ram_spectral_mx_idx;
   wire[SMALL_FP_SIZE-1:0] zmw_from_ram_photonic_bias[N_DYE-1:0]
                         , zmw_from_ram_photonic_gain[N_DYE-1:0];
@@ -1063,7 +1063,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
     && !downstream_high;
 
-  localparam FSP_WIDTH = 6, FSP_HEIGHT = 3;  
+  localparam FSP_WIDTH = 6, FSP_HEIGHT = 3;
+  //See Figure "Kinetic and camera trace processing flow" in design doc
   wire[FP_SIZE-1:0] ktXgain[N_DYE-1:0], photonic_trace[N_DYE-1:0]
                   , ptXinvsp[N_CAM-1:0][N_DYE-1:0]
                   , ctrace_p[N_CAM-1:0][N_DYE/2-1:0]//1st stage add result
@@ -1074,8 +1075,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire[SMALL_FP_SIZE-1:0] photonic_bias[N_DYE-1:0]
                         , inv_dye_mx_dout[N_CAM-1:0][N_DYE-1:0]
                         , inv_dye_mx[N_CAM-1:0][N_DYE-1:0]
-                        , fsp_mx_dout[N_CAM-1:0][FSP_HEIGHT-1:0][FSP_WIDTH-1:0]
-                        , fsp_mx[N_CAM-1:0][FSP_HEIGHT-1:0][FSP_WIDTH-1:0];
+                        , fsp_mx_dout[N_CAM-1:0][FSP_HEIGHT-1:0][FSP_WIDTH-1:0];
   wire[N_DYE-1:0] photonic_bias_d_fifo_empty, photonic_bias_d_fifo_full
                 , ktXgain_rdy, photonic_trace_rdy
                 , inv_dye_mx_fifo_empty[N_CAM-1:0]
@@ -1086,6 +1086,13 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire[7:0] fsp_idx[N_CAM-1:0];
   reg [FSP_WIDTH-1:0] fsp_mx_wren[N_CAM-1:0][FSP_HEIGHT-1:0];
   wire[FSP_WIDTH-1:0] fsp_mx_fifo_empty[N_CAM-1:0][FSP_HEIGHT-1:0];
+
+  //Delayed output of the tracer logic
+  reg ctrace_rdy_d, ctrace_xof_d;
+  reg [FP_SIZE-1:0] ctrace_d[N_CAM-1:0];
+  reg [CAM_ROW_SIZE-1:0] ctrace_row_d;
+  reg [CAM_COL_SIZE-1:0] ctrace_col_d;
+  reg [N_ZMW_SIZE-1:0] ctrace_zmw_d;
 
   generate
     for(geni=0; geni < N_DYE; geni=geni+1) begin
@@ -1195,7 +1202,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire[N_ZMW_SIZE-1:0] ctrace_zmw;
   wire ctrace_xof, zmw_rowcol_d_fifo_full, zmw_rowcol_d_fifo_empty;
   wire[FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-2:0] zmw_rowcol_d_fifo_bitbucket;
-  reg zmw_rowcol_d_fifo_ack;//Changed to register to delay by 1
+  wire zmw_rowcol_d_fifo_ack;
+  
   better_fifo#(.TYPE("FPandZMW"), .WIDTH(FP_SIZE+N_ZMW_SIZE), .DELAY(DELAY))
   zmw_rowcol_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
                   , .wren(kt_fifo_ack)
@@ -1208,8 +1216,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                          , ctrace_row, ctrace_col, ctrace_zmw, ctrace_xof})
                   , .empty(zmw_rowcol_d_fifo_empty), .almost_empty());
 
-  //assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
-  //  && (ctrace_xof || cam_trace_rdy[0]);
+  assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
+                              && (ctrace_xof || cam_trace_rdy[0]);
 
   always @(posedge CLK) begin //Trace domain sequential logic///////////////
     // Setup defaults
@@ -1231,14 +1239,24 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
       for(j=0; j<N_DYE; j=j+1)
         inv_dye_mx_wren[i][j] <= #DELAY `FALSE;
     
-	 zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE] <= #DELAY
+	  zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE] <= #DELAY
 	     zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
+                          
+    //register ctrace and ZMW specific data for better timing
+    ctrace_rdy_d <= #DELAY cam_trace_rdy;
+    ctrace_xof_d <= #DELAY ctrace_xof && zmw_rowcol_d_fifo_ack;
+    ctrace_zmw_d <= #DELAY ctrace_zmw;
+    ctrace_row_d <= #DELAY ctrace_row;
+    ctrace_col_d <= #DELAY ctrace_col;
+    for(i=0; i<N_CAM; i=i+1) ctrace_d[i] <= #DELAY cam_trace[i];
 
-   //This is 1 clock; see Figure "Kinetic and camera trace processing flow"
-   //in the design doc
-   zmw_rowcol_d_fifo_ack <= #DELAY !zmw_rowcol_d_fifo_empty
-                         && (ctrace_xof || cam_trace_rdy[0]);
-		  
+`ifdef DELAY_FSP
+    for(i=0; i<N_CAM; i=i+1)
+      for(j=0; j<FSP_HEIGHT; j=j+1)
+        for(k=0; k<FSP_WIDTH; k=k+1)
+          fsp_mx_d[i][j][k] <= #DELAY fsp_mx_dout[i][j][k];
+`endif//DELAY_FSP
+
     // And override defaults below
     if(RESET) begin
       zmw_ram_en <= #DELAY `FALSE;

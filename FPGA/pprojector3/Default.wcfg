@@ -34,7 +34,7 @@
          </wvobject>
       </wvobject>
       <wvobject fp_name="group93" type="group">
-         <obj_property name="label">pprojector</obj_property>
+         <obj_property name="label">pulse</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">CLK</obj_property>
@@ -353,7 +353,7 @@
          </wvobject>
       </wvobject>
       <wvobject fp_name="group99" type="group">
-         <obj_property name="label">ptracer</obj_property>
+         <obj_property name="label">trace</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">CLK</obj_property>
@@ -443,16 +443,6 @@
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_pixel_col" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">zmw_from_ram_pixel_col[11:0]</obj_property>
             <obj_property name="ObjectShortName">zmw_from_ram_pixel_col[11:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/zmw_from_ram_grn_fsp_idx" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">zmw_from_ram_grn_fsp_idx[7:0]</obj_property>
-            <obj_property name="ObjectShortName">zmw_from_ram_grn_fsp_idx[7:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/zmw_from_ram_red_fsp_idx" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">zmw_from_ram_red_fsp_idx[7:0]</obj_property>
-            <obj_property name="ObjectShortName">zmw_from_ram_red_fsp_idx[7:0]</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/zmw_from_ram_photonic_bias" type="array" db_ref_id="1">
@@ -573,6 +563,57 @@
             <obj_property name="ElementShortName">ctrace_col[11:0]</obj_property>
             <obj_property name="ObjectShortName">ctrace_col[11:0]</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="group136" type="group">
+         <obj_property name="label">CTPRS</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">CLK</obj_property>
+            <obj_property name="ObjectShortName">CLK</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fsp_idx" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">fsp_idx[1:0,7:0]</obj_property>
+            <obj_property name="ObjectShortName">fsp_idx[1:0,7:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fsp_mx_dout" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">fsp_mx_dout[1:0,2:0,5:0,23:0]</obj_property>
+            <obj_property name="ObjectShortName">fsp_mx_dout[1:0,2:0,5:0,23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_rdy_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_rdy_d</obj_property>
+            <obj_property name="ObjectShortName">ctrace_rdy_d</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_xof_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_xof_d</obj_property>
+            <obj_property name="ObjectShortName">ctrace_xof_d</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_zmw_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_zmw_d[21:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_zmw_d[21:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_row_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_row_d[11:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_row_d[11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_col_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_col_d[11:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_col_d[11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_d[1:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_d[1:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/fsp_mx_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">fsp_mx_d[1:0,2:0,5:0,23:0]</obj_property>
+            <obj_property name="ObjectShortName">fsp_mx_d[1:0,2:0,5:0,23:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
       </wvobject>
    </wvobject>
