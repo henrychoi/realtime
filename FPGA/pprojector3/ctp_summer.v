@@ -13,10 +13,15 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
   integer i, j, k;
   reg [CAM_ROW_SIZE-1:0] me_row;
   reg [CAM_COL_SIZE-1:0] me_col;
-  reg [FP_SIZE-1:0] me_initial, ctrace_d[N_CAM-1:0]
+  reg [FP_SIZE-1:0] me_initial
                   , me_fsp[N_CAM-1:0][FSP_WIDTH-1:0]
+
+`define DELAY_INPUTS//for better timing
+`ifdef DELAY_INPUTS
                   , me_ctrace[N_CAM-1:0][FSP_WIDTH-1:0]                  
-                  , fsp_d[N_CAM-1:0][FSP_WIDTH-1:0];
+                  , ctrace_d[N_CAM-1:0], fsp_d[N_CAM-1:0][FSP_WIDTH-1:0]
+`endif
+                  ;
   wire[FP_SIZE-1:0] ctraceXfsp[N_CAM-1:0][FSP_WIDTH-1:0]
                   , partial_sum[N_CAM-1:0][FSP_WIDTH/2:0], sum[N_CAM-1:0];
   wire[FSP_WIDTH-2:0] ctraceXfsp_rdy[N_CAM-1:0];
@@ -70,13 +75,15 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
 
   always @(posedge CLK) begin
     start_calc <= #DELAY `FALSE;
+
+`ifdef DELAY_INPUTS
     //Delay the input for better timing
     ctrace_valid_d <= #DELAY ctrace_valid;
     ctrace_d <= #DELAY ctrace;
     fsp_d[0] <= #DELAY fsp0; fsp_d[1] <= #DELAY fsp1; fsp_d[2] <= #DELAY fsp2;
     me_ctrace_row <= #DELAY ctrace_row + FSP_ROW;//Note: instantiation param
     fsp_col <= #DELAY me_col - ctrace_col;//signed arithmetic
-    
+`endif   
     if(RESET) begin
       n_recv <= #DELAY 0;
       state <= #DELAY FREE;

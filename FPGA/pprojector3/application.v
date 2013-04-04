@@ -27,7 +27,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
 
   localparam N_ZMW = 128;
   localparam RAM_ADDR_INCR = `TRUE //my way of saying 1 while avoiding warning
-           , BRAM_READ_LATENCY = 3;//minimum: 1 + 2 to register dout
+           , OUTPUT_REGISTERED_BRAM_READ_LATENCY = 3;//minimum: 1 + 2 to register dout
 
   // Pulse stage ////////////////////////////////////////////////////////
   localparam PACER_ERROR = 0, PACER_STOPPED = 1, PACER_STOPPING = 2
@@ -51,7 +51,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire[1:0] pulse_ram_rdy, pulse_ram_wdf_rdy;
   reg [1:0] pulse_ram_en, pulse_ram_read
           , pulse_ram_wdf_wren, pulse_ram_wdf_end
-          , pulse_ram_en_and_read[BRAM_READ_LATENCY-2:0]
+          , pulse_ram_en_and_read[OUTPUT_REGISTERED_BRAM_READ_LATENCY-2:0]
           , pulse_ram_rd_data_valid;
   assign pulse_ram_rdy = {`TRUE, `TRUE};
   assign pulse_ram_wdf_rdy = {`TRUE, `TRUE};
@@ -482,9 +482,10 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     end else begin
 
       pulse_ram_en_and_read[0] <= #DELAY pulse_ram_en & pulse_ram_read;//bitwise
-      for(i=1; i<BRAM_READ_LATENCY-1; i=i+1)
+      for(i=1; i<OUTPUT_REGISTERED_BRAM_READ_LATENCY-1; i=i+1)
         pulse_ram_en_and_read[i] <= #DELAY pulse_ram_en_and_read[i-1];
-      pulse_ram_rd_data_valid <= #DELAY pulse_ram_en_and_read[BRAM_READ_LATENCY-2];
+      pulse_ram_rd_data_valid
+        <= #DELAY pulse_ram_en_and_read[OUTPUT_REGISTERED_BRAM_READ_LATENCY-2];
       pulse_from_ram_fifo_din <= #DELAY pulse_ram_rd_data[pulse_from_ram_src];
   
       //Pacer code ////////////////////////////////////////////////////
@@ -1004,7 +1005,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   // RAM interface
   wire zmw_ram_rdy, zmw_ram_wdf_rdy;
   reg  zmw_ram_en, zmw_ram_read, zmw_ram_wdf_wren, zmw_ram_wdf_end
-     , zmw_ram_en_and_read[BRAM_READ_LATENCY-2:0], zmw_ram_rd_data_valid;
+     , zmw_ram_en_and_read[OUTPUT_REGISTERED_BRAM_READ_LATENCY-2:0]
+     , zmw_ram_rd_data_valid;
   assign zmw_ram_rdy = `TRUE;
   assign zmw_ram_wdf_rdy = `TRUE;
   reg [log2(N_ZMW)-1:0] zmw_ram_addr, zmw_ram_n_read;
@@ -1079,8 +1081,9 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                 , inv_dye_mx_fifo_empty[N_CAM-1:0]
                 , ptXinvsp_rdy[N_CAM-1:0];
   reg [N_DYE-1:0] inv_dye_mx_wren[N_CAM-1:0];
-  reg [BRAM_READ_LATENCY:0] zmw_from_ram_fifo_ack_d;
-  reg [7:0] inv_dye_mx_addr, fsp_mx_addr[N_CAM-1:0];
+  reg [OUTPUT_REGISTERED_BRAM_READ_LATENCY:0] zmw_from_ram_fifo_ack_d;
+  reg [7:0] inv_dye_mx_addr;//, fsp_mx_addr[N_CAM-1:0];
+  wire[7:0] fsp_idx[N_CAM-1:0];
   reg [FSP_WIDTH-1:0] fsp_mx_wren[N_CAM-1:0][FSP_HEIGHT-1:0];
   wire[FSP_WIDTH-1:0] fsp_mx_fifo_empty[N_CAM-1:0][FSP_HEIGHT-1:0];
 
@@ -1120,7 +1123,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
         inv_dye_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
           , .din(inv_dye_mx_dout[geni][genj])
           //Extra clock delay, because inv_dye_mx_addr above is registered
-          , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY])
+          , .wren(zmw_from_ram_fifo_ack_d[0])
           , .full(), .high(), .almost_full()
           , .rden(photonic_trace_rdy[genj])//consume ISM when ptrace rdy
           , .dout(inv_dye_mx[geni][genj])
@@ -1151,29 +1154,48 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
           , .operation_nd(ctrace_p_rdy[geni][0])
           , .a(ctrace_p[geni][0]), .b(ctrace_p[geni][1])
           , .result(cam_trace[geni]), .rdy(cam_trace_rdy[geni]));
-
       for(genj=0; genj<FSP_HEIGHT; genj=genj+1) begin
         for(genk=0; genk<FSP_WIDTH; genk=genk+1) begin
           bram24x256 fsp_mx_bram(.clka(CLK), .wea(fsp_mx_wren[geni][genj][genk])
-            , .addra(fsp_mx_addr[geni]), .dina(fsp_mx_din)
+            , .addra(fsp_idx[geni]), .dina(fsp_mx_din)
             , .douta(fsp_mx_dout[geni][genj][genk]));
-            
+
+`ifdef LOOKUP_FSP_EARLY
           better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
           fsp_mx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
             , .din(fsp_mx_dout[geni][genj][genk])
-            , .wren(zmw_from_ram_fifo_ack_d[BRAM_READ_LATENCY-1])
+            , .wren(zmw_from_ram_fifo_ack_d[OUTPUT_REGISTERED_BRAM_READ_LATENCY-1])
             , .full(), .high(), .almost_full()
             , .rden(), .dout(fsp_mx[geni][genj][genk])
             , .empty(fsp_mx_fifo_empty[geni][genj][genk]), .almost_empty());
+`endif//LOOKUP_FSP_EARLY
         end //for(FSP_WIDTH)
       end//for(FSP_HEIGHT)
+
     end//for(N_CAM)      
   endgenerate
+
+  wire[SMALL_FP_SIZE-2*8-1:0] fps_index_fifo_bitbucket;
+  wire fsp_idx_fifo_empty, fsp_idx_fifo_full, fsp_idx_fifo_high
+     , fsp_idx_fifo_ack;
+  
+  //See Figure "Kinetic and camera trace processing flow" in the design doc
+  assign fsp_idx_fifo_ack = !fsp_idx_fifo_empty && cam_trace_rdy[0];
+
+  better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
+  fsp_idx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+      , .din({{(SMALL_FP_SIZE-2*8){`FALSE}}
+            , zmw_from_ram_fsp_idx[1], zmw_from_ram_fsp_idx[0]})
+      , .wren(zmw_from_ram_fifo_ack)
+      , .full(fsp_idx_fifo_full), .high(fsp_idx_fifo_high), .almost_full()
+      , .rden(fsp_idx_fifo_ack)
+      , .dout({fps_index_fifo_bitbucket, fsp_idx[1], fsp_idx[0]})
+      , .empty(fsp_idx_fifo_empty), .almost_empty());
 
   wire[N_ZMW_SIZE-1:0] ctrace_zmw;
   wire ctrace_xof, zmw_rowcol_d_fifo_full, zmw_rowcol_d_fifo_empty;
   wire[FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-2:0] zmw_rowcol_d_fifo_bitbucket;
-  wire zmw_rowcol_d_fifo_ack;
+  reg zmw_rowcol_d_fifo_ack;//Changed to register to delay by 1
   better_fifo#(.TYPE("FPandZMW"), .WIDTH(FP_SIZE+N_ZMW_SIZE), .DELAY(DELAY))
   zmw_rowcol_d_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
                   , .wren(kt_fifo_ack)
@@ -1186,22 +1208,23 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                          , ctrace_row, ctrace_col, ctrace_zmw, ctrace_xof})
                   , .empty(zmw_rowcol_d_fifo_empty), .almost_empty());
 
-  assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
-    && (ctrace_xof || cam_trace_rdy[0]);
-  
+  //assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
+  //  && (ctrace_xof || cam_trace_rdy[0]);
+
   always @(posedge CLK) begin //Trace domain sequential logic///////////////
     // Setup defaults
     zmw_ram_en_and_read[0] <= #DELAY zmw_ram_en & zmw_ram_read;
-    for(i=1; i<BRAM_READ_LATENCY-1; i=i+1)
+    for(i=1; i<OUTPUT_REGISTERED_BRAM_READ_LATENCY-1; i=i+1)
       zmw_ram_en_and_read[i] <= #DELAY zmw_ram_en_and_read[i-1];
-    zmw_ram_rd_data_valid <= #DELAY zmw_ram_en_and_read[BRAM_READ_LATENCY-2];
+    zmw_ram_rd_data_valid
+      <= #DELAY zmw_ram_en_and_read[OUTPUT_REGISTERED_BRAM_READ_LATENCY-2];
 
     zmw_ram_wdf_end <= #DELAY `FALSE;
     zmw_from_ram_fifo_wren <= #DELAY `FALSE;
     zmw_ram_wdf_wren <= #DELAY `FALSE;
     
     zmw_from_ram_fifo_ack_d[0] <= #DELAY zmw_from_ram_fifo_ack;
-    for(i=1; i<=BRAM_READ_LATENCY; i=i+1)
+    for(i=1; i<=OUTPUT_REGISTERED_BRAM_READ_LATENCY; i=i+1)
       zmw_from_ram_fifo_ack_d[i] <= #DELAY zmw_from_ram_fifo_ack_d[i-1];
 
     for(i=0; i<N_CAM; i=i+1)
@@ -1210,6 +1233,11 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     
 	 zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE] <= #DELAY
 	     zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
+
+   //This is 1 clock; see Figure "Kinetic and camera trace processing flow"
+   //in the design doc
+   zmw_rowcol_d_fifo_ack <= #DELAY !zmw_rowcol_d_fifo_empty
+                         && (ctrace_xof || cam_trace_rdy[0]);
 		  
     // And override defaults below
     if(RESET) begin
