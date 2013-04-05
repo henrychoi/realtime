@@ -1,6 +1,7 @@
 module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
-#(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, CAM_ROW_SIZE=12, CAM_COL_SIZE=12
-          , N_CAM=2, FSP_WIDTH=6, FSP_HEIGHT=3, FSP_ROW=2'd1)
+#(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
+          , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
+          , N_CAM=2, FSP_WIDTH=6, FSP_ROW=2'd1)
 (input CLK, RESET, init, ctrace_valid, sum_ack, xof
 , input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
 , input[CAM_COL_SIZE-1:0] config_col, ctrace_col
@@ -13,11 +14,11 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
   integer i, j, k;
   reg [CAM_ROW_SIZE-1:0] me_row;
   reg [CAM_COL_SIZE-1:0] me_col;
-  reg [FP_SIZE-1:0] me_initial
-                  , me_fsp[N_CAM-1:0][FSP_WIDTH-1:0]
-                  , me_ctrace[N_CAM-1:0][FSP_WIDTH-1:0];
+  reg [FP_SIZE-1:0] me_initial, me_ctrace[N_CAM-1:0][FSP_WIDTH-1:0];
+  reg [SMALL_FP_SIZE-1:0] me_fsp[N_CAM-1:0][FSP_WIDTH-1:0];
 `ifdef DELAY_INPUTS
-  reg [FP_SIZE-1:0] ctrace_d[N_CAM-1:0], fsp_d[N_CAM-1:0][FSP_WIDTH-1:0];
+  reg [FP_SIZE-1:0] ctrace_d[N_CAM-1:0];
+  reg [SMALL_FP_SIZE-1:0] fsp_d[N_CAM-1:0][FSP_WIDTH-1:0];
   reg ctrace_valid_d, 
   reg[log2(FSP_WIDTH)-1:0] fsp_row;
   reg [CAM_ROW_SIZE-1:0] me_ctrace_row;
@@ -46,8 +47,8 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
     for(geni=0; geni<N_CAM; geni=geni+1) begin
       for(genj=0; genj<FSP_WIDTH; genj=genj+1)
         fmult ctraceXfsp_module(.clk(CLK), .sclr(RESET)
-          , .operation_nd(start_calc)
-          , .a(me_ctrace[geni][genj]), .b(me_fsp[geni][genj])
+          , .operation_nd(start_calc), .a(me_ctrace[geni][genj])
+          , .b({me_fsp[geni][genj], {(FP_SIZE-SMALL_FP_SIZE){`FALSE}}})
           , .result(ctraceXfsp[geni][genj]), .rdy(ctraceXfsp_rdy[geni][genj]));
 
       //This cascading arrangement of 1st stage adders is specific to
@@ -158,4 +159,18 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
       endcase
     end
   end
+endmodule
+
+//Do I really need this specialization?
+module NonOverlappingCameraTraceRowSummer//NOCTPRS
+#(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
+          , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
+          , N_CAM=2, FSP_ROW=2'd1)
+(input CLK, RESET, init, ctrace_valid, sum_ack, xof
+, input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
+, input[CAM_COL_SIZE-1:0] config_col, ctrace_col
+, input[FP_SIZE-1:0] config_initial, grn_ctrace, red_ctrace
+     , grn_fsp0, grn_fsp1, grn_fsp2, grn_fsp3, grn_fsp4, grn_fsp5
+     , red_fsp0, red_fsp1, red_fsp2, red_fsp3, red_fsp4, red_fsp5
+, output available, done, output reg[FP_SIZE-1:0] grn_result, red_result);
 endmodule

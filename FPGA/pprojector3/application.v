@@ -1176,10 +1176,10 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             , .rden(), .dout(fsp_mx[geni][genj][genk])
             , .empty(fsp_mx_fifo_empty[geni][genj][genk]), .almost_empty());
 `endif//LOOKUP_FSP_EARLY
-        end //for(FSP_WIDTH)
-      end//for(FSP_HEIGHT)
 
-    end//for(N_CAM)      
+        end //for(FSP_WIDTH)
+      end //for(FSP_HEIGHT)
+     end//for(N_CAM)      
   endgenerate
 
   wire[SMALL_FP_SIZE-2*8-1:0] fps_index_fifo_bitbucket;
@@ -1387,7 +1387,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   end//always @(posedge CLK)
 
 
-  //pixel processing code /////////////////////////////////////////
+  //post CTRPS pixel processing code /////////////////////////////////////////
   localparam PIXEL_RAM_ERROR = 0
            , PIXEL_RAM_MSG_WAIT = 1, PIXEL_RAM_WR_WAIT = 2, PIXEL_RAM_WR1 = 3
            , PIXEL_RAM_WR2 = 4, PIXEL_RAM_READING = 5, PIXEL_RAM_THROTTLED = 6
