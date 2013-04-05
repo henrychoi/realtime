@@ -41,6 +41,8 @@
 #include "sysctl.h"
 #include "gpio.h"
 #include "rom.h"
+#include "timer.h"//copied from StellrisWare/driverlib/
+//#include "pin_map.h"
 
 Q_DEFINE_THIS_FILE
 
@@ -72,7 +74,8 @@ static unsigned  l_rnd;                                      /* random seed */
     #define UART_TXFIFO_DEPTH   16U
 
     enum AppRecords {                 /* application-specific trace records */
-        THERM_LOOP_STAT = QS_USER
+		APP_INIT_INFO = QS_USER
+		, THERM_LOOP_STAT
     };
 
 #endif
@@ -90,6 +93,7 @@ void SysTick_Handler(void) {
     } else {
         GPIOF->DATA_Bits[LED_BLUE] =  0;
     }
+    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A, 0xFFFF);//Set PWM output=0
 
 #ifdef Q_SPY
     {
@@ -155,6 +159,8 @@ void GPIOPortA_IRQHandler(void) {
 
 /*..........................................................................*/
 void BSP_init(void) {
+	uint32_t timera_prescale;
+	//uC specific code////////////////////////////////////////////////////////
     SCB->CPACR |= (0xFU << 20);// Enable the floating-point unit
 
     /* Enable lazy stacking for interrupt handlers. This allows FPU
@@ -163,10 +169,9 @@ void BSP_init(void) {
     */
     FPU->FPCCR |= (1U << FPU_FPCCR_ASPEN_Pos) | (1U << FPU_FPCCR_LSPEN_Pos);
 
-    /* Set the clocking to run directly from the crystal, vs. PLL
-     * SysCtlClockSet(SYSCTL_SYSDIV_4|SYSCTL_USE_PLL|SYSCTL_XTAL_16MHZ|SYSCTL_OSC_MAIN); */
-    ROM_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC
-                       | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
+    //Set the clocking to run directly from the crystal (main oscillator), vs. PLL
+    ROM_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN
+                       | SYSCTL_XTAL_16MHZ);
 
     /* enable clock to the peripherals used by the application */
     SYSCTL->RCGC2 |= (1U << 5);                   /* enable clock to GPIOF  */
@@ -186,6 +191,15 @@ void BSP_init(void) {
     ROM_GPIOPadConfigSet(GPIO_PORTF_BASE, (USR_SW1 | USR_SW2),
                          GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
+    //Configure PWM
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+    ROM_TimerConfigure(TIMER0_BASE
+    		     , TIMER_CFG_PERIODIC| TIMER_CFG_SPLIT_PAIR| TIMER_CFG_A_PWM);
+    timera_prescale = ROM_TimerPrescaleGet(TIMER0_BASE, TIMER_A);
+    ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, 64000);
+    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A, 64000);//Set initial PWM=0
+    ROM_TimerEnable(TIMER0_BASE, TIMER_A);
+    //uC independent code/////////////////////////////////////////////////////
     BSP_randomSeed(1234U);
 
     if (QS_INIT((void *)0) == 0) {    /* initialize the QS software tracing */
@@ -193,7 +207,11 @@ void BSP_init(void) {
     }
     QS_RESET();
     QS_OBJ_DICTIONARY(&l_SysTick_Handler);
-    QS_OBJ_DICTIONARY(&l_GPIOPortA_IRQHandler);
+    QS_OBJ_DICTIONARY(&l_GPIOPortA_IRQHandler);\
+
+    QS_BEGIN(APP_INIT_INFO, 0);
+        QS_U32(1, timera_prescale);//I'm curious what the prescaler is
+    QS_END();
 }
 
 /*..........................................................................*/
@@ -224,7 +242,12 @@ void BSP_terminate(int16_t result) {
 /*..........................................................................*/
 void QF_onStartup(void) {
     //CMSIS lib: set up the SysTick timer to fire at BSP_TICKS_PER_SEC rate
-    SysTick_Config(ROM_SysCtlClockGet() / BSP_TICKS_PER_SEC);
+	uint32_t uC_clock_rate = ROM_SysCtlClockGet();
+    QS_BEGIN(APP_INIT_INFO, 0);
+        QS_U32(9, uC_clock_rate);//I'm curious what the uC clock rate is
+    QS_END();
+
+    SysTick_Config(uC_clock_rate / BSP_TICKS_PER_SEC);
 
                        /* set priorities of all interrupts in the system... */
     NVIC_SetPriority(SysTick_IRQn,   SYSTICK_PRIO);
@@ -237,7 +260,7 @@ void QF_onCleanup(void) {
 }
 /*..........................................................................*/
 void QK_onIdle(void) {
-
+#ifdef THIS_IS_RATHER_USELESS
     /* toggle the User LED on and then off, see NOTE02 */
     QF_INT_DISABLE();
     GPIOF->DATA_Bits[LED_GREEN] = LED_GREEN;      /* turn the Green LED on  */
@@ -246,6 +269,7 @@ void QK_onIdle(void) {
 
     float volatile x = 3.1415926F;
     x = x + 2.7182818F;
+#endif
 
 #ifdef Q_SPY
     if ((UART0->FR & UART_FR_TXFE) != 0) {                      /* TX done? */
