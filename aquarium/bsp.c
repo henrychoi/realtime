@@ -1,48 +1,16 @@
-/*****************************************************************************
-* Product: aquarium with, preemptive QK kernel
-* *****************************************************************************
-* Last Updated for Version: 4.5.04
-* Date of the Last Update:  Feb 15, 2013
-*
-*                    Q u a n t u m     L e a P s
-*                    ---------------------------
-*                    innovating embedded systems
-*
-* Copyright (C) 2002-2013 Quantum Leaps, LLC. All rights reserved.
-*
-* This program is open source software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License as published
-* by the Free Software Foundation, either version 2 of the License, or
-* (at your option) any later version.
-*
-* Alternatively, this program may be distributed and modified under the
-* terms of Quantum Leaps commercial licenses, which expressly supersede
-* the GNU General Public License and are specifically designed for
-* licensees interested in retaining the proprietary status of their code.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/>.
-*
-* Contact information:
-* Quantum Leaps Web sites: http://www.quantum-leaps.com
-*                          http://www.state-machine.com
-* e-mail:                  info@quantum-leaps.com
-*****************************************************************************/
+#include <math.h>//TODO: move this to HSMController active object
 #include "qp_port.h"
 #include "aquarium.h"
 #include "bsp.h"
 
+#include "hw_memmap.h"
 #include "lm4f_cmsis.h"
 #include "sysctl.h"
 #include "gpio.h"
 #include "rom.h"
 #include "timer.h"//copied from StellrisWare/driverlib/
-//#include "pin_map.h"
+#include "pin_map.h"//copied from StellrisWare/driverlib/ for GPIO_PB6_T0CCP0
+#include "adc.h"
 
 Q_DEFINE_THIS_FILE
 
@@ -85,15 +53,37 @@ void SysTick_Handler(void) {
     static uint32_t btn_debounced  = USR_SW1;
     static uint8_t  debounce_state = 0U;
     uint32_t btn;
+#define Rref 10000.f
+#define Vref 5.0f
+    //Steinhart-Hart constants for NTC QTRL2Z-103C3-12
+    //http://thermistor.com/calculators.php
+#define QTRL2Z_SH_A 1.11E-3
+#define QTRL2Z_SH_B 2.37E-4
+#define QTRL2Z_SH_C 8.73E-8//0x33bb79af in IEEE 754
+    float V1, R1, lnR1, den1, T1;
+    static uint16_t duty = 0;
 
     QK_ISR_ENTRY();                      /* inform QK about entering an ISR */
 
+    //TODO: move to in the HSMController's MEASURING state TICK event handler
+    //Read sensor inputs
+    V1 = 2.718f;
+    R1 = Rref * V1 / (Vref - V1);
+    lnR1 = log(R1);
+    den1 = QTRL2Z_SH_A + QTRL2Z_SH_B * lnR1 + QTRL2Z_SH_C * lnR1 * lnR1 * lnR1;
+    T1 = 1/den1;
+#ifdef BLINK_BLUE
+    //Write actuator output
     if(QS_tickCtr_ & 1U) { //Drive the GPIO out to the DC motor transistor
         GPIOF->DATA_Bits[LED_BLUE] =  LED_BLUE;
     } else {
         GPIOF->DATA_Bits[LED_BLUE] =  0;
     }
-    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A, 0xFFFF);//Set PWM output=0
+#endif//BLINK_BLUE
+
+    ROM_TimerMatchSet(TIMER0_BASE, TIMER_B, duty);//red LED
+    ROM_TimerMatchSet(TIMER1_BASE, TIMER_A, duty);//blue LED
+    if((duty += 0x1000) >= 64000) duty = 0;
 
 #ifdef Q_SPY
     {
@@ -159,7 +149,7 @@ void GPIOPortA_IRQHandler(void) {
 
 /*..........................................................................*/
 void BSP_init(void) {
-	uint32_t timera_prescale;
+	//uint32_t timera_prescale;
 	//uC specific code////////////////////////////////////////////////////////
     SCB->CPACR |= (0xFU << 20);// Enable the floating-point unit
 
@@ -171,10 +161,11 @@ void BSP_init(void) {
 
     //Set the clocking to run directly from the crystal (main oscillator), vs. PLL
     ROM_SysCtlClockSet(SYSCTL_SYSDIV_1 | SYSCTL_USE_OSC | SYSCTL_OSC_MAIN
-                       | SYSCTL_XTAL_16MHZ);
+                     | SYSCTL_XTAL_16MHZ);
 
     /* enable clock to the peripherals used by the application */
-    SYSCTL->RCGC2 |= (1U << 5);                   /* enable clock to GPIOF  */
+    SYSCTL->RCGC2 |= (1U << 5);/* enable clock to GPIOF;
+    * same as ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF); */
     asm(" MOV R0,R0");                        /* wait after enabling clocks */
     asm(" MOV R0,R0");                        /* wait after enabling clocks */
     asm(" MOV R0,R0");                        /* wait after enabling clocks */
@@ -182,23 +173,65 @@ void BSP_init(void) {
     /* configure the LEDs and push buttons */
     GPIOF->DIR |= (LED_RED | LED_GREEN | LED_BLUE);/* set direction: output */
     GPIOF->DEN |= (LED_RED | LED_GREEN | LED_BLUE);       /* digital enable */
-    GPIOF->DATA_Bits[LED_RED]   = 0;                    /* turn the LED off */
+    //GPIOF->DATA_Bits[LED_RED]   = 0;                    /* turn the LED off */
+    //GPIOF->DATA_Bits[LED_BLUE]  = 0;                    /* turn the LED off */
     GPIOF->DATA_Bits[LED_GREEN] = 0;                    /* turn the LED off */
-    GPIOF->DATA_Bits[LED_BLUE]  = 0;                    /* turn the LED off */
 
     /* configure the User Switches */
     GPIOF->DIR &= ~(USR_SW1 | USR_SW2);            /*  set direction: input */
     ROM_GPIOPadConfigSet(GPIO_PORTF_BASE, (USR_SW1 | USR_SW2),
                          GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
+    ROM_SysCtlADCSpeedSet(SYSCTL_ADCSPEED_250KSPS);
+    ROM_ADCHardwareOversampleConfigure(ADC0_BASE, 64);
+    ROM_ADCSequenceDisable(ADC0_BASE, 1U);
+    ROM_ADCSequenceConfigure(ADC0_BASE, 1, ADC_TRIGGER_PROCESSOR, 0);
+    ROM_ADCSequenceStepConfigure(ADC0_BASE, 1, 0, ADC_CTL_TS);
+    ROM_ADCSequenceStepConfigure(ADC0_BASE, 1, 1, ADC_CTL_TS);
+    ROM_ADCSequenceStepConfigure(ADC0_BASE, 1, 2, ADC_CTL_TS);
+    ROM_ADCSequenceStepConfigure(ADC0_BASE, 1, 3, ADC_CTL_TS | ADC_CTL_IE | ADC_CTL_END);
+    ROM_ADCSequenceEnable(ADC0_BASE, 1);
+
     //Configure PWM
+#ifdef CONFIG_PB6_PWM
+    //Configure PB6 as T0CCP0
+    //ml4f120h5qr.pdf, Table 11-1: Timer 0A is connected to CCP in T0CCP0
+    //Table 11-2: T0CCP0 is connected to either PB6 or PF0 (which is already
+    //connected to SW2 on Stellaris Launchpad).
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
+    ROM_GPIOPinConfigure(GPIO_PB6_T0CCP0);
+    ROM_GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_6);
+
     ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     ROM_TimerConfigure(TIMER0_BASE
     		     , TIMER_CFG_PERIODIC| TIMER_CFG_SPLIT_PAIR| TIMER_CFG_A_PWM);
     timera_prescale = ROM_TimerPrescaleGet(TIMER0_BASE, TIMER_A);
+    ROM_TimerControlLevel(TIMER0_BASE, TIMER_A, 1U);//Invert the output
     ROM_TimerLoadSet(TIMER0_BASE, TIMER_A, 64000);
-    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A, 64000);//Set initial PWM=0
-    ROM_TimerEnable(TIMER0_BASE, TIMER_A);
+    ROM_TimerMatchSet(TIMER0_BASE, TIMER_A, 64000-1);//Set initial PWM
+#endif//CONFIG_PB6_PWM
+
+    ROM_GPIOPinConfigure(GPIO_PF1_T0CCP1);
+    ROM_GPIOPinTypeTimer(GPIO_PORTF_BASE, GPIO_PIN_1);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
+    ROM_TimerConfigure(TIMER0_BASE
+    		     , TIMER_CFG_PERIODIC| TIMER_CFG_SPLIT_PAIR| TIMER_CFG_B_PWM);
+    ROM_TimerControlLevel(TIMER0_BASE, TIMER_B, 1U);//Invert the output
+    ROM_TimerLoadSet(TIMER0_BASE, TIMER_B, 64000);
+    ROM_TimerMatchSet(TIMER0_BASE, TIMER_B, 0);//Zero initial PWM
+    ROM_TimerEnable(TIMER0_BASE, TIMER_B);
+
+    ROM_GPIOPinConfigure(GPIO_PF2_T1CCP0);
+    ROM_GPIOPinTypeTimer(GPIO_PORTF_BASE, GPIO_PIN_2);
+    ROM_SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+    ROM_TimerConfigure(TIMER1_BASE
+    		     , TIMER_CFG_PERIODIC| TIMER_CFG_SPLIT_PAIR| TIMER_CFG_A_PWM);
+    ROM_TimerControlLevel(TIMER1_BASE, TIMER_A, 1U);//Invert the output
+    ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, 64000);
+    ROM_TimerMatchSet(TIMER1_BASE, TIMER_A, 0);//Zero initial PWM
+    ROM_TimerEnable(TIMER1_BASE, TIMER_A);
+
     //uC independent code/////////////////////////////////////////////////////
     BSP_randomSeed(1234U);
 
@@ -208,10 +241,6 @@ void BSP_init(void) {
     QS_RESET();
     QS_OBJ_DICTIONARY(&l_SysTick_Handler);
     QS_OBJ_DICTIONARY(&l_GPIOPortA_IRQHandler);\
-
-    QS_BEGIN(APP_INIT_INFO, 0);
-        QS_U32(1, timera_prescale);//I'm curious what the prescaler is
-    QS_END();
 }
 
 /*..........................................................................*/
@@ -260,13 +289,13 @@ void QF_onCleanup(void) {
 }
 /*..........................................................................*/
 void QK_onIdle(void) {
-#ifdef THIS_IS_RATHER_USELESS
-    /* toggle the User LED on and then off, see NOTE02 */
+#ifdef INDICATE_IDLE_WITH_LED
     QF_INT_DISABLE();
-    GPIOF->DATA_Bits[LED_GREEN] = LED_GREEN;      /* turn the Green LED on  */
-    GPIOF->DATA_Bits[LED_GREEN] = 0;              /* turn the Green LED off */
+    GPIOF->DATA_Bits[LED_GREEN] = LED_GREEN;//0
     QF_INT_ENABLE();
+#endif//INDICATE_IDLE_WITH_LED
 
+#ifdef THIS_IS_RATHER_USELESS
     float volatile x = 3.1415926F;
     x = x + 2.7182818F;
 #endif
@@ -291,6 +320,12 @@ void QK_onIdle(void) {
     */
     asm(" WFI");                                      /* Wait-For-Interrupt */
 #endif
+
+#ifdef INDICATE_IDLE_WITH_LED
+    QF_INT_DISABLE();
+    GPIOF->DATA_Bits[LED_GREEN] = 0;//LED_GREEN
+    QF_INT_ENABLE();
+#endif//INDICATE_IDLE_WITH_LED
 }
 
 /*..........................................................................*/
