@@ -685,7 +685,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                   pulse_to_ram_fifo_wren[pulse_from_ram_src] <= #DELAY `TRUE;
                   pacer_state <= #DELAY PACER_STOPPING_FRAME;
                 end else if(pulse_to_ram_fifo_high[~pulse_from_ram_src]
-                            || downstream_high) begin
+                            || kt_fifo_high) begin
                   pacer_state <= #DELAY PACER_FRAME_THROTTLED;
                 end//!if(pulse_rd_zmw == N_ZMW-1)
 
@@ -698,7 +698,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             n_clock <= #DELAY n_clock + `TRUE;
             n_clock_throttled <= #DELAY n_clock_throttled + `TRUE;
             
-            if(!(pulse_to_ram_fifo_high[~pulse_from_ram_src] || downstream_high))
+            if(!(pulse_to_ram_fifo_high[~pulse_from_ram_src] || kt_fifo_high))
             begin //The default logic,
               n_clock_throttled <= #DELAY 0;
               pacer_state <= #DELAY PACER_FRAME;
@@ -1058,18 +1058,20 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   //Delaying the ack throws off simulation timing
   assign zmw_from_ram_fifo_ack = ptracer_state
     && !(zmw_from_ram_fifo_empty
-         || kt_fifo_empty || kinetic_trace_xof || downstream_high);
+         || kt_fifo_empty || kinetic_trace_xof || zmw_rowcol_d_fifo_high);
   assign kt_fifo_ack = ptracer_state && !kt_fifo_empty &&
     (kinetic_trace_xof || !zmw_from_ram_fifo_empty)
-    && !downstream_high;
+    && !zmw_rowcol_d_fifo_high;
 
-  localparam FSP_WIDTH = 6, FSP_HEIGHT = 3;
+  localparam FSP_HEIGHT = 3, FSP_WIDTH = 6;
   //See Figure "Kinetic and camera trace processing flow" in design doc
   wire[FP_SIZE-1:0] ktXgain[N_DYE-1:0], photonic_trace[N_DYE-1:0]
                   , ptXinvsp[N_CAM-1:0][N_DYE-1:0]
                   , ctrace_p[N_CAM-1:0][N_DYE/2-1:0]//1st stage add result
-                  , cam_trace[N_CAM-1:0]; //final add result
-  wire[N_CAM-1:0] cam_trace_rdy;
+                  , cam_trace[N_CAM-1:0]//final add result
+                  , ctrace[N_CAM-1:0];//output of the ctrace_fifo
+  wire[N_CAM-1:0] cam_trace_rdy
+                , ctrace_fifo_empty, ctrace_fifo_high, ctrace_fifo_ack;
   wire[N_DYE/2-1:0] ctrace_p_rdy[N_CAM-1:0];
   reg [SMALL_FP_SIZE-1:0] inv_dye_mx_din, fsp_mx_din;
   wire[SMALL_FP_SIZE-1:0] photonic_bias[N_DYE-1:0]
@@ -1150,7 +1152,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             , .operation_nd(ptXinvsp_rdy[geni][2*genj])
             , .a(ptXinvsp[geni][2*genj]), .b(ptXinvsp[geni][2*genj+1])
             , .result(ctrace_p[geni][genj]), .rdy(ctrace_p_rdy[geni][genj]));
-      end
+      end//for(N_DYE/2)
       
       //Note: programming Verilog to put in possible additional stages is probably
       //possible, but given that N_DYE = 4 is pretty much written in stone, just
@@ -1161,6 +1163,20 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
           , .operation_nd(ctrace_p_rdy[geni][0])
           , .a(ctrace_p[geni][0]), .b(ctrace_p[geni][1])
           , .result(cam_trace[geni]), .rdy(cam_trace_rdy[geni]));
+
+      better_fifo#(.TYPE("FP"), .WIDTH(FP_SIZE), .DELAY(DELAY))
+      ctrace_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+                , .wren(cam_trace_rdy), .din(cam_trace[geni])
+                , .high(ctrace_fifo_high[geni]), .full(), .almost_full()
+                , .rden(ctrace_fifo_ack[geni])
+                , .dout(ctrace[geni])
+                , .empty(ctrace_fifo_empty[geni]), .almost_empty());
+
+      assign ctrace_fifo_ack[geni] = !ctrace_fifo_empty[geni]
+        && (ctrace_row < ctp_sentinel_row
+            || (ctrace_row == ctp_sentinel_row
+                && ctrace_col <= ctp_sentinel_col));
+
       for(genj=0; genj<FSP_HEIGHT; genj=genj+1) begin
         for(genk=0; genk<FSP_WIDTH; genk=genk+1) begin
           bram24x256 fsp_mx_bram(.clka(CLK), .wea(fsp_mx_wren[geni][genj][genk])
@@ -1186,9 +1202,6 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   wire fsp_idx_fifo_empty, fsp_idx_fifo_full, fsp_idx_fifo_high
      , fsp_idx_fifo_ack;
   
-  //See Figure "Kinetic and camera trace processing flow" in the design doc
-  assign fsp_idx_fifo_ack = !fsp_idx_fifo_empty && cam_trace_rdy[0];
-
   better_fifo#(.TYPE("SmallFP"), .WIDTH(SMALL_FP_SIZE), .DELAY(DELAY))
   fsp_idx_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
       , .din({{(SMALL_FP_SIZE-2*8){`FALSE}}
@@ -1200,7 +1213,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
       , .empty(fsp_idx_fifo_empty), .almost_empty());
 
   wire[N_ZMW_SIZE-1:0] ctrace_zmw;
-  wire ctrace_xof, zmw_rowcol_d_fifo_full, zmw_rowcol_d_fifo_empty;
+  wire ctrace_xof, zmw_rowcol_d_fifo_high, zmw_rowcol_d_fifo_empty;
   wire[FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-2:0] zmw_rowcol_d_fifo_bitbucket;
   wire zmw_rowcol_d_fifo_ack;
   
@@ -1210,14 +1223,61 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                   , .din({{(FP_SIZE-CAM_ROW_SIZE-CAM_COL_SIZE-1){`FALSE}}
                         , zmw_from_ram_pixel_row, zmw_from_ram_pixel_col
                         , kinetic_trace_zmw, kinetic_trace_xof})
-                  , .high(), .full(zmw_rowcol_d_fifo_full), .almost_full()
+                  , .high(zmw_rowcol_d_fifo_high), .full(), .almost_full()
                   , .rden(zmw_rowcol_d_fifo_ack)
                   , .dout({zmw_rowcol_d_fifo_bitbucket
                          , ctrace_row, ctrace_col, ctrace_zmw, ctrace_xof})
                   , .empty(zmw_rowcol_d_fifo_empty), .almost_empty());
 
+  localparam CTP_ERROR = 0, CTP_INTERFRAME = 1, CTP_INTRAFRAME = 2
+           , CTP_THROTTLED = 3, CTP_N_STATE = 4;
+  reg [log2(CTP_N_STATE)-1:0] ctp_state;
+  
+  //See Figure "Kinetic and camera trace processing flow" in the design doc
+  assign fsp_idx_fifo_ack = !fsp_idx_fifo_empty
+    && ctrace_fifo_ack[0];//1 is the same as 0
+
   assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
-                              && (ctrace_xof || cam_trace_rdy[0]);
+      && (ctrace_xof || ctrace_fifo_ack[0]); //1 is the same as 0
+
+  localparam N_CTPRS = 6;//Must be > FSP_WIDTH
+  reg [N_CTPRS-1:0] ctprs_init[FSP_HEIGHT-1:0], ctprs_ack[FSP_HEIGHT-1:0];
+  wire[N_CTPRS-1:0] ctprs_done[FSP_HEIGHT-1:0], ctprs_avail[FSP_HEIGHT-1:0];
+  wire[FP_SIZE-1:0] ctprs_result[FSP_HEIGHT-1:0][N_CTPRS-1:0][N_CAM-1:0];
+  reg [CAM_ROW_SIZE-1:0] ctprs_row[FSP_HEIGHT-1:0], ctp_sentinel_row;
+  reg [CAM_COL_SIZE-1:0] ctprs_col[FSP_HEIGHT-1:0], ctp_sentinel_col;
+  reg [SMALL_FP_SIZE-1:0] pixel_bg;//TODO: initialize from Xillybus
+  generate
+    for(geni=0; geni<FSP_HEIGHT; geni=geni+1) begin
+      for(genj=0; genj<N_CTPRS; genj=genj+1) begin
+        CameraTraceRowSummer#(.FSP_ROW(geni), .DELAY(DELAY), .FP_SIZE(FP_SIZE)
+          , .SMALL_FP_SIZE(SMALL_FP_SIZE), .CAM_ROW_SIZE(CAM_ROW_SIZE)
+          , .CAM_COL_SIZE(CAM_COL_SIZE), .N_CAM(N_CAM), .FSP_WIDTH(FSP_WIDTH))
+        ctprs(.CLK(CLK), .RESET(RESET), .init(ctprs_init[geni][genj])
+            , .config_initial(pixel_bg)//Should this be virtual camera specific?
+            , .config_row(ctprs_row[geni]), .config_col(ctprs_col[geni])
+            , .ctrace_valid(ctrace_rdy_d), .xof(ctrace_xof_d)
+            , .ctrace_row(ctrace_row_d), .ctrace_col(ctrace_col_d)
+            , .grn_ctrace(ctrace_d[0]), .red_ctrace(ctrace_d[1])
+            , .grn_fsp0(fsp_mx_dout[0][geni][0])
+            , .grn_fsp1(fsp_mx_dout[0][geni][1])
+            , .grn_fsp2(fsp_mx_dout[0][geni][2])
+            , .grn_fsp3(fsp_mx_dout[0][geni][3])
+            , .grn_fsp4(fsp_mx_dout[0][geni][4])
+            , .grn_fsp5(fsp_mx_dout[0][geni][5])
+            , .red_fsp0(fsp_mx_dout[1][geni][0])
+            , .red_fsp1(fsp_mx_dout[1][geni][1])
+            , .red_fsp2(fsp_mx_dout[1][geni][2])
+            , .red_fsp3(fsp_mx_dout[1][geni][3])
+            , .red_fsp4(fsp_mx_dout[1][geni][4])
+            , .red_fsp5(fsp_mx_dout[1][geni][5])
+            , .sum_ack(ctprs_init[geni][genj])
+            , .available(ctprs_avail[geni][genj]), .done(ctprs_done[geni][genj])
+            , .grn_result(ctprs_result[geni][genj][0])
+            , .red_result(ctprs_result[geni][genj][1]));
+      end//for(N_CTPRS)
+    end//for(FSP_HEIGHT)
+  endgenerate
 
   always @(posedge CLK) begin //Trace domain sequential logic///////////////
     // Setup defaults
@@ -1241,14 +1301,14 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     
 	  zmw_from_ram_fifo_din[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE] <= #DELAY
 	     zmw_ram_rd_data[RAM_DATA_SIZE-1:ZMW_RAM_META_SIZE];
-                          
+
     //register ctrace and ZMW specific data for better timing
-    ctrace_rdy_d <= #DELAY cam_trace_rdy;
+    ctrace_rdy_d <= #DELAY ctrace_fifo_ack[0];
     ctrace_xof_d <= #DELAY ctrace_xof && zmw_rowcol_d_fifo_ack;
     ctrace_zmw_d <= #DELAY ctrace_zmw;
     ctrace_row_d <= #DELAY ctrace_row;
     ctrace_col_d <= #DELAY ctrace_col;
-    for(i=0; i<N_CAM; i=i+1) ctrace_d[i] <= #DELAY cam_trace[i];
+    for(i=0; i<N_CAM; i=i+1) ctrace_d[i] <= #DELAY ctrace[i];
 
 `ifdef DELAY_FSP
     for(i=0; i<N_CAM; i=i+1)
@@ -1257,6 +1317,16 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
           fsp_mx_d[i][j][k] <= #DELAY fsp_mx_dout[i][j][k];
 `endif//DELAY_FSP
 
+    for(i=0; i<FSP_HEIGHT; i=i+1) begin
+      for(j=0; j<N_CTPRS; j=j+1) begin
+       ctprs_ack[i][j] <= #DELAY `FALSE;
+       ctprs_init[i][j] <= #DELAY `FALSE;
+      end//for(N_CTPRS)
+    end//for(FSP_HEIGHT)
+    
+    ctp_sentinel_row <= #DELAY 0;
+    ctp_sentinel_col <= #DELAY 0;
+    
     // And override defaults below
     if(RESET) begin
       zmw_ram_en <= #DELAY `FALSE;
@@ -1266,6 +1336,11 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
       zmw_ram_state <= #DELAY ZMW_RAM_MSG_WAIT;
       
       ptracer_state <= #DELAY PTRACER_INITIALIZING;
+      
+      //TODO: initialize from Xillybus
+      pixel_bg <= #DELAY 24'h3dfcb;//0.1234 in 24 bits
+
+      ctp_state <= #DELAY CTP_INTERFRAME;
     end else begin
       if(zmw_from_ram_fifo_overflow) begin//assertion
         zmw_ram_read <= #DELAY `FALSE;
@@ -1363,7 +1438,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
               ptracer_state <= #DELAY PTRACER_RUNNING;
           PTRACER_RUNNING: begin
             if(zmw_from_ram_fifo_valid)
-				  inv_dye_mx_addr <= #DELAY zmw_from_ram_spectral_mx_idx;
+				      inv_dye_mx_addr <= #DELAY zmw_from_ram_spectral_mx_idx;
             
             if(!(zmw_from_ram_fifo_empty || kt_fifo_empty || kinetic_trace_xof)
 				      // Just compare what you can
@@ -1383,6 +1458,28 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
         endcase//ptracer_state
 
       end//!assertion (i.e. things are fine)
+
+      case(ctp_state)
+        CTP_INTERFRAME:
+          if(ctrace_xof_d) begin//SOF
+            //init all CTPRS instances
+            for(i=0; i<FSP_HEIGHT; i=i+1) begin
+              for(j=0; j<N_CTPRS; j=j+1) begin
+                ctprs_init[i][j] <= #DELAY `TRUE;
+                ctprs_row[i][j] <= #DELAY i;
+                ctprs_col[i][j] <= #DELAY j;
+              end//for(N_CTPRS)
+            end//for(FSP_HEIGHT)
+            ctp_sentinel_col <= #DELAY N_CTPRS - FSP_WIDTH;
+          end//ctrace_xof_d
+          
+        CTP_INTRAFRAME: begin
+        end
+        CTP_THROTTLED: begin
+        end
+        default: begin
+        end
+      endcase//ctp_state
     end//!RESET
   end//always @(posedge CLK)
 

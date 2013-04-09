@@ -692,16 +692,21 @@
     </state>
     <state name="TAKEN">
      <entry brief="n_recv = 0"/>
-     <initial target="../1">
+     <initial target="../2">
       <initial_glyph conn="72,6,5,0,6,2">
        <action box="0,-2,6,2"/>
       </initial_glyph>
      </initial>
+     <tran trig="INIT" target="../../3">
+      <tran_glyph conn="25,20,3,1,-14">
+       <action box="-5,-2,5,2"/>
+      </tran_glyph>
+     </tran>
      <state name="COLLECTING">
       <exit brief="n_recv = 0"/>
       <tran trig="overlap(ctrace, fsp[N_FSP])">
        <action brief="save ctrace, fsp[me_col - ctrace_col];\n_recv++"/>
-       <choice target="../../../3">
+       <choice target="../../../4">
         <guard brief="n_recv == N_FSP-1">guard1</guard>
         <choice_glyph conn="69,19,4,1,3,-27">
          <action box="-22,1,16,2"/>
@@ -712,14 +717,14 @@
        </tran_glyph>
       </tran>
       <tran trig="XOF || after overlap">
-       <choice target="../../../2">
+       <choice target="../../../3">
         <guard brief="n_recv == 0">guard1</guard>
         <action brief="sum = initial"/>
         <choice_glyph conn="50,17,4,1,-8,-6">
          <action box="-5,-10,10,4"/>
         </choice_glyph>
        </choice>
-       <choice target="../../../3">
+       <choice target="../../../4">
         <guard brief="else">guard2</guard>
         <choice_glyph conn="50,17,5,1,-8">
          <action box="-5,-2,4,2"/>
@@ -742,7 +747,7 @@
       <state_glyph node="32,6,12,6"/>
      </state>
      <state name="FINISHING">
-      <tran trig="sum_rdy" target="../../2">
+      <tran trig="sum_rdy" target="../../3">
        <tran_glyph conn="29,16,0,3,-5,3">
         <action box="0,-3,7,2"/>
        </tran_glyph>
@@ -757,6 +762,56 @@
      <state_glyph node="1,18,10,8"/>
     </state>
     <state_diagram size="90,31"/>
+   </statechart>
+  </class>
+  <class name="CameraTraceProjector" superclass="qpn::QHsm">
+   <statechart>
+    <initial target="../3">
+     <initial_glyph conn="5,6,5,3,5">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <state name="ERROR">
+     <state_glyph node="4,14,9,6"/>
+    </state>
+    <state name="INTRAFRAME">
+     <entry brief="init all instances"/>
+     <tran trig="ctrace_col &gt; sentinel_col" target="../3">
+      <tran_glyph conn="28,16,3,3,30">
+       <action box="1,-2,24,2"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="done(N_ZMW-1)" target="../../3">
+      <tran_glyph conn="28,15,3,2,-10,-5">
+       <action box="-13,-3,12,5"/>
+      </tran_glyph>
+     </tran>
+     <tran trig="TODO" target="../../1">
+      <tran_glyph conn="28,18,3,1,-15">
+       <action box="-14,-2,15,8"/>
+      </tran_glyph>
+     </tran>
+     <state name="THROTTLED">
+      <tran trig="ctrace_col &lt;= sentinel_col" target="../..">
+       <tran_glyph conn="58,12,3,3,-30">
+        <action box="-20,-2,20,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="58,7,17,11"/>
+     </state>
+     <state_glyph node="28,4,49,16">
+      <entry box="1,2,27,3"/>
+     </state_glyph>
+    </state>
+    <state name="INTERFRAME">
+     <tran trig="XOF" target="../../2">
+      <tran_glyph conn="21,6,1,3,7">
+       <action box="0,-2,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="10,4,11,6"/>
+    </state>
+    <state_diagram size="83,33"/>
    </statechart>
   </class>
  </package>

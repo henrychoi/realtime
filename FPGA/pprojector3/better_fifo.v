@@ -12,10 +12,11 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
   wire fifo_empty, fifo_rden, will_update_middle, will_update_dout;
 
   generate
-    if(TYPE == "XILLYBUS")
+    if(TYPE == "XILLYBUS" || TYPE == "FP")
       standard32x512_bram_fifo
       fifo(.rd_clk(RD_CLK), .wr_clk(WR_CLK), .rst(RESET)
          , .din(din), .wr_en(wren), .full(full), .almost_full(almost_full)
+         , .prog_full(high)
          , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
     else if(TYPE == "ToRAM" || TYPE == "FromRAM")
       standard256_fifo

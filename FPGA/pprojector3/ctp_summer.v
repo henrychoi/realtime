@@ -1,5 +1,5 @@
 module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
-#(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
+#(parameter DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
           , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
           , N_CAM=2, FSP_WIDTH=6, FSP_ROW=2'd1)
 (input CLK, RESET, init, ctrace_valid, sum_ack, xof
@@ -32,10 +32,9 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
   wire[(2**(log2(FSP_WIDTH)-1))-1:0] partial_sum1_rdy[N_CAM-1:0];
   wire[(2**(log2(FSP_WIDTH)-2))-1:0] partial_sum2_rdy[N_CAM-1:0];
   wire[N_CAM-1:0] sum_rdy;
-  wire[log2(FSP_WIDTH)-1:0] n_recv, fsp_row;
+  reg [log2(FSP_WIDTH)-1:0] n_recv;
 
   reg start_calc;
-  reg[log2(FSP_WIDTH)-1:0] n_recv;
 
   localparam ERROR = 0, FREE = 1, COLLECTING = 2, FINISHING = 3, DONE = 4
            , N_STATE = 5;
@@ -120,8 +119,34 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
               //noop
             end else if(me_ctrace_row == me_row
                         && fsp_col >= 0 && fsp_col < FSP_WIDTH) begin//overlap
-              for(i=0; i<N_CAM; i=i+1) me_ctrace[i][n_recv] <= #DELAY ctrace[i];
-              me_fsp[n_recv] <= #DELAY fsp[fsp_col];
+              me_ctrace[0][n_recv] <= #DELAY grn_ctrace;
+              me_ctrace[1][n_recv] <= #DELAY red_ctrace;
+              case(fsp_col)
+                0: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp0;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp0;
+                end
+                1: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp1;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp1;
+                end
+                2: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp2;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp2;
+                end
+                3: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp3;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp3;
+                end
+                4: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp4;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp4;
+                end
+                default: begin
+                  me_fsp[0][n_recv] <= #DELAY grn_fsp5;
+                  me_fsp[1][n_recv] <= #DELAY red_fsp5;
+                end
+              endcase//fsp_col
               n_recv <= #DELAY n_recv + `TRUE;
               
               if(n_recv == FSP_WIDTH-1) begin//all I can save away; HAVE TO finish
@@ -135,15 +160,18 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
                 start_calc <= #DELAY `TRUE;//Kick off the calculation
                 state <= #DELAY FINISHING;
               end else begin//didn't receive any projection => result = initial
-                for(i=0; i<N_CAM; i=i+1) result[i] <= #DELAY me_initial;
+                grn_result <= #DELAY me_initial;
+                red_result <= #DELAY me_initial;
                 state <= #DELAY DONE;
               end
             end
           end
         FINISHING:
           if(sum_rdy[0]) begin//both virtual cameras move together
+            grn_result <= #DELAY sum[0];//copy it out
+            red_result <= #DELAY sum[1];//copy it out
+            
             for(i=0; i<N_CAM; i=i+1) begin
-              result[i] <= #DELAY sum;//copy it out
               for(j=0; j<FSP_WIDTH; j=j+1) begin//reset storage
                 me_fsp[i][j] <= #DELAY 0;
                 me_ctrace[i][j] <= #DELAY 0;
@@ -158,7 +186,7 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
         end
       endcase
     end
-  end
+  end//always
 endmodule
 
 //Do I really need this specialization?
