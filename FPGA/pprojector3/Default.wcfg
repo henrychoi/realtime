@@ -633,19 +633,27 @@
             <obj_property name="ObjectShortName">ctrace_d[1:0,31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_commit_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_commit_d</obj_property>
+            <obj_property name="ObjectShortName">ctrace_commit_d</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_valid_d" type="logic" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_valid_d</obj_property>
+            <obj_property name="ObjectShortName">ctrace_valid_d</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/ctp_state" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">ctp_state[1:0]</obj_property>
             <obj_property name="ObjectShortName">ctp_state[1:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/ctp_sentinel_row" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">ctp_sentinel_row[11:0]</obj_property>
-            <obj_property name="ObjectShortName">ctp_sentinel_row[11:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject fp_name="/simmain/main/app/ctp_can_accept_row" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctp_can_accept_row[11:0]</obj_property>
+            <obj_property name="ObjectShortName">ctp_can_accept_row[11:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/ctp_sentinel_col" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">ctp_sentinel_col[12:0]</obj_property>
-            <obj_property name="ObjectShortName">ctp_sentinel_col[12:0]</obj_property>
+         <wvobject fp_name="/simmain/main/app/ctp_can_accept_col" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctp_can_accept_col[12:0]</obj_property>
+            <obj_property name="ObjectShortName">ctp_can_accept_col[12:0]</obj_property>
             <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/ctprs_avail" type="array" db_ref_id="1">

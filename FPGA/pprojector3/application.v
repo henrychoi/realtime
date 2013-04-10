@@ -1245,7 +1245,8 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
 
   localparam N_CTPRS = 6;//Must be > FSP_WIDTH
   wire signed[log2(N_CTPRS):0] avail_ctprs[FSP_HEIGHT-1:0];//extra sign bit
-  reg [N_CTPRS-1:0] ctprs_init[FSP_HEIGHT-1:0], ctprs_ack[FSP_HEIGHT-1:0];
+  reg [N_CTPRS-1:0] ctprs_ack[FSP_HEIGHT-1:0];
+  wire[N_CTPRS-1:0] ctprs_init[FSP_HEIGHT-1:0];
   wire[N_CTPRS-1:0] ctprs_done[FSP_HEIGHT-1:0], ctprs_avail[FSP_HEIGHT-1:0];
   wire[FP_SIZE-1:0] ctprs_result[FSP_HEIGHT-1:0][N_CTPRS-1:0][N_CAM-1:0];
   reg [CAM_ROW_SIZE-1:0] ctprs_row[FSP_HEIGHT-1:0], ctp_can_accept_row;
@@ -1275,8 +1276,13 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             , .available(ctprs_avail[geni][genj]), .done(ctprs_done[geni][genj])
             , .grn_result(ctprs_result[geni][genj][0])
             , .red_result(ctprs_result[geni][genj][1]));
+
+        assign ctprs_init[geni][genj] = ctp_state == CTP_INTRAFRAME
+            && !(ctp_can_accept_row == N_ROW - FSP_HEIGHT
+                 && ctp_can_accept_col == N_COL - FSP_WIDTH)//At the last pixel
+            && avail_ctprs[geni] == genj;//This CTPRS is the one CTP wants (below)
       end//for(N_CTPRS)
-      
+
       //I wish there is a programmatic way to code this
       assign avail_ctprs[geni] = ctprs_avail[geni][0] ? 0
                                : ctprs_avail[geni][1] ? 1
@@ -1286,6 +1292,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                                : ctprs_avail[geni][5] ? 5
                                : -1;
     end//for(FSP_HEIGHT)
+      
   endgenerate
 
   always @(posedge CLK) begin //Trace domain sequential logic///////////////
@@ -1330,7 +1337,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     for(i=0; i<FSP_HEIGHT; i=i+1) begin
       for(j=0; j<N_CTPRS; j=j+1) begin
        ctprs_ack[i][j] <= #DELAY `FALSE;
-       ctprs_init[i][j] <= #DELAY `FALSE;
+       //ctprs_init[i][j] <= #DELAY `FALSE;
       end//for(N_CTPRS)
     end//for(FSP_HEIGHT)
     
@@ -1479,7 +1486,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
               //ctprs_init[i][0] <= #DELAY `TRUE;
             end//for(FSP_HEIGHT)
             ctp_can_accept_row <= #DELAY 0;
-            ctp_can_accept_col <= #DELAY 1 - FSP_WIDTH;
+            ctp_can_accept_col <= #DELAY 0 - FSP_WIDTH;
             ctp_state <= #DELAY CTP_INTRAFRAME;
           end//ctrace_xof_d
           
@@ -1496,7 +1503,7 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
                 end else
                   ctprs_col[i] <= #DELAY ctprs_col[i] + `TRUE;
                 //Init the designated available CTPRS
-                ctprs_init[i][avail_ctprs[i]] <= #DELAY `TRUE;              
+                //ctprs_init[i][avail_ctprs[i]] <= #DELAY `TRUE;              
 
                 if(i == FSP_HEIGHT - 1)//Sentinel pixels should move too
                   if(ctp_can_accept_col == N_COL-FSP_WIDTH) begin//wrapping
