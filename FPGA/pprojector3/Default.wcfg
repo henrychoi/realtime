@@ -203,6 +203,16 @@
                </wvobject>
             </wvobject>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/current_pulse_t1" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">current_pulse_t1[2:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">current_pulse_t1[2:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/current_pulse_t1_d" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">current_pulse_t1_d[2:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">current_pulse_t1_d[2:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
          <wvobject fp_name="/simmain/main/app/gTimeGTEcurrent_pulse_tf" type="array" db_ref_id="1">
             <obj_property name="ElementShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
             <obj_property name="ObjectShortName">gTimeGTEcurrent_pulse_tf[2:0]</obj_property>
@@ -564,9 +574,26 @@
             <obj_property name="ObjectShortName">ctrace_col[11:0]</obj_property>
             <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace[1:0,31:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace[1:0,31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_fifo_empty" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_fifo_empty[1:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_fifo_empty[1:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_fifo_high" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_fifo_high[1:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_fifo_high[1:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctrace_fifo_ack" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctrace_fifo_ack[1:0]</obj_property>
+            <obj_property name="ObjectShortName">ctrace_fifo_ack[1:0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject fp_name="group136" type="group">
-         <obj_property name="label">CTPRS</obj_property>
+         <obj_property name="label">CTP</obj_property>
          <obj_property name="DisplayName">label</obj_property>
          <wvobject fp_name="/simmain/main/app/CLK" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">CLK</obj_property>
@@ -581,10 +608,6 @@
             <obj_property name="ElementShortName">fsp_mx_dout[1:0,2:0,5:0,23:0]</obj_property>
             <obj_property name="ObjectShortName">fsp_mx_dout[1:0,2:0,5:0,23:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
-         </wvobject>
-         <wvobject fp_name="/simmain/main/app/ctrace_rdy_d" type="logic" db_ref_id="1">
-            <obj_property name="ElementShortName">ctrace_rdy_d</obj_property>
-            <obj_property name="ObjectShortName">ctrace_rdy_d</obj_property>
          </wvobject>
          <wvobject fp_name="/simmain/main/app/ctrace_xof_d" type="logic" db_ref_id="1">
             <obj_property name="ElementShortName">ctrace_xof_d</obj_property>
@@ -610,10 +633,90 @@
             <obj_property name="ObjectShortName">ctrace_d[1:0,31:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
-         <wvobject fp_name="/simmain/main/app/fsp_mx_d" type="array" db_ref_id="1">
-            <obj_property name="ElementShortName">fsp_mx_d[1:0,2:0,5:0,23:0]</obj_property>
-            <obj_property name="ObjectShortName">fsp_mx_d[1:0,2:0,5:0,23:0]</obj_property>
+         <wvobject fp_name="/simmain/main/app/ctp_state" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctp_state[1:0]</obj_property>
+            <obj_property name="ObjectShortName">ctp_state[1:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctp_sentinel_row" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctp_sentinel_row[11:0]</obj_property>
+            <obj_property name="ObjectShortName">ctp_sentinel_row[11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctp_sentinel_col" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctp_sentinel_col[12:0]</obj_property>
+            <obj_property name="ObjectShortName">ctp_sentinel_col[12:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctprs_avail" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctprs_avail[2:0,5:0]</obj_property>
+            <obj_property name="ObjectShortName">ctprs_avail[2:0,5:0]</obj_property>
+            <obj_property name="Radix">BINARYRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/avail_ctprs" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">avail_ctprs[2:0,3:0]</obj_property>
+            <obj_property name="ObjectShortName">avail_ctprs[2:0,3:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctprs_init" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctprs_init[2:0,5:0]</obj_property>
+            <obj_property name="ObjectShortName">ctprs_init[2:0,5:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/simmain/main/app/ctprs_col" type="array" db_ref_id="1">
+            <obj_property name="ElementShortName">ctprs_col[2:0,11:0]</obj_property>
+            <obj_property name="ObjectShortName">ctprs_col[2:0,11:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="group153" type="group">
+            <obj_property name="label">ctpfrs[0][0]</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /state" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">state[2:0]</obj_property>
+               <obj_property name="ObjectShortName">state[2:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /start_calc" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">start_calc</obj_property>
+               <obj_property name="ObjectShortName">start_calc</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /n_recv" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">n_recv[2:0]</obj_property>
+               <obj_property name="ObjectShortName">n_recv[2:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /me_row" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">me_row[11:0]</obj_property>
+               <obj_property name="ObjectShortName">me_row[11:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /me_col" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">me_col[11:0]</obj_property>
+               <obj_property name="ObjectShortName">me_col[11:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject fp_name="group164" type="group">
+            <obj_property name="label">ctprs[0][1]</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <wvobject fp_name="/simmain/main/app/\[0].[1].ctprs /state" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">state[2:0]</obj_property>
+               <obj_property name="ObjectShortName">state[2:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[1].ctprs /start_calc" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">start_calc</obj_property>
+               <obj_property name="ObjectShortName">start_calc</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[1].ctprs /n_recv" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">n_recv[2:0]</obj_property>
+               <obj_property name="ObjectShortName">n_recv[2:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[1].ctprs /me_col" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">me_col[11:0]</obj_property>
+               <obj_property name="ObjectShortName">me_col[11:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
          </wvobject>
       </wvobject>
    </wvobject>

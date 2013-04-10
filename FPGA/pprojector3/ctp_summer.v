@@ -2,7 +2,7 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
 #(parameter DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
           , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
           , N_CAM=2, FSP_WIDTH=6, FSP_ROW=2'd1)
-(input CLK, RESET, init, ctrace_valid, sum_ack, xof
+(input CLK, RESET, init, ctrace_valid, ctrace_commit, sum_ack, xof
 , input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
 , input[CAM_COL_SIZE-1:0] config_col, ctrace_col
 , input[FP_SIZE-1:0] config_initial, grn_ctrace, red_ctrace
@@ -40,7 +40,7 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
            , N_STATE = 5;
   reg [log2(N_STATE)-1:0] state;
   assign done = state == DONE;
-  assign availabe = state == FREE;
+  assign available = state == FREE;
   
   generate
     for(geni=0; geni<N_CAM; geni=geni+1) begin
@@ -88,7 +88,7 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
 
 `ifdef DELAY_INPUTS
     //Delay the input for better timing
-    ctrace_valid_d <= #DELAY ctrace_valid;
+    ctrace_valid_d <= #DELAY ctrace_commit;
     ctrace_d <= #DELAY ctrace;
     fsp_d[0] <= #DELAY fsp0; fsp_d[1] <= #DELAY fsp1; fsp_d[2] <= #DELAY fsp2;
 `endif   
@@ -113,7 +113,8 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
             state <= #DELAY COLLECTING;
           end
         COLLECTING:
-          if(ctrace_valid) begin//3 cases: before, during, after overlap
+          if(ctrace_valid || ctrace_commit) begin
+            //3 cases: before, during, after overlap
             if(me_ctrace_row > me_row
                || (me_ctrace_row == me_row && 0 > fsp_col)) begin//before
               //noop
@@ -147,7 +148,8 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
                   me_fsp[1][n_recv] <= #DELAY red_fsp5;
                 end
               endcase//fsp_col
-              n_recv <= #DELAY n_recv + `TRUE;
+
+              if(ctrace_commit) n_recv <= #DELAY n_recv + `TRUE;
               
               if(n_recv == FSP_WIDTH-1) begin//all I can save away; HAVE TO finish
                 n_recv <= #DELAY 0;
@@ -194,7 +196,7 @@ module NonOverlappingCameraTraceRowSummer//NOCTPRS
 #(parameter SIMULATION=1, DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
           , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
           , N_CAM=2, FSP_ROW=2'd1)
-(input CLK, RESET, init, ctrace_valid, sum_ack, xof
+(input CLK, RESET, init, ctrace_commit, sum_ack, xof
 , input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
 , input[CAM_COL_SIZE-1:0] config_col, ctrace_col
 , input[FP_SIZE-1:0] config_initial, grn_ctrace, red_ctrace

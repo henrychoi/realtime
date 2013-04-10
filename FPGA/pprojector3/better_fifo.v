@@ -33,7 +33,7 @@ module better_fifo#(parameter TYPE="XILLYBUS", WIDTH=1, DELAY=1)
     else if(TYPE == "FPandZMW")
       FPandZMW_fifo
       fifo(.clk(RD_CLK), .rst(RESET), .din(din), .wr_en(wren)
-         , .full(full), .almost_full(almost_full)
+         , .full(full), .almost_full(almost_full), .prog_full(high)
          , .rd_en(fifo_rden), .dout(fifo_dout), .empty(fifo_empty));
     else if(TYPE == "DYEandZMW")
       DYEandZMW_fifo
