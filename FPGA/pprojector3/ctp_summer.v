@@ -1,14 +1,15 @@
-module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
-#(parameter DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
-          , CAM_ROW_SIZE=12, CAM_COL_SIZE=12
-          , N_CAM=2, FSP_WIDTH=6, FSP_ROW=2'd1)
+//Sums the camera trace projection through 1 FSP row
+module CameraTraceProjectionRowSummer#
+(parameter DELAY=1, FP_SIZE=32, SMALL_FP_SIZE=24
+         , N_COL=2048, CAM_ROW_SIZE=12, CAM_COL_SIZE=12, N_CAM=2
+         , N_CTPRS=6, FSP_WIDTH=6, FSP_ROW=2'd1)
 (input CLK, RESET, init, ctrace_valid, ctrace_commit, sum_ack, xof
 , input[CAM_ROW_SIZE-1:0] config_row, ctrace_row
 , input[CAM_COL_SIZE-1:0] config_col, ctrace_col
 , input[FP_SIZE-1:0] config_initial, grn_ctrace, red_ctrace
      , grn_fsp0, grn_fsp1, grn_fsp2, grn_fsp3, grn_fsp4, grn_fsp5
      , red_fsp0, red_fsp1, red_fsp2, red_fsp3, red_fsp4, red_fsp5
-, output available, done, output reg[FP_SIZE-1:0] grn_result, red_result);
+, output available, done, output reg[FP_SIZE-1:0] result);
 `include "function.v"
   genvar geni, genj, genk;
   integer i, j, k;
@@ -22,16 +23,17 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
   reg ctrace_valid_d, 
   reg[log2(FSP_WIDTH)-1:0] fsp_row;
   reg [CAM_ROW_SIZE-1:0] me_ctrace_row;
-  reg signed [CAM_COL_SIZE:0] fsp_col;//signed, so an extra bit
-`endif
+`endif//DELAY_INPUTS
   wire[FP_SIZE-1:0] ctraceXfsp[N_CAM-1:0][FSP_WIDTH-1:0]
                   , partial_sum1[N_CAM-1:0][(2**(log2(FSP_WIDTH)-1))-1:0]
                   , partial_sum2[N_CAM-1:0][(2**(log2(FSP_WIDTH)-2))-1:0]
-                  , sum[N_CAM-1:0];
+                  , color_sum[N_CAM-1:0]
+                  , sum;
   wire[FSP_WIDTH-1:0] ctraceXfsp_rdy[N_CAM-1:0];
   wire[(2**(log2(FSP_WIDTH)-1))-1:0] partial_sum1_rdy[N_CAM-1:0];
   wire[(2**(log2(FSP_WIDTH)-2))-1:0] partial_sum2_rdy[N_CAM-1:0];
-  wire[N_CAM-1:0] sum_rdy;
+  wire[N_CAM-1:0] color_sum_rdy;
+  wire sum_rdy;
   reg [log2(FSP_WIDTH)-1:0] n_recv;
 
   reg start_calc;
@@ -58,8 +60,11 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
           , .a(ctraceXfsp[geni][2*genj]), .b(ctraceXfsp[geni][2*genj])
           , .result(partial_sum1[geni][genj])
           , .rdy(partial_sum1_rdy[geni][genj]));
+      
       fadd just_delay_initial(.clk(CLK), .sclr(RESET)
-          , .operation_nd(ctraceXfsp_rdy[geni][0]), .a(me_initial), .b(0)
+          , .operation_nd(ctraceXfsp_rdy[geni][0])
+          , .a(geni == 0 ? me_initial : 0)//don't add the initial twice
+          , .b(0)//There is room here for 7th FSP column
           , .result(partial_sum1[geni][3]), .rdy(partial_sum1_rdy[geni][3]));
 
       //2nd stage
@@ -73,16 +78,38 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
       fadd partial_add_module1(.clk(CLK), .sclr(RESET)
           , .operation_nd(partial_sum2_rdy[geni][0])
           , .a(partial_sum2[geni][0]), .b(partial_sum2[geni][1])
-          , .result(sum[geni]), .rdy(sum_rdy[geni]));
+          , .result(color_sum[geni]), .rdy(color_sum_rdy[geni]));
     end//for(N_CAM)
   endgenerate
 
-  wire[CAM_ROW_SIZE-1:0] me_ctrace_row;
+  //Add the colors together into the sensor
+  fadd color_adder(.clk(CLK), .sclr(RESET), .operation_nd(color_sum_rdy[0])
+                 , .a(color_sum[0]), .b(color_sum[1])
+                 , .result(sum), .rdy(sum_rdy));
+
+  wire[CAM_ROW_SIZE-1:0] me_ctrace_row, me_rowP1;
+  assign me_rowP1 = me_row + `TRUE;
   assign me_ctrace_row = ctrace_row + FSP_ROW;//Note: instantiation param
 
-  wire signed[CAM_COL_SIZE:0] fsp_col;//signed, so an extra bit
-  assign fsp_col = me_col - ctrace_col;//signed arithmetic
-
+  wire[CAM_COL_SIZE-1:0] me_colPpool, ctrace_RcolP1, ctrace_colPNCOL;
+  assign me_colPpool = me_col + N_CTPRS;
+  assign ctrace_RcolP1 = ctrace_col + FSP_WIDTH;
+  assign ctrace_colPNCOL = ctrace_col + N_COL;
+  
+  wire before_overlap, during_overlap, after_overlap;
+  assign before_overlap =
+    (me_ctrace_row == me_rowP1 && ctrace_colPNCOL < me_colPpool)
+    || (me_ctrace_row == me_row && ctrace_col > me_col
+        && ctrace_col < me_colPpool);
+  assign during_overlap = me_ctrace_row == me_row
+    && me_col >= ctrace_col && me_col < ctrace_RcolP1;
+  assign after_overlap = me_ctrace_row < me_row
+    || (me_ctrace_row == me_row && me_col >= ctrace_RcolP1);
+    
+  wire[log2(FSP_WIDTH):0] fsp_col;//Where in the FSP do I fall on?
+  //This math produces valid answer only during overlap
+  assign fsp_col = me_col[log2(FSP_WIDTH):0] - ctrace_col[log2(FSP_WIDTH)-1:0];
+               
   always @(posedge CLK) begin
     start_calc <= #DELAY `FALSE;
 
@@ -115,14 +142,12 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
         COLLECTING:
           if(ctrace_valid || ctrace_commit) begin
             //3 cases: before, during, after overlap
-            if(me_ctrace_row > me_row
-               || (me_ctrace_row == me_row && 0 > fsp_col)) begin//before
+            if(before_overlap) begin
               //noop
-            end else if(me_ctrace_row == me_row
-                        && fsp_col >= 0 && fsp_col < FSP_WIDTH) begin//overlap
+            end else if(during_overlap) begin
               me_ctrace[0][n_recv] <= #DELAY grn_ctrace;
               me_ctrace[1][n_recv] <= #DELAY red_ctrace;
-              case(fsp_col)
+              case(fsp_col[log2(FSP_WIDTH)-1:0])
                 0: begin
                   me_fsp[0][n_recv] <= #DELAY grn_fsp0;
                   me_fsp[1][n_recv] <= #DELAY red_fsp0;
@@ -156,22 +181,24 @@ module CameraTraceRowSummer//Sums the camera trace projection through 1 FSP row
                 start_calc <= #DELAY `TRUE;//Kick off the calculation
                 state <= #DELAY FINISHING;
               end
-            end else begin //after
+            end else if(after_overlap) begin
               n_recv <= #DELAY 0;
               if(n_recv) begin//Received at least 1 projection
                 start_calc <= #DELAY `TRUE;//Kick off the calculation
                 state <= #DELAY FINISHING;
               end else begin//didn't receive any projection => result = initial
-                grn_result <= #DELAY me_initial;
-                red_result <= #DELAY me_initial;
+                result <= #DELAY me_initial;
                 state <= #DELAY DONE;
-              end
+              end//nothing received
+            end else begin//WAY before overlap
+                result <= #DELAY me_initial;
+                n_recv <= #DELAY 0;
+                state <= #DELAY DONE;
             end
           end
         FINISHING:
-          if(sum_rdy[0]) begin//both virtual cameras move together
-            grn_result <= #DELAY sum[0];//copy it out
-            red_result <= #DELAY sum[1];//copy it out
+          if(sum_rdy) begin//both virtual cameras move together
+            result <= #DELAY sum;//copy it out
             
             for(i=0; i<N_CAM; i=i+1) begin
               for(j=0; j<FSP_WIDTH; j=j+1) begin//reset storage

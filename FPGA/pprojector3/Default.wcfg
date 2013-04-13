@@ -702,6 +702,28 @@
                <obj_property name="ObjectShortName">me_col[11:0]</obj_property>
                <obj_property name="Radix">HEXRADIX</obj_property>
             </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /me_ctrace_row" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">me_ctrace_row[11:0]</obj_property>
+               <obj_property name="ObjectShortName">me_ctrace_row[11:0]</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /fsp_col" type="array" db_ref_id="1">
+               <obj_property name="ElementShortName">fsp_col[3:0]</obj_property>
+               <obj_property name="ObjectShortName">fsp_col[3:0]</obj_property>
+               <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /before_overlap" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">before_overlap</obj_property>
+               <obj_property name="ObjectShortName">before_overlap</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /during_overlap" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">during_overlap</obj_property>
+               <obj_property name="ObjectShortName">during_overlap</obj_property>
+            </wvobject>
+            <wvobject fp_name="/simmain/main/app/\[0].[0].ctprs /after_overlap" type="logic" db_ref_id="1">
+               <obj_property name="ElementShortName">after_overlap</obj_property>
+               <obj_property name="ObjectShortName">after_overlap</obj_property>
+            </wvobject>
          </wvobject>
          <wvobject fp_name="group164" type="group">
             <obj_property name="label">ctprs[0][1]</obj_property>

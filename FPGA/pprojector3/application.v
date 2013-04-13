@@ -1243,25 +1243,36 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
   assign zmw_rowcol_d_fifo_ack = !zmw_rowcol_d_fifo_empty
       && (ctrace_xof || ctrace_fifo_ack[0]); //1 is the same as 0
 
-  localparam N_CTPRS = 6;//Must be > FSP_WIDTH
-  wire signed[log2(N_CTPRS):0] avail_ctprs[FSP_HEIGHT-1:0];//extra sign bit
-  reg [N_CTPRS-1:0] ctprs_ack[FSP_HEIGHT-1:0];
-  wire[N_CTPRS-1:0] ctprs_init[FSP_HEIGHT-1:0];
+  localparam N_CTPRS = 8;//Must be > FSP_WIDTH, and power of 2
+  //wire signed[log2(N_CTPRS):0] avail_ctprs[FSP_HEIGHT-1:0];//extra sign bit
+  reg [N_CTPRS-1:0] ctprs_init[FSP_HEIGHT-1:0], ctprs_ack[FSP_HEIGHT-1:0];
+  reg [log2(N_CTPRS)-1:0] ctprs_to_init[FSP_HEIGHT-1:0]
+                        , ctprs_to_ack[FSP_HEIGHT-1:0];
   wire[N_CTPRS-1:0] ctprs_done[FSP_HEIGHT-1:0], ctprs_avail[FSP_HEIGHT-1:0];
-  wire[FP_SIZE-1:0] ctprs_result[FSP_HEIGHT-1:0][N_CTPRS-1:0][N_CAM-1:0];
+  wire[FP_SIZE-1:0] ctprs_result[FSP_HEIGHT-1:0][N_CTPRS-1:0]
+                  , inter_fsp_row_fifo_dout[FSP_HEIGHT-1:0];;
+  reg [FP_SIZE-1:0] inter_fsp_row_fifo_din[FSP_HEIGHT-1:0];
   reg [CAM_ROW_SIZE-1:0] ctprs_row[FSP_HEIGHT-1:0], ctp_can_accept_row;
   reg [CAM_COL_SIZE-1:0] ctprs_col[FSP_HEIGHT-1:0];
   reg signed [CAM_COL_SIZE:0] ctp_can_accept_col;
-  reg [SMALL_FP_SIZE-1:0] pixel_bg;//TODO: initialize from Xillybus
+  reg [SMALL_FP_SIZE-1:0] pixel_bg;//TODO: initialize this FP from Xillybus
+
+  reg [FSP_HEIGHT-1:0] inter_fsp_row_fifo_wren;
+  wire[FSP_HEIGHT-1:0] inter_fsp_row_fifo_empty, inter_fsp_row_fifo_high
+                     , inter_fsp_row_fifo_ack;
 
   generate
     for(geni=0; geni<FSP_HEIGHT; geni=geni+1) begin
       for(genj=0; genj<N_CTPRS; genj=genj+1) begin
-        CameraTraceRowSummer#(.FSP_ROW(geni), .DELAY(DELAY), .FP_SIZE(FP_SIZE)
-          , .SMALL_FP_SIZE(SMALL_FP_SIZE), .CAM_ROW_SIZE(CAM_ROW_SIZE)
-          , .CAM_COL_SIZE(CAM_COL_SIZE), .N_CAM(N_CAM), .FSP_WIDTH(FSP_WIDTH))
+        CameraTraceProjectionRowSummer#(.FSP_ROW(geni), .DELAY(DELAY)
+          , .FP_SIZE(FP_SIZE), .SMALL_FP_SIZE(SMALL_FP_SIZE)
+          , .N_CTPRS(N_CTPRS), .N_COL(N_COL), .N_CAM(N_CAM)
+          , .CAM_ROW_SIZE(CAM_ROW_SIZE), .CAM_COL_SIZE(CAM_COL_SIZE)
+          , .FSP_WIDTH(FSP_WIDTH))
         ctprs(.CLK(CLK), .RESET(RESET)
-            , .init(ctprs_init[geni][genj]), .config_initial(pixel_bg)
+            , .init(ctprs_init[geni][genj])
+            , .config_initial(geni == FSP_HEIGHT-1 ? pixel_bg
+                                                   : inter_fsp_row_fifo_dout[i+1])
             , .config_row(ctprs_row[geni]), .config_col(ctprs_col[geni])
             , .ctrace_valid(ctrace_valid_d), .ctrace_commit(ctrace_commit_d)
             , .xof(ctrace_xof_d), .ctrace_row(ctrace_row_d), .ctrace_col(ctrace_col_d)
@@ -1274,23 +1285,25 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             , .red_fsp4(fsp_mx_dout[1][geni][4]), .red_fsp5(fsp_mx_dout[1][geni][5])
             , .sum_ack(ctprs_init[geni][genj])
             , .available(ctprs_avail[geni][genj]), .done(ctprs_done[geni][genj])
-            , .grn_result(ctprs_result[geni][genj][0])
-            , .red_result(ctprs_result[geni][genj][1]));
+            , .result(ctprs_result[geni][genj]));
 
+`ifdef COMBINATIONAL_CTPRS_INIT
         assign ctprs_init[geni][genj] = ctp_state == CTP_INTRAFRAME
             && !(ctp_can_accept_row == N_ROW - FSP_HEIGHT
                  && ctp_can_accept_col == N_COL - FSP_WIDTH)//At the last pixel
-            && avail_ctprs[geni] == genj;//This CTPRS is the one CTP wants (below)
+            && ctprs_to_init[geni] == genj//This CTPRS is the one CTP wants
+            && ctprs_avail[geni][genj];   //and it is available
+`endif//COMBINATIONAL_CTPRS_INIT
       end//for(N_CTPRS)
 
-      //I wish there is a programmatic way to code this
-      assign avail_ctprs[geni] = ctprs_avail[geni][0] ? 0
-                               : ctprs_avail[geni][1] ? 1
-                               : ctprs_avail[geni][2] ? 2
-                               : ctprs_avail[geni][3] ? 3
-                               : ctprs_avail[geni][4] ? 4
-                               : ctprs_avail[geni][5] ? 5
-                               : -1;
+      better_fifo#(.TYPE("FP"), .WIDTH(FP_SIZE), .DELAY(DELAY))
+      inter_fsp_row_fifo(.RESET(RESET), .RD_CLK(CLK), .WR_CLK(CLK)
+                , .wren(inter_fsp_row_fifo_wren[geni])
+                , .din(inter_fsp_row_fifo_din[geni])
+                , .high(inter_fsp_row_fifo_high[geni]), .full(), .almost_full()
+                , .rden(inter_fsp_row_fifo_ack[geni])
+                , .dout(inter_fsp_row_fifo_dout[geni])
+                , .empty(inter_fsp_row_fifo_empty[geni]), .almost_empty());
     end//for(FSP_HEIGHT)
       
   endgenerate
@@ -1337,8 +1350,12 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
     for(i=0; i<FSP_HEIGHT; i=i+1) begin
       for(j=0; j<N_CTPRS; j=j+1) begin
        ctprs_ack[i][j] <= #DELAY `FALSE;
-       //ctprs_init[i][j] <= #DELAY `FALSE;
+`ifndef COMBINATIONAL_CTPRS_INIT
+       ctprs_init[i][j] <= #DELAY `FALSE;
+`endif//COMBINATIONAL_CTPRS_INIT
       end//for(N_CTPRS)
+
+      inter_fsp_row_fifo_wren[i] <= #DELAY `FALSE;
     end//for(FSP_HEIGHT)
     
     // And override defaults below
@@ -1483,7 +1500,11 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
             for(i=0; i<FSP_HEIGHT; i=i+1) begin
               ctprs_row[i] <= #DELAY i;
               ctprs_col[i] <= #DELAY 0;
-              //ctprs_init[i][0] <= #DELAY `TRUE;
+              ctprs_to_init[i] <= #DELAY 1;
+`ifndef COMBINATIONAL_CTPRS_INIT
+              ctprs_init[i][0] <= #DELAY `TRUE;//Left-most pixel
+`endif//COMBINATIONAL_CTPRS_INIT
+              ctprs_to_ack[i] <= #DELAY 0;
             end//for(FSP_HEIGHT)
             ctp_can_accept_row <= #DELAY 0;
             ctp_can_accept_col <= #DELAY 0 - FSP_WIDTH;
@@ -1491,27 +1512,42 @@ module application#(parameter SIMULATION=1, DELAY=1, XB_SIZE=32, RAM_DATA_SIZE=1
           end//ctrace_xof_d
           
         CTP_INTRAFRAME:
-          if(ctp_can_accept_row == N_ROW - FSP_HEIGHT
-             && ctp_can_accept_col == N_COL - FSP_WIDTH) begin//At the last pixel
-              //do NOT need a new instance
-          end else begin//not at the very last pixel => need a new instance
-            for(i=0; i<FSP_HEIGHT; i=i+1) begin
-              if(ctprs_avail[i]) begin//available? Init a new CTPRS
+          if(ctp_can_accept_row == (N_ROW - FSP_HEIGHT)
+             && ctp_can_accept_col == (N_COL - FSP_WIDTH)) begin
+            //At the last pixel => do NOT need a new instance
+          end else begin//NOT at the very last pixel => need a new instance
+            for(i=0; i<FSP_HEIGHT; i=i+1) begin                  
+`ifndef COMBINATIONAL_CTPRS_INIT
+              for(j=0; j<N_CTPRS; j=j+1)
+                ctprs_init[i][j] <= #DELAY
+                  !(ctp_can_accept_row == N_ROW - FSP_HEIGHT//At the last pixel
+                    && ctp_can_accept_col == N_COL - FSP_WIDTH)
+                  && ctprs_to_init[i] == j//This CTPRS is the one CTP wants
+                  && ctprs_avail[i][j];   //and it is available
+`endif//COMBINATIONAL_CTPRS_INIT
+
+              if(ctprs_avail[i][ctprs_to_init[i]]) begin//Grabbing this CTPRS
+                ctprs_to_init[i] <= #DELAY ctprs_to_init[i] + `TRUE;
                 if(ctprs_col[i] == N_COL-1) begin//wrapping
                   ctprs_row[i] <= #DELAY ctprs_row[i] + `TRUE;
                   ctprs_col[i] <= #DELAY 0;
                 end else
                   ctprs_col[i] <= #DELAY ctprs_col[i] + `TRUE;
-                //Init the designated available CTPRS
-                //ctprs_init[i][avail_ctprs[i]] <= #DELAY `TRUE;              
 
-                if(i == FSP_HEIGHT - 1)//Sentinel pixels should move too
+                //sentinel ("can accept") pixel is on the FSP_ROW = 0
+                if(i == 0)//Sentinel pixels should move too
                   if(ctp_can_accept_col == N_COL-FSP_WIDTH) begin//wrapping
                     ctp_can_accept_row <= #DELAY ctp_can_accept_row + `TRUE;
                     ctp_can_accept_col <= #DELAY 1 - FSP_WIDTH;
                   end else
                     ctp_can_accept_col <= #DELAY ctp_can_accept_col + `TRUE;
-              end//if(ctprs_avail[i])
+              end//Grabbing this CTPRS
+              
+              if(ctprs_done[i][ctprs_to_ack[i]]) begin//Copy this CTPRS result
+                inter_fsp_row_fifo_din[i] <= #DELAY ctprs_result[i][ctprs_to_ack[i]];
+                inter_fsp_row_fifo_wren[i] <= #DELAY `TRUE;
+                ctprs_to_ack[i] <= #DELAY ctprs_to_ack[i] + `TRUE;
+              end//Copy this CTPRS result
 
             end//for(FSP_HEIGHT)
           end
