@@ -94,11 +94,13 @@ int main() {
 				step_r = (uint32_t)(dP + 0.5f); // step_r = ROUND(dP, 0)
 				if(step_r > step[i]) { //emit a pulse
 					if(i == 0) {
+						STP_on();
 						LED_on();
-#define MIN_PULSE_USEC 2 //min pulse width is 1 usec actually, but better safe
-						_delay_cycles((SYS_TICK * MIN_PULSE_USEC)/1000000);
+                        //#define MIN_PULSE_USEC 1
+						//_delay_cycles((SYS_TICK * MIN_PULSE_USEC)/1000000);
 						// or prepare the next trajectory
 						LED_off();
+						STP_off();
 					}
 					++step[i];
 				}
@@ -120,6 +122,7 @@ int main() {
 			} else { // at rest, so can start a new move
         		// TODO: parse from command
 				direction[i] = !direction[i];
+				if(i == 0) DIRECTION(direction[i]);
 				DP[i] = MOVE_STEPS;
 				Smax[i] = SMAX_SEED;//828.426f;
 				Amax[i] = AMAX_SEED;//910.177f;

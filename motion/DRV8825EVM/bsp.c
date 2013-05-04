@@ -44,11 +44,11 @@
 
 // Port 4 Direction Configure
 #define     P4DIR7          OUTPUT
-#define     P4DIR6          OUTPUT
+#define     P4DIR6          OUTPUT // <-- nRESET
 #define     P4DIR5          OUTPUT
-#define     P4DIR4          OUTPUT
-#define     P4DIR3          OUTPUT
-#define     P4DIR2          OUTPUT
+#define     P4DIR4          OUTPUT // <-- DIR
+#define     P4DIR3          OUTPUT // <-- STP
+#define     P4DIR2          OUTPUT // <-- nEN
 #define     P4DIR1          OUTPUT
 #define     P4DIR0          OUTPUT
 
@@ -56,16 +56,16 @@
 #define     P5DIR7          OUTPUT
 #define     P5DIR6          OUTPUT
 #define     P5DIR5          OUTPUT
-#define     P5DIR4          OUTPUT
+#define     P5DIR4          OUTPUT // <-- MD0
 #define     P5DIR3          OUTPUT
 #define     P5DIR2          INPUT
-#define     P5DIR1          OUTPUT
-#define     P5DIR0          OUTPUT
+#define     P5DIR1          OUTPUT // <-- MD1
+#define     P5DIR0          OUTPUT // <-- MD2
 
 // Port 6 Direction Configure
 #define     P6DIR7          OUTPUT
 #define     P6DIR6          OUTPUT
-#define     P6DIR5          OUTPUT
+#define     P6DIR5          OUTPUT // <-- status LED
 #define     P6DIR4          OUTPUT
 #define     P6DIR3          INPUT
 #define     P6DIR2          INPUT
@@ -104,11 +104,11 @@
 
 // Port 4 Alternate Function Select
 #define     P4SEL7          IO_FUNCTION
-#define     P4SEL6          IO_FUNCTION
+#define     P4SEL6          IO_FUNCTION // <-- nRESET
 #define     P4SEL5          IO_FUNCTION
-#define     P4SEL4          IO_FUNCTION
-#define     P4SEL3          PERIPHERAL
-#define     P4SEL2          PERIPHERAL
+#define     P4SEL4          IO_FUNCTION // <-- DIR
+#define     P4SEL3          IO_FUNCTION // <-- STP; was PERIPHERAL
+#define     P4SEL2          IO_FUNCTION // <-- nEN; was PERIPHERAL
 #define     P4SEL1          IO_FUNCTION
 #define     P4SEL0          IO_FUNCTION
 
@@ -116,61 +116,22 @@
 #define     P5SEL7          IO_FUNCTION
 #define     P5SEL6          IO_FUNCTION
 #define     P5SEL5          IO_FUNCTION
-#define     P5SEL4          IO_FUNCTION
+#define     P5SEL4          IO_FUNCTION // <-- MD0
 #define     P5SEL3          PERIPHERAL
 #define     P5SEL2          PERIPHERAL
-#define     P5SEL1          PERIPHERAL
-#define     P5SEL0          IO_FUNCTION
+#define     P5SEL1          IO_FUNCTION // <-- MD1; was PERIPHERAL
+#define     P5SEL0          IO_FUNCTION // <-- MD2
 
 // Port 6 Alternate Function Select
 #define     P6SEL7          PERIPHERAL
 #define     P6SEL6          PERIPHERAL
-#define     P6SEL5          IO_FUNCTION
+#define     P6SEL5          IO_FUNCTION // <-- status LED
 #define     P6SEL4          IO_FUNCTION
 #define     P6SEL3          PERIPHERAL
 #define     P6SEL2          PERIPHERAL
 #define     P6SEL1          PERIPHERAL
 #define     P6SEL0          PERIPHERAL
 
-// Port 1 Pin On Change Interrupt Enable
-#define     P1IE7          DISABLE
-#define     P1IE6          DISABLE
-#define     P1IE5          DISABLE
-#define     P1IE4          DISABLE
-#define     P1IE2          DISABLE
-#define     P1IE3          DISABLE
-#define     P1IE1          DISABLE
-#define     P1IE0          DISABLE
-
-// Port 2 Pin On Change Interrupt Enable
-#define     P2IE7          DISABLE
-#define     P2IE6          DISABLE
-#define     P2IE5          DISABLE
-#define     P2IE4          DISABLE
-#define     P2IE2          DISABLE
-#define     P2IE3          DISABLE
-#define     P2IE1          DISABLE
-#define     P2IE0          DISABLE
-
-// Port 1 Pin On Change Interrupt Edge Select
-#define     P1IES7          RISING
-#define     P1IES6          RISING
-#define     P1IES5          RISING
-#define     P1IES4          RISING
-#define     P1IES2          RISING
-#define     P1IES3          RISING
-#define     P1IES1          RISING
-#define     P1IES0          RISING
-
-// Port 2 Pin On Change Interrupt Edge Select
-#define     P2IES7          RISING
-#define     P2IES6          RISING
-#define     P2IES5          RISING
-#define     P2IES4          RISING
-#define     P2IES2          RISING
-#define     P2IES3          RISING
-#define     P2IES1          RISING
-#define     P2IES0          RISING
 
 #define StatusLEDPin 0x20//Q: is this mapped to STP pin on DRV8825EVM?
 
@@ -192,22 +153,6 @@ void BSP_init(void) {
     P4OUT = 0;
     P5OUT = 0;
     P6OUT = 0;
-
-#ifdef NECESSARY
-    // Ports 1 through 6 Alternate Peripheral Function Enable
-    P1SEL = (P1SEL7 << 7) + (P1SEL6 << 6) + (P1SEL5 << 5) + (P1SEL4 << 4) + (P1SEL3 << 3) + (P1SEL2 << 2) + (P1SEL1 << 1) + P1SEL0;
-    P2SEL = (P2SEL7 << 7) + (P2SEL6 << 6) + (P2SEL5 << 5) + (P2SEL4 << 4) + (P2SEL3 << 3) + (P2SEL2 << 2) + (P2SEL1 << 1) + P2SEL0;
-    P3SEL = (P3SEL7 << 7) + (P3SEL6 << 6) + (P3SEL5 << 5) + (P3SEL4 << 4) + (P3SEL3 << 3) + (P3SEL2 << 2) + (P3SEL1 << 1) + P3SEL0;
-    P4SEL = (P4SEL7 << 7) + (P4SEL6 << 6) + (P4SEL5 << 5) + (P4SEL4 << 4) + (P4SEL3 << 3) + (P4SEL2 << 2) + (P4SEL1 << 1) + P4SEL0;
-    P5SEL = (P5SEL7 << 7) + (P5SEL6 << 6) + (P5SEL5 << 5) + (P5SEL4 << 4) + (P5SEL3 << 3) + (P5SEL2 << 2) + (P5SEL1 << 1) + P5SEL0;
-    P6SEL = (P6SEL7 << 7) + (P6SEL6 << 6) + (P6SEL5 << 5) + (P6SEL4 << 4) + (P6SEL3 << 3) + (P6SEL2 << 2) + (P6SEL1 << 1) + P6SEL0;
-
-    // Ports 1 and 2 Pin On Change Interrupt Enable
-    P1IE = (P1IE7 << 7) + (P1IE6 << 6) + (P1IE5 << 5) + (P1IE4 << 4) + (P1IE3 << 3) + (P1IE2 << 2) + (P1IE1 << 1) + P1IE0;
-    P2IE = (P2IE7 << 7) + (P2IE6 << 6) + (P2IE5 << 5) + (P2IE4 << 4) + (P2IE3 << 3) + (P2IE2 << 2) + (P2IE1 << 1) + P2IE0;
-    P1IES = (P1IES7 << 7) + (P1IES6 << 6) + (P1IES5 << 5) + (P1IES4 << 4) + (P1IES3 << 3) + (P1IES2 << 2) + (P1IES1 << 1) + P1IES0;
-    P2IES = (P2IES7 << 7) + (P2IES6 << 6) + (P2IES5 << 5) + (P2IES4 << 4) + (P2IES3 << 3) + (P2IES2 << 2) + (P2IES1 << 1) + P2IES0;
-#endif//NECESSARY
 
     LED_on();//begin startup
 
