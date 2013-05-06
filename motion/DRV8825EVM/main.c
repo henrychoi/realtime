@@ -1,4 +1,4 @@
-#define MOVE_STEPS 2000.f
+#define MOVE_STEPS 20000.f
 #define SMAX_SEED 1500.0f
 #define AMAX_SEED 2000.0f
 #define JMAX 1000.0f
@@ -40,6 +40,9 @@ int main() {
     	moving[i] = FALSE; //start at rest
     	direction[i] = FALSE;
     }
+
+    //Stepper_off();
+    Stepper_on();
 
     while(1) { // Infinite loop to process message and generate trajectory
     	//pretend I received a move command here.  The command can be:
@@ -96,8 +99,8 @@ int main() {
 					if(i == 0) {
 						STP_on();
 						LED_on();
-                        //#define MIN_PULSE_USEC 1
-						//_delay_cycles((SYS_TICK * MIN_PULSE_USEC)/1000000);
+                        #define MIN_PULSE 1
+						//_delay_cycles(SYS_TICK * MIN_PULSE)/1000000);
 						// or prepare the next trajectory
 						LED_off();
 						STP_off();

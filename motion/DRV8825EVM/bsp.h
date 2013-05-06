@@ -18,6 +18,9 @@ void assert(uint8_t boolval);
 #define STP_on()   (P4OUT |= BIT3)
 #define STP_off()  (P4OUT &= ~BIT3)
 
+#define Stepper_on()   (P4OUT |= (BIT6 | BIT7))
+#define Stepper_off()  (P4OUT &= ~(BIT6 | BIT7))
+
 #define DIRECTION(bDir) if(bDir) P4OUT |= BIT4; else P4OUT &= ~BIT4
 
 #define USTEP8_on()   (P5OUT |= (BIT1 + BIT4))
