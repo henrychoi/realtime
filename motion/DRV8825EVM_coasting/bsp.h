@@ -28,6 +28,8 @@ void assert(uint8_t boolval);
 #define uStep32_on()   (P5OUT |= BIT0)
 #define uStep32_off()  (P5OUT &= ~BIT0)
 
+#define DECAY_set(bFast)  if(bFast) P4OUT |= BIT1; else P4OUT &= ~BIT1
+
 #define SYS_TICK (8 * 1000000)
 #define SYS_TICKF (8.0f * 1000000.0f)
 #define TIMER_A_CLK_DIV 1.0f //4

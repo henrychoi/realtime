@@ -23,8 +23,10 @@ void assert(uint8_t boolval);
 
 #define DIRECTION(bDir) if(bDir) P4OUT |= BIT4; else P4OUT &= ~BIT4
 
-#define USTEP8_on()   (P5OUT |= (BIT1 + BIT4))
-#define USTEP8_off()  (P5OUT &= ~(BIT1 + BIT4))
+#define uStep8_on()   (P5OUT |= (BIT1 + BIT4))
+#define uStep8_off()  (P5OUT &= ~(BIT1 + BIT4))
+
+#define DECAY_set(bFast)  if(bFast) P4OUT |= BIT1; else P4OUT &= ~BIT1
 
 #define SYS_TICK (8 * 1000000)
 #define SYS_TICKF (8.0f * 1000000.0f)

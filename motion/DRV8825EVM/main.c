@@ -1,7 +1,7 @@
-#define MOVE_STEPS 20000.f
-#define SMAX_SEED 1500.0f
-#define AMAX_SEED 2000.0f
-#define JMAX 1000.0f
+#define MOVE_STEPS 5000.f
+#define SMAX_SEED 500.0f
+#define AMAX_SEED 1000.0f
+#define JMAX 5000.0f
 
 #include "bsp.h"        /* Board Support Package (BSP) */
 #include <math.h>
@@ -22,7 +22,7 @@ typedef union hilo16 {
 /*..........................................................................*/
 int main() {
 	int i;
-	hilo16_union timer_tick = {0};
+	hilo16_union timer_tick;
 	uint32_t tick_start[N_STEPPER], tick_max[N_STEPPER], step[N_STEPPER];
 	float Jmax[N_STEPPER], Amax[N_STEPPER], Smax[N_STEPPER], DP[N_STEPPER]
 	    , T0[N_STEPPER], T1[N_STEPPER], T3[N_STEPPER]
@@ -41,8 +41,9 @@ int main() {
     	direction[i] = FALSE;
     }
 
-    //Stepper_off();
+    DECAY_set(TRUE);
     Stepper_on();
+    uStep8_on();
 
     while(1) { // Infinite loop to process message and generate trajectory
     	//pretend I received a move command here.  The command can be:
@@ -99,24 +100,14 @@ int main() {
 					if(i == 0) {
 						STP_on();
 						LED_on();
-                        #define MIN_PULSE 1
+                        //#define MIN_PULSE 1
 						//_delay_cycles(SYS_TICK * MIN_PULSE)/1000000);
-						// or prepare the next trajectory
 						LED_off();
 						STP_off();
 					}
 					++step[i];
 				}
 				Clock_read();//stop stopwatch ---------------------------------------->
-#ifdef DEBUG_CLOCK_WRAP
-				{
-					uint16_t _tick_ = TAR;
-					if(_tick_ < timer_tick.u16[0]) {
-						++timer_tick.u16[1];
-					}
-					timer_tick.u16[0] = _tick_;
-				}
-#endif//DEBUG_CLOCK_WRAP
 				tick_elapsed = timer_tick.u32 - t1;
 				//assert(tick_elapsed < 0x10000);
 				if(tick_elapsed > tick_max[i]) {
@@ -166,6 +157,7 @@ int main() {
 				Dstep[i] = (uint32_t)(DP[i] + 0.5f);
 
 				tick_max[i] = 0;
+				timer_tick.u16[1] = 0;//reset the trajectory clock
 				Clock_read(); tick_start[i] = timer_tick.u32;//begin new traj
 				step[i] = 0;
 				moving[i] = TRUE;

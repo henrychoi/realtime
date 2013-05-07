@@ -1,5 +1,5 @@
-#define SMAX_SEED 1000.0f
-#define DRIVE_TIME 1.0f
+#define SMAX_SEED 400.0f
+#define DRIVE_TIME 10.0f
 
 #include "bsp.h"        /* Board Support Package (BSP) */
 #include <math.h>
@@ -20,7 +20,7 @@ typedef union hilo16 {
 /*..........................................................................*/
 int main() {
 	int i;
-	hilo16_union timer_tick = {0};
+	hilo16_union timer_tick;
 	uint32_t tick_start[N_STEPPER], step[N_STEPPER];
 	float Smax[N_STEPPER], T06[N_STEPPER];
 	uint8_t moving[N_STEPPER], direction[N_STEPPER];
@@ -32,8 +32,9 @@ int main() {
     	direction[i] = FALSE;
     }
 
+    DECAY_set(TRUE);
     Stepper_on();
-    uStep32_on();
+    //uStep32_on();
 
     while(1) { // Infinite loop to process message and generate trajectory
     	//pretend I received a move command here.  The command can be:
@@ -42,7 +43,7 @@ int main() {
         for(i=0; i < N_STEPPER; ++i) {
 			if(moving[i]) {
 				float T_traj, dP;
-				uint32_t step_r, tick_traj, tick_elapsed;
+				uint32_t step_r, tick_traj;
 				// if STOP command => change times according to the STOP action
 				Clock_read(); tick_traj = timer_tick.u32 - tick_start[i];
 				T_traj = //((float)i + 0.5f) * (4.0f/16000.0f);//if debug periodic
@@ -62,9 +63,8 @@ int main() {
 					if(i == 0) {
 						STP_on();
 						LED_on();
-                        #define MIN_PULSE_USEC 1
-						_delay_cycles((SYS_TICK * MIN_PULSE_USEC)/1000000);
-						// or prepare the next trajectory
+                        //#define MIN_PULSE_USEC 1
+						//_delay_cycles((SYS_TICK * MIN_PULSE_USEC)/1000000);
 						LED_off();
 						STP_off();
 					}
@@ -79,6 +79,7 @@ new_move:
 				Smax[i] = SMAX_SEED;
 				T06[i] = DRIVE_TIME;
 
+				timer_tick.u16[1] = 0;//reset the stop watch
 				Clock_read(); tick_start[i] = timer_tick.u32;//begin new traj
 				step[i] = 0;
 				moving[i] = TRUE;
