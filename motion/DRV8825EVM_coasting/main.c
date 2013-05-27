@@ -1,4 +1,4 @@
-#define SMAX_SEED 400.0f
+#define SMAX_SEED 100.0f
 #define DRIVE_TIME 10.0f
 
 #include "bsp.h"        /* Board Support Package (BSP) */

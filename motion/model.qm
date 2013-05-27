@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="2.3.2">
+ <documentation>Simple model template for QP-nano</documentation>
+ <framework name="qpn"/>
+ <package name="Events" stereotype="0x01"/>
+ <package name="AOs" stereotype="0x02">
+  <class name="TrapezoidalTrajGen" superclass="qpn::QActive">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <initial target="../1">
+     <action brief="Energize stepper"/>
+     <initial_glyph conn="5,33,4,2,-4">
+      <action box="-1,1,7,5"/>
+     </initial_glyph>
+    </initial>
+    <state name="IDLE">
+     <tran trig="GO" target="../../2/0">
+      <tran_glyph conn="7,17,0,3,-3,10">
+       <action box="1,-5,6,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="3,17,10,12"/>
+    </state>
+    <state name="MOVING">
+     <state name="ACCELERATING">
+      <initial target="../1">
+       <initial_glyph conn="36,16,5,1,-5">
+        <action box="0,-2,6,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="ACC_JINC">
+       <tran trig="t &gt;= T0">
+        <choice target="../../../2">
+         <guard brief="T1 &gt; 0">guard1</guard>
+         <choice_glyph conn="28,25,5,3,8">
+          <action box="1,-2,6,2"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../3">
+         <guard brief="else">guard2</guard>
+         <choice_glyph conn="28,25,4,0,8">
+          <action box="1,1,4,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="28,19,2,-1,6">
+         <action box="1,1,10,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="STOP" target="../../3">
+        <action brief="\T1 = 0; \T3 = 0;\Amax = Jmax T0;\Smax = Jmax T0^2/2"/>
+        <tran_glyph conn="25,19,2,0,14">
+         <action box="-7,0,9,13"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="19,12,12,7"/>
+      </state>
+      <state name="ACC_J0">
+       <tran trig="t &gt;= T1" target="../../3">
+        <tran_glyph conn="47,27,2,1,10,-15">
+         <action box="-2,0,6,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="STOP" target="../../3">
+        <action brief="T3 = 0;\T1 = t_elapsed;\Smax = Amax (T0 + T1)"/>
+        <tran_glyph conn="42,27,2,1,8,-10">
+         <action box="-8,0,11,7"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="36,20,15,7"/>
+      </state>
+      <state name="ACC_JDEC">
+       <tran trig="t &gt;= T2">
+        <choice target="../../../../1">
+         <guard brief="T3 &gt; 0">guard1</guard>
+         <choice_glyph conn="58,39,4,2,-8">
+          <action box="0,-6,6,2"/>
+         </choice_glyph>
+        </choice>
+        <choice>
+         <guard brief="else">guard2</guard>
+         <choice_glyph conn="58,39,5,-1,8">
+          <action box="1,-2,6,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="32,39,1,-1,26">
+         <action box="1,0,6,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="STOP">
+        <action brief="\T3 = 0"/>
+        <tran_glyph conn="19,40,3,-1,2">
+         <action box="3,-4,8,4"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="19,33,13,9"/>
+      </state>
+      <state_glyph node="17,8,35,35"/>
+     </state>
+     <state name="COASTING">
+      <tran trig="t &gt;= T3" target="../../2">
+       <tran_glyph conn="62,20,0,3,-3,5">
+        <action box="-1,-5,6,2"/>
+       </tran_glyph>
+      </tran>
+      <tran trig="STOP" target="../../2">
+       <action brief="T3 = t_elapsed"/>
+       <tran_glyph conn="59,20,0,3,-6,8">
+        <action box="0,-10,8,4"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="54,20,11,11"/>
+     </state>
+     <state name="DECELRATING">
+      <initial target="../1">
+       <initial_glyph conn="77,16,5,3,6">
+        <action box="0,-2,6,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="DEC_JINC">
+       <tran trig="t &gt;= T4">
+        <choice target="../../../2">
+         <guard brief="else">guard1</guard>
+         <choice_glyph conn="90,28,4,0,7">
+          <action box="-4,2,6,2"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../3">
+         <guard brief="T5 &gt; 0">guard2</guard>
+         <choice_glyph conn="90,28,5,1,-9">
+          <action box="-9,-2,6,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="90,21,2,-1,7">
+         <action box="-6,0,6,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="83,10,12,11"/>
+      </state>
+      <state name="DEC_JDEC">
+       <tran trig="step &gt;= step_desired" target="../../../../1">
+        <tran_glyph conn="83,44,3,2,-72,-15">
+         <action box="-15,-2,15,2"/>
+        </tran_glyph>
+       </tran>
+       <tran trig="t &gt; T6 &amp;&amp; step &lt; step_desired" target="../../../3">
+        <action brief="Timer_load = MIN(Timer_load, TIMER_LOAD_MAX)"/>
+        <tran_glyph conn="83,46,3,1,-29">
+         <action box="-21,0,20,6"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="83,35,12,13"/>
+      </state>
+      <state name="DEC_J0">
+       <tran trig="t &gt;= T5" target="../../2">
+        <tran_glyph conn="74,33,2,3,8,9">
+         <action box="1,1,6,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="69,23,12,10"/>
+      </state>
+      <state_glyph node="67,7,29,42"/>
+     </state>
+     <state name="APPROACHING">
+      <tran trig="step &gt;= step_desired" target="../../../1">
+       <tran_glyph conn="37,49,3,2,-29,-20">
+        <action box="-15,-2,14,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="37,45,17,6"/>
+     </state>
+     <state_glyph node="15,3,82,50"/>
+    </state>
+    <state_diagram size="99,64"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name=".">
+  <file name="project.h"/>
+  <file name="myao.c"/>
+ </directory>
+</model>
