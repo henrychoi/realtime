@@ -15,13 +15,15 @@
     </initial>
     <state name="IDLE">
      <tran trig="GO" target="../../2/0">
-      <tran_glyph conn="7,17,0,3,-3,10">
+      <tran_glyph conn="7,19,0,3,-5,10">
        <action box="1,-5,6,2"/>
       </tran_glyph>
      </tran>
-     <state_glyph node="3,17,10,12"/>
+     <state_glyph node="3,19,10,10"/>
     </state>
     <state name="MOVING">
+     <entry brief="QActive_arm(&amp;me-&gt;super, 1); step = 0;"/>
+     <exit brief="QActive_disarm(&amp;me-&gt;super);"/>
      <state name="ACCELERATING">
       <initial target="../1">
        <initial_glyph conn="36,16,5,1,-5">
@@ -76,9 +78,9 @@
           <action box="0,-6,6,2"/>
          </choice_glyph>
         </choice>
-        <choice>
+        <choice target="../../../../2">
          <guard brief="else">guard2</guard>
-         <choice_glyph conn="58,39,5,-1,8">
+         <choice_glyph conn="58,39,5,3,9">
           <action box="1,-2,6,2"/>
          </choice_glyph>
         </choice>
@@ -142,10 +144,9 @@
          <action box="-15,-2,15,2"/>
         </tran_glyph>
        </tran>
-       <tran trig="t &gt; T6 &amp;&amp; step &lt; step_desired" target="../../../3">
-        <action brief="Timer_load = MIN(Timer_load, TIMER_LOAD_MAX)"/>
-        <tran_glyph conn="83,46,3,1,-29">
-         <action box="-21,0,20,6"/>
+       <tran trig="step == step_desired" target="../../../../1">
+        <tran_glyph conn="83,46,3,2,-75,-17">
+         <action box="-15,0,14,2"/>
         </tran_glyph>
        </tran>
        <state_glyph node="83,35,12,13"/>
@@ -160,15 +161,10 @@
       </state>
       <state_glyph node="67,7,29,42"/>
      </state>
-     <state name="APPROACHING">
-      <tran trig="step &gt;= step_desired" target="../../../1">
-       <tran_glyph conn="37,49,3,2,-29,-20">
-        <action box="-15,-2,14,2"/>
-       </tran_glyph>
-      </tran>
-      <state_glyph node="37,45,17,6"/>
-     </state>
-     <state_glyph node="15,3,82,50"/>
+     <state_glyph node="15,2,82,48">
+      <entry box="1,2,35,2"/>
+      <exit box="1,4,35,2"/>
+     </state_glyph>
     </state>
     <state_diagram size="99,64"/>
    </statechart>
