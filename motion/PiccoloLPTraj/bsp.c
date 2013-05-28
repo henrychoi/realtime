@@ -180,7 +180,8 @@ void BSP_init(void) {
 
     //Use HW to debouce the button press
     GpioCtrlRegs.GPAQSEL1.bit.GPIO12 = 3;//qualify using 6 samples
-    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0;//Sampling period for GPIO8~15
+    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
+    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
 
     GpioCtrlRegs.GPAMUX1.bit.GPIO12 = 0;//select the peripheral function. 0 => GPIO
     GpioCtrlRegs.GPADIR .bit.GPIO12 = 0;// 1=OUTput, 0=INput

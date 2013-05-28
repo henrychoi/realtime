@@ -1,5 +1,5 @@
 #define MOVE_STEPS 5000.f
-#define SMAX_SEED 500.0f
+#define SMAX_SEED 2000.0f
 #define AMAX_SEED 1000.0f
 #define JMAX 5000.0f
 
@@ -22,12 +22,12 @@ Traj AO_traj[N_TRAJ];
 #define uStep_on()
 #define uStep_off()
 #define Stepper_on(id)
-
-//#pragma CODE_SECTION(Traj_fullfill_dP, "ramfuncs"); /* place in RAM for speed */
+//Called from every state, at every TIMEOUT_SIG => speed it up
+#pragma CODE_SECTION(Traj_fullfill_dP, "ramfuncs");//place in RAM for speed
 void Traj_fullfill_dP(Traj* const me) {
 	uint32_t step_r = (uint32_t)(me->dP + 0.5f); // step_r = ROUND(dP, 0)
 	if(step_r > me->step) { //emit a pulse
-		volatile uint16_t ctr = 1;
+		volatile uint16_t ctr = 10;
 		switch(me->id) {
 		case 0:
 			STP_on();
@@ -103,6 +103,7 @@ void Traj_deriveParams(Traj* const me) {
 	me->DP = me->Smax * (me->T02 + me->T3);
 	me->Dstep = (uint32_t)(me->DP + 0.5f);
 }
+//This trajectory is the most math intensive
 #pragma CODE_SECTION(Traj_dec_jdec, "ramfuncs");//place in RAM for speed
 static QState Traj_dec_jdec(Traj* const me) {
     switch(Q_SIG(me)) {
