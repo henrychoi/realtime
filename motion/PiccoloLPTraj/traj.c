@@ -46,11 +46,6 @@ void Traj_fullfill_dP(Traj* const me) {
 			while(--ctr);
 			GpioDataRegs.GPASET.bit.GPIO2 = TRUE;
 			break;
-		case 3:
-			GpioDataRegs.GPACLEAR.bit.GPIO3 = TRUE;
-			while(--ctr);
-			GpioDataRegs.GPASET.bit.GPIO3 = TRUE;
-			break;
 		default: Q_ERROR();
 		}
 		++me->step;
@@ -307,6 +302,24 @@ static QState Traj_acc_jinc(Traj* const me) {
     }
     //return status;
 }
+void Traj_setDirection(Traj* const me, uint8_t dir) {
+	switch(me->id) {
+	case 0:
+		if(dir) GpioDataRegs.GPACLEAR.bit.GPIO3 = TRUE;
+		else GpioDataRegs.GPASET.bit.GPIO3 = TRUE;
+		break;
+	case 1:
+		if(dir) GpioDataRegs.GPACLEAR.bit.GPIO4 = TRUE;
+		else GpioDataRegs.GPASET.bit.GPIO4 = TRUE;
+		break;
+	case 2:
+		if(dir) GpioDataRegs.GPACLEAR.bit.GPIO5 = TRUE;
+		else GpioDataRegs.GPASET.bit.GPIO5 = TRUE;
+		break;
+	default: Q_ERROR();
+	}
+	me->direction = dir;
+}
 static QState Traj_idle(Traj* const me) {
     //QState status;
     switch (Q_SIG(me)) {
@@ -330,6 +343,7 @@ static QState Traj_idle(Traj* const me) {
 		} while(me->T1 < 0 || me->T3 < 0);
 
 		Traj_deriveParams(me);
+		Traj_setDirection(me, !me->direction);//reverse direction
 		return Q_TRAN(&Traj_acc_jinc);
 	}
 	default: return Q_SUPER(&QHsm_top);
@@ -338,24 +352,10 @@ static QState Traj_idle(Traj* const me) {
 }
 
 static QState Traj_initial(Traj* const me) {
-	switch(me->id) {
-	case 0:
-		DECAY_set(TRUE);//avoid excessive current
-		Stepper_on(me->id);//Energize the stepper
-		uStep_on();//TODO: use maximum uStep: 32
-		break;
-	case 1:
-		DECAY_set(TRUE);//avoid excessive current
-		Stepper_on(me->id);//Energize the stepper
-		uStep_on();//TODO: use maximum uStep: 32
-		break;
-	case 2:
-		DECAY_set(TRUE);//avoid excessive current
-		Stepper_on(me->id);//Energize the stepper
-		uStep_on();//TODO: use maximum uStep: 32
-		break;
-	default: Q_ERROR();
-	}
+	Traj_setDirection(me, FALSE);
+	DECAY_set(TRUE);//avoid excessive current
+	Stepper_on(me->id);//Energize the stepper
+	uStep_on();//TODO: use maximum uStep: 32
     return Q_TRAN(&Traj_idle);
 }
 
@@ -366,4 +366,3 @@ void Traj_init(void) {
 		AO_traj[i].id = i;
 	}
 }
-

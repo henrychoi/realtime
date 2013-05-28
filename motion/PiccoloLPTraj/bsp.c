@@ -162,6 +162,7 @@ void BSP_init(void) {
 
 
     EALLOW;                                               /* GPIO config... */
+    //GPIO0~2 used for STP pin
     GpioCtrlRegs.GPAMUX1.bit.GPIO0 = 0;//select the peripheral function. 0 => GPIO
     GpioCtrlRegs.GPADIR .bit.GPIO0 = 1;// 1=OUTput, 0=INput
 	GpioDataRegs.GPASET .bit.GPIO0 = TRUE;//turn off
@@ -171,9 +172,17 @@ void BSP_init(void) {
     GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//select the peripheral function. 0 => GPIO
     GpioCtrlRegs.GPADIR .bit.GPIO2 = 1;// 1=OUTput, 0=INput
 	GpioDataRegs.GPASET .bit.GPIO2 = TRUE;//turn off
+
+	//GPIO3~5 used for DIR pin
     GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//select the peripheral function. 0 => GPIO
     GpioCtrlRegs.GPADIR .bit.GPIO3 = 1;// 1=OUTput, 0=INput
 	GpioDataRegs.GPASET .bit.GPIO3 = TRUE;//turn off
+    GpioCtrlRegs.GPAMUX1.bit.GPIO4 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO4 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO4 = TRUE;//turn off
+    GpioCtrlRegs.GPAMUX1.bit.GPIO5 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO5 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO5 = TRUE;//turn off
 
 	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
     GpioCtrlRegs.GPAPUD .bit.GPIO12 = TRUE;//disable pull-up
