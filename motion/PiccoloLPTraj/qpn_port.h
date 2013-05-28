@@ -36,11 +36,13 @@
 #define qpn_port_h
 
 #define Q_NFSM//Undefine if using FSM instead of HSM
-#define Q_PARAM_SIZE            2
+//Actually need jmax, amax, smax, DP, so 4 byte is not enough
+#define Q_PARAM_SIZE 0//2
 #define QF_TIMEEVT_CTR_SIZE     2
 
+#define N_TRAJ 3
 /* maximum # active objects--must match EXACTLY the QF_active[] definition  */
-#define QF_MAX_ACTIVE 1
+#define QF_MAX_ACTIVE N_TRAJ
 
                                  /* interrupt locking policy for task level */
 #define QF_INT_DISABLE()        __disable_interrupts()

@@ -1,7 +1,7 @@
+#include <string.h>                                         /* for memcpy() */
 #include "qpn_port.h"
 #include "bsp.h"
-
-#include <string.h>                                         /* for memcpy() */
+#include "traj.h"
 
 Q_DEFINE_THIS_FILE
 
@@ -23,17 +23,6 @@ Q_DEFINE_THIS_FILE
 #define CPU_TIMER_PERIOD \
     ((CPU_FRQ_HZ + BSP_TICKS_PER_SEC/2) / BSP_TICKS_PER_SEC)
 
-                               /* LED2 on the Piccolo launchpad */
-//#define LD2_ON()   (GpioDataRegs.GPBCLEAR.bit.GPIO32 = 1)
-//#define LD2_OFF()  (GpioDataRegs.GPBSET.bit.GPIO32   = 1)
-void Stepper_on(uint8_t i) {
-	switch(i) {
-	default:
-		GpioDataRegs.GPACLEAR.bit.GPIO16 = TRUE;
-	}
-}
-
-
 static void PieInit(void);
 static void PLLset(Uint16 val);
 
@@ -44,12 +33,25 @@ static void CopyFlash(void);
 /* CPU Timer0 ISR is used for system clock tick */
 #pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); /* place in RAM for speed */
 static interrupt void cpu_timer0_isr(void) {
-	GpioDataRegs.GPBTOGGLE.bit.GPIO32 = 1;
     QF_tickISR();                         /* handle the QF-nano time events */
 
       /* Acknowledge this interrupt to receive more interrupts from group 1 */
-    PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+    //PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
+    PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
 }
+
+//#pragma CODE_SECTION(gpio12_isr, "ramfuncs"); /* place in RAM for speed */
+static interrupt void gpio12_isr(void) {
+	int i;
+	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
+	for(i=0; i < N_TRAJ; ++i) {
+		QActive_postISR((QActive*)&AO_traj[i], GOSTOP_SIG);
+	}
+	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
+	//other interrupts in PIEIFRx group.
+	PieCtrlRegs.PIEACK.bit.ACK12 = TRUE;//acknowledge PIE group 12
+}
+
 /*..........................................................................*/
 // Illegal operation TRAP
 static interrupt void illegal_isr(void) {
@@ -122,6 +124,7 @@ void BSP_init(void) {
     EALLOW;
     PieVectTable.TINT0 = &cpu_timer0_isr;  // hook the CPU timer0 ISR
     /* . . . hook other ISRs */
+    PieVectTable.XINT3 = &gpio12_isr;
     EDIS;
 
 
@@ -159,14 +162,33 @@ void BSP_init(void) {
 
 
     EALLOW;                                               /* GPIO config... */
-    GpioCtrlRegs.GPAMUX2.bit.GPIO16 = 0;
-    GpioCtrlRegs.GPADIR .bit.GPIO16 = 1;
-    GpioCtrlRegs.GPBMUX1.bit.GPIO32 = 0;    // 0=GPIO,1=COMP2OUT,2=EMU1,3=Resv
-    GpioCtrlRegs.GPBDIR .bit.GPIO32 = 1;    // 1=OUTput, 0=INput
-    GpioDataRegs.GPBSET.bit.GPIO32  = TRUE;
-    GpioCtrlRegs.GPBMUX1.bit.GPIO33 = 0;//Use 4th LED as a proxy for STP to DRV8825
-    GpioCtrlRegs.GPBDIR .bit.GPIO33 = 1;
+    GpioCtrlRegs.GPAMUX1.bit.GPIO0 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO0 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO0 = TRUE;//turn off
+    GpioCtrlRegs.GPAMUX1.bit.GPIO1 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO1 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO1 = TRUE;//turn off
+    GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO2 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO2 = TRUE;//turn off
+    GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO3 = 1;// 1=OUTput, 0=INput
+	GpioDataRegs.GPASET .bit.GPIO3 = TRUE;//turn off
+
+	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
+    GpioCtrlRegs.GPAPUD .bit.GPIO12 = TRUE;//disable pull-up
+
+    //Use HW to debouce the button press
+    GpioCtrlRegs.GPAQSEL1.bit.GPIO12 = 3;//qualify using 6 samples
+    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0;//Sampling period for GPIO8~15
+
+    GpioCtrlRegs.GPAMUX1.bit.GPIO12 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO12 = 0;// 1=OUTput, 0=INput
+    GpioIntRegs.GPIOXINT3SEL.all = 12;
     EDIS;
+
+    XIntruptRegs.XINT3CR.bit.ENABLE = TRUE;
+    XIntruptRegs.XINT3CR.bit.POLARITY = 1;//interrupt on rising edge
 
     // initialize the CPU Timer used for system clock tick
     CpuTimer0Regs.PRD.all      = CPU_TIMER_PERIOD;
@@ -183,11 +205,14 @@ void BSP_init(void) {
 void QF_onStartup(void) {
     CpuTimer0Regs.TCR.bit.TSS = 0;     /* start the system clock tick timer */
 
-    // Enable CPU INT1, which is connected to CPU-Timer 0:
-    IER |= M_INT1;
+
+    IER |= M_INT1// Enable CPU INT1, which is connected to CPU-Timer 0:
+    	 + M_INT12;//XINT3 is connected to INT12
 
     // Enable PIE: Group 1 interrupt 7 which is connected to CPU-Timer 0:
     PieCtrlRegs.PIEIER1.bit.INTx7 = 1;
+    //XINT3 is connected to INT12.1
+    PieCtrlRegs.PIEIER12.bit.INTx1 = TRUE;
 
     // Enable higher priority real-time debug events:
     ERTM;   // Enable Global realtime interrupt DBGM

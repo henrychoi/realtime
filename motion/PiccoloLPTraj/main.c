@@ -3,12 +3,14 @@
 #include "traj.h"                               /* application interface */
 
 /*..........................................................................*/
-static QEvt l_trajQueue[N_TRAJ][2];
+static QEvt l_trajQueue[N_TRAJ][4];
 
 /* QF_active[] array defines all active object control blocks --------------*/
 QActiveCB const Q_ROM Q_ROM_VAR QF_active[] = {
-    { (QActive *)0,           (QEvt *)0,      0U                    },
-    { (QActive *)&AO_traj[0], l_trajQueue[0], Q_DIM(l_trajQueue[0]) }
+    { (QActive *)0,           (QEvt *)0,      0U                    }
+  , { (QActive *)&AO_traj[0], l_trajQueue[0], Q_DIM(l_trajQueue[0]) }
+  , { (QActive *)&AO_traj[1], l_trajQueue[1], Q_DIM(l_trajQueue[1]) }
+  , { (QActive *)&AO_traj[2], l_trajQueue[2], Q_DIM(l_trajQueue[2]) }
 };
 
 /* make sure that the QF_active[] array matches QF_MAX_ACTIVE in qpn_port.h */
