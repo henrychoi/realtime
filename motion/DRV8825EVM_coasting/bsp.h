@@ -23,10 +23,9 @@ void assert(uint8_t boolval);
 
 #define DIRECTION(bDir) if(bDir) P4OUT |= BIT4; else P4OUT &= ~BIT4
 
-#define uStep8_on()   (P5OUT |= (BIT1 + BIT4))
-#define uStep8_off()  (P5OUT &= ~(BIT1 + BIT4))
-#define uStep32_on()   (P5OUT |= BIT0)
-#define uStep32_off()  (P5OUT &= ~BIT0)
+#define uStep8_on()   (P5OUT |= (BIT3 + BIT1))
+#define uStep32_on()   (P5OUT |= (BIT3 + BIT1 + BIT0))
+#define uStep_off()  (P5OUT &= ~(BIT3 + BIT1 + BIT0))
 
 #define DECAY_set(bFast)  if(bFast) P4OUT |= BIT1; else P4OUT &= ~BIT1
 

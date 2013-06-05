@@ -132,6 +132,55 @@
 #define     P6SEL1          PERIPHERAL
 #define     P6SEL0          PERIPHERAL
 
+#define     DAC12SREF_VREF  0x0000
+#define     DAC12SREF_VEREF 0x6000//external Vref
+#define     DAC12SREF0_CONF  DAC12SREF_VREF
+#define     DAC12SREF1_CONF  DAC12SREF_VREF
+
+#define     DAC12RES_12     0x0000//12 bit resolution
+#define     DAC12RES_8      0x1000
+#define     DAC12RES0_CONF   DAC12RES_12
+#define     DAC12RES1_CONF   DAC12RES_12
+
+#define     DAC12LSEL_AUTO  0x0000//DAT latch loads when DAC12_xDAT written
+#define     DAC12LSEL_DATA  0x0400
+#define     DAC12LSEL_RISEA 0x0800
+#define     DAC12LSEL_RISEB 0x0C00
+#define     DAC12LSEL0_CONF  DAC12LSEL_AUTO
+#define     DAC12LSEL1_CONF  DAC12LSEL_AUTO
+
+#define     DAC12IR_3X      0x0000//3x reference voltage
+#define     DAC12IR_1X      0x0100//1x reference voltage
+#define     DAC12IR0_CONF    DAC12IR_1X
+#define     DAC12IR1_CONF    DAC12IR_1X
+
+#define     DAC12AMP_OFFZ   0x0000
+#define     DAC12AMP_OFF0   0x0020
+#define     DAC12AMP_LOLO   0x0040
+#define     DAC12AMP_LOMD   0x0030
+#define     DAC12AMP_LOHI   0x0080
+#define     DAC12AMP_MDMD   0x00A0
+#define     DAC12AMP_MDHI   0x00C0
+#define     DAC12AMP_HIHI   0x00E0
+//When DAC12AMPx > 0, the DAC12 function is automatically selected
+//for the pin, regardless of the state of the associated P6SELx and P6DIRx bits
+#define     DAC12AMP0_CONF   DAC12AMP_LOLO
+#define     DAC12AMP1_CONF   DAC12AMP_OFFZ
+
+#define     DAC12DF_BIN     0x0000//straight binary
+#define     DAC12DF_2SC     0x0010//2's complement
+#define     DAC12DF0_CONF    DAC12DF_BIN
+#define     DAC12DF1_CONF    DAC12DF_BIN
+
+#define     DAC12ENC_DIS    0x0000//DACA12 disabled
+#define     DAC12ENC_ENA    0x0002//Enable DAC when DAC12LSECx > 0.  Ignored otherwise
+#define     DAC12ENC0_CONF   DAC12ENC_DIS
+#define     DAC12ENC1_CONF   DAC12ENC_DIS
+
+#define     DAC12GRP_NOT    0x0000//DAC not grouped
+#define     DAC12GRP_GRP    0x0001//DAC grouped
+#define     DAC12GRP0_CONF   DAC12GRP_NOT
+#define     DAC12GRP1_CONF   DAC12GRP_NOT
 
 #define StatusLEDPin 0x20//Q: is this mapped to STP pin on DRV8825EVM?
 
@@ -139,6 +188,16 @@
 void BSP_init(void) {
 	int i;
     WDTCTL = WDTPW | WDTHOLD;//Not going to use WDT
+
+    ADC12CTL0 = REF2_5V + REFON;// Internal 2.5V ref on for DAC
+
+    P6SEL = 0x40;//'b0100_0000.  P6.6 is a peripheral (DAC)
+
+    //Use DAC0 to drive AVREF
+    //DAC12_0CTL = DAC12SREF0_CONF + DAC12RES0_CONF + DAC12LSEL0_CONF + DAC12IR0_CONF
+    //           + DAC12AMP0_CONF + DAC12DF0_CONF + DAC12ENC0_CONF + DAC12GRP0_CONF;
+    DAC12_0CTL = DAC12IR + DAC12AMP_5 + DAC12ENC;
+
     // Ports 1 through 6 Direction Select
     P1DIR = (P1DIR7 << 7) + (P1DIR6 << 6) + (P1DIR5 << 5) + (P1DIR4 << 4) + (P1DIR3 << 3) + (P1DIR2 << 2) + (P1DIR1 << 1) + P1DIR0;
     P2DIR = (P2DIR7 << 7) + (P2DIR6 << 6) + (P2DIR5 << 5) + (P2DIR4 << 4) + (P2DIR3 << 3) + (P2DIR2 << 2) + (P2DIR1 << 1) + P2DIR0;
@@ -183,5 +242,3 @@ void assert(uint8_t boolval) {
 		LED_on();
 	}
 }
-
-
