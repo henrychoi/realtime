@@ -3,7 +3,7 @@
 #define AMAX_SEED 1000.0f
 #define JMAX 5000.0f
 
-#include <math.h>
+#include <math.h>//<cmath.h>
 #include "qpn_port.h"
 #include "bsp.h"
 #include "traj.h"
@@ -31,6 +31,11 @@ void Traj_fullfill_dP(Traj* const me) {
 		switch(me->id) {
 		case 0:
 			STP_on();
+			//On a slower uC like MSP430, setting up a PWM timer to get
+			//1 usec pulse is just not worth the extra complexity, because
+			//a couple of instruction is on the order of 1 usec.  But on
+			//faster uC, with multiple steppers, this is worth it.
+#FIXME: use timer PWM
 			GpioDataRegs.GPACLEAR.bit.GPIO0 = TRUE;
 			while(--ctr);
 			GpioDataRegs.GPASET.bit.GPIO0 = TRUE;

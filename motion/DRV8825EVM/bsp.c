@@ -139,6 +139,16 @@
 void BSP_init(void) {
 	int i;
     WDTCTL = WDTPW | WDTHOLD;//Not going to use WDT
+
+    ADC12CTL0 = REF2_5V + REFON;// Internal 2.5V ref on for DAC
+
+    P6SEL = 0x40;//'b0100_0000.  P6.6 is a peripheral (DAC)
+
+    //Use DAC0 to drive AVREF
+    //DAC12_0CTL = DAC12SREF0_CONF + DAC12RES0_CONF + DAC12LSEL0_CONF + DAC12IR0_CONF
+    //           + DAC12AMP0_CONF + DAC12DF0_CONF + DAC12ENC0_CONF + DAC12GRP0_CONF;
+    DAC12_0CTL = DAC12IR + DAC12AMP_5 + DAC12ENC;
+
     // Ports 1 through 6 Direction Select
     P1DIR = (P1DIR7 << 7) + (P1DIR6 << 6) + (P1DIR5 << 5) + (P1DIR4 << 4) + (P1DIR3 << 3) + (P1DIR2 << 2) + (P1DIR1 << 1) + P1DIR0;
     P2DIR = (P2DIR7 << 7) + (P2DIR6 << 6) + (P2DIR5 << 5) + (P2DIR4 << 4) + (P2DIR3 << 3) + (P2DIR2 << 2) + (P2DIR1 << 1) + P2DIR0;
@@ -158,9 +168,9 @@ void BSP_init(void) {
 
     // Configure timer
     TACTL = TASSEL_2//MC_1; // timer A clk = SMCLK
-          + MC_2; // MC_1: timer A in upmode, MC_2: continuous mode
-          //+ ID_2 //divide by 4
-
+          + MC_2 // MC_1: timer A in upmode, MC_2: continuous mode
+          //+ ID_3 //divide subsystem master clock by 8 to get the timer clock
+          ;
     //Configure the basic clock module
     DCOCTL = 0x7 << 5 //frequency; looks like 8 MHz: the fastest for this chip
     	   + 0x00;// modulation; useless (set to 0) when DCO = 7
@@ -171,7 +181,6 @@ void BSP_init(void) {
       IFG1 &= ~OFIFG;                           // Clear OSCFault flag
       for (i = 0xFF; i > 0; i--);               // Time for flag to set
     } while ((IFG1 & OFIFG)); // OSCFault flag still set?
-
 
     BCSCTL2 = SELM_3 + DIVM_0;//MCLK = LFXTCLK/1
 
