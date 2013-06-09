@@ -23,15 +23,22 @@ void assert(uint8_t boolval);
 
 #define STP_on()   (P4OUT |= BIT3)
 #define STP_off()  (P4OUT &= ~BIT3)
+#define STP_toggle() (P4OUT ^= BIT3)
 
 #define Stepper_on()   (P4OUT |= (BIT6 | BIT7))
 #define Stepper_off()  (P4OUT &= ~(BIT6 | BIT7))
 
 #define DIRECTION(bDir) if(bDir) P4OUT |= BIT4; else P4OUT &= ~BIT4
 
-#define uStep8_on()   (P5OUT |= (BIT3 + BIT1))
-#define uStep32_on()   (P5OUT |= (BIT3 + BIT1 + BIT0))
-#define uStep_off()  (P5OUT &= ~(BIT3 + BIT1 + BIT0))
+#define MD0PIN BIT3
+#define MD1PIN BIT1
+#define MD2PIN BIT0
+#define uStep_off()   (P5OUT &= ~(MD2PIN + MD2PIN + MD2PIN))
+#define uStep2_on()   (P5OUT |= (MD0PIN))
+#define uStep4_on()   (P5OUT |= (MD1PIN))
+#define uStep8_on()   (P5OUT |= (MD1PIN + MD0PIN))
+#define uStep16_on()  (P5OUT |= (MD2PIN))
+#define uStep32_on()  (P5OUT |= (MD2PIN + MD1PIN + MD0PIN))
 
 #define DECAY_set(bFast)  if(bFast) P4OUT |= BIT1; else P4OUT &= ~BIT1
 

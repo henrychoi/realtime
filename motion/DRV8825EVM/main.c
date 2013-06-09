@@ -14,9 +14,9 @@ typedef union hilo16 {
 
 #define USE_IEEE754
 #ifdef USE_IEEE754
-#define MOVE_STEPS 5000.f
-#define SMAX_SEED 2000.0f
-#define AMAX_SEED 1000.0f
+#define MOVE_STEPS 20000.f
+#define SMAX_SEED 1000.f
+#define AMAX_SEED 5000.0f
 #define JMAX 5000.0f
 
 int main() {
@@ -28,7 +28,9 @@ int main() {
 	    , T05, T06
 		, T0P2T1, T0xT0_d3, T0xT0_d3_P_T01xT1
 		, Amax_d2, Jmax_d6, Amax_d2xT02xT01
-		, Amax_d2xT02xT01_T0xT0_d3_PSmax_xT3PT0;
+		, Amax_d2xT02xT01_T0xT0_d3_PSmax_xT3PT0
+		, Amax_d2xT0x5T0_d3_P2T1_Psmax_xT3PT01
+		, Smax_Amax_d2_xT0P2T1;
 	uint32_t Dstep;
 	uint8_t moving, direction;
 
@@ -37,10 +39,10 @@ int main() {
 	moving = FALSE; //start at rest
 	direction = FALSE;
 
-    uStep32_on();
+	//uStep_off();
+    uStep8_on();
     DECAY_set(FALSE);
     Stepper_on();
-
     while(1) { // Infinite loop to process message and generate trajectory
     	//pretend I received a move command here.  The command can be:
     	// * STOP
@@ -65,8 +67,10 @@ int main() {
 				} else dP = DP;
 			} else if(T_traj > T05) {//DEC_JDEC, or DEC_J-: 2483 clocks on MSP430
 				// s [DP -Jmax/6 (T06 - Ttraj)^3]
-				float t = T06 - T_traj;
-				dP = DP - Jmax_d6 * t * t * t;
+				float t = T_traj - T05, t_sq = t * t;
+				dP = Amax_d2xT0x5T0_d3_P2T1_Psmax_xT3PT01
+                   + Smax_Amax_d2_xT0P2T1 * t + Jmax_d6 * t * t_sq
+                   - Amax_d2 * t_sq;
 			} else if(T_traj > T04) {//DEC_J0 Takes 2762 clocks
 				float t = T_traj - T04;
 				dP = Amax_d2xT02xT01_T0xT0_d3_PSmax_xT3PT0
@@ -90,15 +94,18 @@ int main() {
 				dP = Jmax_d6 * t * t * t;
 			}
 
-			step_r = (uint32_t)(dP + 0.5f); // step_r = ROUND(dP, 0)
+			step_r = (uint32_t)(dP /*+ 0.5f*/); // step_r = ROUND(dP, 0)
 			if(step_r > step) { //emit a pulse
-				STP_on();
+				//STP_toggle();
+			    STP_on();
 				LED_on();
 				//#define MIN_PULSE 1
 				//_delay_cycles(SYS_TICK * MIN_PULSE)/1000000);
+				_delay_cycles(1);
 				LED_off();
 				STP_off();
 				++step;
+				//_delay_cycles(1);
 			}
 			Clock_read();//stop stopwatch ---------------------------------------->
 			tick_elapsed = timer_tick.u32 - t1;
@@ -146,6 +153,10 @@ new_move:
 			Amax_d2xT02xT01 = Amax_d2 * T02 * T01;
 			Amax_d2xT02xT01_T0xT0_d3_PSmax_xT3PT0 = Amax_d2xT02xT01
 				- Amax_d2 * T0xT0_d3 + Smax * (T3+T0);
+			Amax_d2xT0x5T0_d3_P2T1_Psmax_xT3PT01 =
+				Amax_d2 * T0 * ((5.0f/3.0f)*T0 + 2.0f*T1)
+				+ Smax * (T01+T3);
+			Smax_Amax_d2_xT0P2T1 = Smax - Amax_d2 * T0P2T1;
 			Dstep = (uint32_t)(DP + 0.5f);
 
 			tick_max = 0;
@@ -244,7 +255,8 @@ int main() {
 			} else if(T_traj > T05) {//DEC_JDEC, or DEC_J-: 2483 clocks on MSP430
 				Q_t t = T_traj - T05, t_sq = Qmult(t, t);
 				dP = (Amax_d2xT0x5T0_d3_P2T1_Psmax_xT3PT01
-                      + Qmult(Smax_Amax_d2_xT0P2T1, t) + Jmax_d6 * t * t_sq)
+                      + Qmult(Smax_Amax_d2_xT0P2T1, t)
+                      + Qmult(Qmult(Jmax_d6, t), t_sq))
                    - Amax_d2 * t_sq;
 			} else if(T_traj > T04) {//DEC_J0 Takes 2762 clocks
 				Q_t t = T_traj - T04;

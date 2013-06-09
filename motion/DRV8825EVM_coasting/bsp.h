@@ -2,21 +2,25 @@
 #define bsp_h
 
 #include <msp430f1612.h>//<msp430x16x.h>
+#undef USE_TIMERB
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
-#define TRUE 1
-#define FALSE 0
 
 void BSP_init(void);
 void assert(uint8_t boolval);
 
+#define TRUE 1
+#define FALSE 0
 #define LED_on()   (P6OUT |= BIT5)
 #define LED_off()  (P6OUT &= ~BIT5)
+#define LED_toggle() (P6OUT ^= BIT5)
 
-#define STP_on()   (P4OUT |= BIT3)
-#define STP_off()  (P4OUT &= ~BIT3)
+
+#define STP_toggle() (P4OUT ^= BIT3)
+#define STP_on()     (P4OUT |= BIT3)
+#define STP_off()    (P4OUT &= ~BIT3)
 
 #define Stepper_on()   (P4OUT |= (BIT6 | BIT7))
 #define Stepper_off()  (P4OUT &= ~(BIT6 | BIT7))

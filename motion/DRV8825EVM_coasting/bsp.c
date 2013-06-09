@@ -12,27 +12,6 @@
 #define     RISING          (0x00)
 #define     FALLING         (0x01)
 
-// Port 1 Direction Configure
-#define     P1DIR7          OUTPUT
-#define     P1DIR6          OUTPUT
-#define     P1DIR5          OUTPUT
-#define     P1DIR4          OUTPUT
-#define     P1DIR3          OUTPUT
-#define     P1DIR2          OUTPUT
-#define     P1DIR1          OUTPUT
-#define     P1DIR0          OUTPUT
-
-// Port 2 Direction Configure
-#define     P2DIR7          INPUT
-#define     P2DIR6          INPUT
-#define     P2DIR5          INPUT
-#define     P2DIR4          INPUT
-#define     P2DIR3          INPUT
-#define     P2DIR2          INPUT
-#define     P2DIR1          INPUT
-#define     P2DIR0          INPUT
-
-// Port 3 Direction Configure
 #define     P3DIR7          OUTPUT
 #define     P3DIR6          OUTPUT
 #define     P3DIR5          OUTPUT
@@ -41,8 +20,6 @@
 #define     P3DIR2          OUTPUT
 #define     P3DIR1          INPUT
 #define     P3DIR0          INPUT
-
-// Port 4 Direction Configure
 #define     P4DIR7          OUTPUT
 #define     P4DIR6          OUTPUT // <-- nRESET
 #define     P4DIR5          OUTPUT
@@ -51,8 +28,6 @@
 #define     P4DIR2          OUTPUT // <-- nEN
 #define     P4DIR1          OUTPUT
 #define     P4DIR0          OUTPUT
-
-// Port 5 Direction Configure
 #define     P5DIR7          OUTPUT
 #define     P5DIR6          OUTPUT
 #define     P5DIR5          OUTPUT
@@ -61,8 +36,6 @@
 #define     P5DIR2          INPUT
 #define     P5DIR1          OUTPUT // <-- MD1
 #define     P5DIR0          OUTPUT // <-- MD2
-
-// Port 6 Direction Configure
 #define     P6DIR7          OUTPUT
 #define     P6DIR6          OUTPUT
 #define     P6DIR5          OUTPUT // <-- status LED
@@ -184,7 +157,7 @@
 
 #define StatusLEDPin 0x20//Q: is this mapped to STP pin on DRV8825EVM?
 
-/*..........................................................................*/
+
 void BSP_init(void) {
 	int i;
     WDTCTL = WDTPW | WDTHOLD;//Not going to use WDT
@@ -199,8 +172,8 @@ void BSP_init(void) {
     DAC12_0CTL = DAC12IR + DAC12AMP_5 + DAC12ENC;
 
     // Ports 1 through 6 Direction Select
-    P1DIR = (P1DIR7 << 7) + (P1DIR6 << 6) + (P1DIR5 << 5) + (P1DIR4 << 4) + (P1DIR3 << 3) + (P1DIR2 << 2) + (P1DIR1 << 1) + P1DIR0;
-    P2DIR = (P2DIR7 << 7) + (P2DIR6 << 6) + (P2DIR5 << 5) + (P2DIR4 << 4) + (P2DIR3 << 3) + (P2DIR2 << 2) + (P2DIR1 << 1) + P2DIR0;
+    P1DIR = 0xFF;
+    P2DIR = 0x00;
     P3DIR = (P3DIR7 << 7) + (P3DIR6 << 6) + (P3DIR5 << 5) + (P3DIR4 << 4) + (P3DIR3 << 3) + (P3DIR2 << 2) + (P3DIR1 << 1) + P3DIR0;
     P4DIR = (P4DIR7 << 7) + (P4DIR6 << 6) + (P4DIR5 << 5) + (P4DIR4 << 4) + (P4DIR3 << 3) + (P4DIR2 << 2) + (P4DIR1 << 1) + P4DIR0;
     P5DIR = (P5DIR7 << 7) + (P5DIR6 << 6) + (P5DIR5 << 5) + (P5DIR4 << 4) + (P5DIR3 << 3) + (P5DIR2 << 2) + (P5DIR1 << 1) + P5DIR0;
@@ -216,9 +189,12 @@ void BSP_init(void) {
     LED_on();//begin startup
 
     // Configure timer
+    TBCTL = (ID_3 | TASSEL_2 | MC_1);       /* SMCLK, /8 divider, upmode */
+#ifdef USE_TIMERA
     TACTL = TASSEL_2//MC_1; // timer A clk = SMCLK
           + MC_2; // MC_1: timer A in upmode, MC_2: continuous mode
           //+ ID_2 //divide by 4
+#endif
 
     //Configure the basic clock module
     DCOCTL = 0x7 << 5 //frequency; looks like 8 MHz: the fastest for this chip
@@ -233,8 +209,11 @@ void BSP_init(void) {
 
 
     BCSCTL2 = SELM_3 + DIVM_0;//MCLK = LFXTCLK/1
-
-    LED_off();//End of startup
+#ifdef USE_TIMERB
+	TBCCTL0 = CCIE; /*Enable timer B interrupt*/
+    TBCCR0 = 0xFFFF;
+#endif
+	LED_off();//End of startup
 }
 
 void assert(uint8_t boolval) {
