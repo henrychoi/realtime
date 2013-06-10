@@ -7,7 +7,7 @@ static QEvt l_trajQueue[4];
 
 /* QF_active[] array defines all active object control blocks --------------*/
 QActiveCB const Q_ROM Q_ROM_VAR QF_active[] = {
-    { (QActive *)0,           (QEvt *)0,      0U           }
+    { (QActive *)0, (QEvt *)0, 0U }
   , { (QActive *)&AO_traj, l_trajQueue, Q_DIM(l_trajQueue) }
 };
 

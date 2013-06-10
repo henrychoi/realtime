@@ -5,7 +5,7 @@
 
 #define TRUE 1
 #define FALSE 0
-#define TIMER_INT_HZ 1000U//MSP430F1612 cannot seem to run faster than 1 kHz
+#define TIMER_INT_HZ 2000U//MSP430F1612 cannot seem to run faster than 2 kHz
 
 #define LED_on()   (P6OUT |= BIT5)
 #define LED_off()  (P6OUT &= ~BIT5)

@@ -1,7 +1,10 @@
-#define MOVE_STEPS 2000.f
-#define SMAX_SEED 1000.0f
-#define AMAX_SEED 1000.0f
-#define JMAX 5000.0f
+#define MOVE_STEPS 10000.f
+//Conservatively, the maximum step/s must be 1% less than the timer interrupt
+//freq to avoid falling behind by more than 1 clock due to floating point
+//quantization error
+#define SMAX_SEED  1990.0f
+#define AMAX_SEED  1000.0f
+#define JMAX      10000.0f
 
 #include "qpn_port.h"
 #include "bsp.h"
@@ -78,16 +81,16 @@ static QState Traj_moving(Traj* const me) {
     switch (Q_SIG(me)) {
 	case Q_ENTRY_SIG: {
 		QActive_arm(&me->super, 1);//start generating the new trajectory
-		DIRECTION(me->direction);
-		me->step = 0;
+		DIRECTION(me->direction);//drive the IC's DIR pin
+		me->step = 0;//reset my step count
 		return Q_HANDLED();
 	}
     case Q_EXIT_SIG: {
         QActive_disarm(&me->super);
 		return Q_HANDLED();
     }
-	case GO_SIG: Q_ERROR();//Already moving; ERROR
-		//return Q_SUPER(&QHsm_top);
+	case GO_SIG: //Q_ERROR();//Already moving; tell PC to wait
+		return Q_SUPER(&QHsm_top);
 	case STOP_SIG: {
 		//TODO: Tell higher layer to wait till current move done
 		return Q_HANDLED();

@@ -153,7 +153,7 @@
 #define     DAC12GRP0_CONF   DAC12GRP_NOT
 #define     DAC12GRP1_CONF   DAC12GRP_NOT
 
-#define CPU_HZ (2*8000000U/3U)
+#define CPU_HZ (6000000U)//Why does it seem to be 6 Mhz? Supposed to be 8 MHz
 #define TIMER_CLK_HZ (CPU_HZ/8U)
 #define TIMER_VAL (TIMER_CLK_HZ/TIMER_INT_HZ)
 
@@ -235,10 +235,11 @@ void QF_onStartup(void) {
 }
 /*..........................................................................*/
 void QF_onIdle(void) {
-	//LED_off();//LED_toggle();
+	LED_on();//LED_toggle();
 	//The low-power mode stops the CPU clock, so it can interfere with the debugger
     //__low_power_mode_1();                                     /* Enter LPM1 */
     QF_INT_ENABLE();//If not debug, just reenable the interrupts
+    LED_off();
 }
 /*..........................................................................*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {
