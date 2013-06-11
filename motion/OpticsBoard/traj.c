@@ -1,10 +1,13 @@
-#define MOVE_STEPS 10000.f
+#define SMAX       2000U
+#define GENERATOR_SAMPLE_PERIOD_IN_TICK (TIMER_INT_HZ/SMAX)
+
+#define MOVE_STEPS 2000.f
 //Conservatively, the maximum step/s must be 1% less than the timer interrupt
 //freq to avoid falling behind by more than 1 clock due to floating point
 //quantization error
-#define SMAX_SEED  1990.0f
-#define AMAX_SEED  1000.0f
-#define JMAX      10000.0f
+#define SMAX_SEED  1000.f//1990.0f
+#define AMAX_SEED  2236.05f
+#define JMAX      20000.0f
 
 #include "qpn_port.h"
 #include "bsp.h"
@@ -52,7 +55,7 @@ Traj AO_traj;
 #define uStep2_on()   (P5OUT |= (MD0PIN))
 #define uStep4_on()   (P5OUT |= (MD1PIN))
 #define uStep8_on()   (P5OUT |= (MD1PIN + MD0PIN))
-#define uStep16_on()  (P5OUT |= (MD2PIN))
+#define uStep16_on()  (P5OUT |= (MD2PIN)) // does not work!
 #define uStep32_on()  (P5OUT |= (MD2PIN + MD1PIN + MD0PIN))
 
 #define DECAY_set(bFast)  if(bFast) P4OUT |= BIT1; else P4OUT &= ~BIT1
@@ -61,15 +64,15 @@ void Traj_fullfill_dP(Traj* const me, float dP) {
 	uint32_t step_r = (uint32_t)(dP + 0.5f)// step_r = ROUND(dP, 0)
 	       , step_diff = step_r - me->step;
 	switch(step_diff) {
-	case 0:
-		QActive_arm(&me->super, 1);//rearm timer to avoid logical deadlock
+	case 0://No pulse, but rearm timer to avoid logical deadlock
+		QActive_arm(&me->super, GENERATOR_SAMPLE_PERIOD_IN_TICK);
 		break;
 	case 1: //behind by 1 => emit ONE pulse
 		STP_on();
-		//LED_on();
-		QActive_arm(&me->super, 1);//rearm timer to avoid logical deadlock
+		LED_on();
+		QActive_arm(&me->super, GENERATOR_SAMPLE_PERIOD_IN_TICK);
     	//_delay_cycles(10);
-    	//LED_off();
+    	LED_off();
     	STP_off();
     	++me->step;
 		break;
@@ -79,8 +82,8 @@ void Traj_fullfill_dP(Traj* const me, float dP) {
 static QState Traj_moving(Traj* const me) {
     //QState status;
     switch (Q_SIG(me)) {
-	case Q_ENTRY_SIG: {
-		QActive_arm(&me->super, 1);//start generating the new trajectory
+	case Q_ENTRY_SIG: { //start generating the new trajectory
+		QActive_arm(&me->super, GENERATOR_SAMPLE_PERIOD_IN_TICK);
 		DIRECTION(me->direction);//drive the IC's DIR pin
 		me->step = 0;//reset my step count
 		return Q_HANDLED();
@@ -136,7 +139,7 @@ static QState Traj_dec_jdec(Traj* const me) {
 		return Q_HANDLED();
 	}
     case Q_TIMEOUT_SIG: {
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T0) {//deceleration should be complete
     		if(me->step == me->Dstep) return Q_TRAN(&Traj_idle);//Move done!
     		else dP = me->step + 1;//just take the next step
@@ -145,7 +148,6 @@ static QState Traj_dec_jdec(Traj* const me) {
 			dP = me->Amax_d2xT0x5T0_d3_P2T1_PSmax_xT3PT01
 			   + me->Smax_Amax_d2_xT0P2T1 * me->t
 			   - me->Amax_d2 * t_sq + me->Jmax_d6 * me->t * t_sq;
-			QActive_arm(&me->super, 1);//Check again 1 tick later
     	}
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
@@ -163,7 +165,7 @@ static QState Traj_dec_j0(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T1) {
     		me->t -= me->T1;
     		return Q_TRAN(&Traj_dec_jdec);
@@ -186,7 +188,7 @@ static QState Traj_dec_jinc(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T0) {
     		me->t -= me->T0;
     		return Q_TRAN(&Traj_dec_j0);
@@ -208,7 +210,7 @@ static QState Traj_coasting(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T3) {
     		me->t -= me->T3;
     		return Q_TRAN(&Traj_dec_jinc);
@@ -217,7 +219,7 @@ static QState Traj_coasting(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
 	case STOP_SIG://stop coasting right away
-		me->T3 = (1.0f/TIMER_INT_HZ) * me->tickInState;
+		me->T3 = (1.0f/SMAX) * me->tickInState;
 		Traj_deriveParams(me);
 		me->t = 0;//reset the time within trajectory
 		return Q_TRAN(&Traj_dec_jinc);//start decelerating right away
@@ -234,7 +236,7 @@ static QState Traj_acc_jdec(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T0) {
     		me->t -= me->T0;
     		return Q_TRAN(&Traj_coasting);
@@ -259,7 +261,7 @@ static QState Traj_acc_j0(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T1) {
     		me->t -= me->T1;
     		return Q_TRAN(&Traj_acc_jdec);
@@ -268,7 +270,7 @@ static QState Traj_acc_j0(Traj* const me) {
 		Traj_fullfill_dP(me, dP);
 		return Q_HANDLED();
 	case STOP_SIG:
-		me->T1 = (1.0f/TIMER_INT_HZ) * me->tickInState;
+		me->T1 = (1.0f/SMAX) * me->tickInState;
 		me->T3 = 0;//Don't spend any time in const speed state
 		me->Smax = me->Amax * (me->T0 + me->T1);
 		Traj_deriveParams(me);
@@ -281,11 +283,11 @@ static QState Traj_acc_jinc(Traj* const me) {
     switch(Q_SIG(me)) {
 	case Q_ENTRY_SIG:
 		me->tickInState = 0;
-		QActive_arm(&me->super, 1);//Check again 1 tick later
+		//QActive_arm(&me->super, 1);//Check again 1 tick later
 		return Q_HANDLED();
     case Q_TIMEOUT_SIG: {
     	float dP;
-    	me->t = (1.0f/TIMER_INT_HZ) * ++me->tickInState;
+    	me->t = (1.0f/SMAX) * ++me->tickInState;
     	if(me->t > me->T0) {
     		me->t -= me->T0;
     		return Q_TRAN(&Traj_acc_j0);
@@ -295,7 +297,7 @@ static QState Traj_acc_jinc(Traj* const me) {
 		return Q_HANDLED();
     }
 	case STOP_SIG:
-		me->T0 = (1.0f/TIMER_INT_HZ) * me->tickInState;
+		me->T0 = (1.0f/SMAX) * me->tickInState;
 		me->T1 = me->T3 = 0;//Don't spend any time in ACC_J0 or COASTING states
 		me->Amax = me->Jmax * me->T0;
 		me->Smax = me->Amax * me->T0;
@@ -350,9 +352,9 @@ static QState Traj_idle(Traj* const me) {
 }
 
 static QState Traj_initial(Traj* const me) {
-    me->direction = FALSE; //DIRECTION(me->direction);
-    //uStep_off();
-    uStep8_on();
+    me->direction = FALSE;
+    uStep_off();
+    //uStep32_on();
     DECAY_set(TRUE);
     DAC12_0DAT = 0x400;
     Stepper_on();

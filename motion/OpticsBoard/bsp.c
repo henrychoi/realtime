@@ -235,11 +235,11 @@ void QF_onStartup(void) {
 }
 /*..........................................................................*/
 void QF_onIdle(void) {
-	LED_on();//LED_toggle();
+	//LED_on();//LED_toggle();
 	//The low-power mode stops the CPU clock, so it can interfere with the debugger
     //__low_power_mode_1();                                     /* Enter LPM1 */
     QF_INT_ENABLE();//If not debug, just reenable the interrupts
-    LED_off();
+    //LED_off();
 }
 /*..........................................................................*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {

@@ -5,7 +5,8 @@
 
 #define TRUE 1
 #define FALSE 0
-#define TIMER_INT_HZ 2000U//MSP430F1612 cannot seem to run faster than 2 kHz
+//Trajectory gen on MSP430F1612 cannot seem to run faster than this rate
+#define TIMER_INT_HZ 2000U
 
 #define LED_on()   (P6OUT |= BIT5)
 #define LED_off()  (P6OUT &= ~BIT5)
