@@ -8,7 +8,6 @@ __interrupt void timerA_ISR(void) {
 
 int main(void) {
 	WDTCTL = WDTPW | WDTHOLD; // Stop watchdog timer
-	//See slau144i.pdf, section 8.2.6 "Pin Oscillator".  TASSELx = 0 (TACLK)
 	P1SEL = 0x01;//P0.1 is TA0CLK
 	P1DIR = 0x40;//P1.6 is LED2
 
