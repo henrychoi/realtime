@@ -35,7 +35,6 @@ void Traj_fullfill_dP(Traj* const me) {
 			//1 usec pulse is just not worth the extra complexity, because
 			//a couple of instruction is on the order of 1 usec.  But on
 			//faster uC, with multiple steppers, this is worth it.
-#FIXME: use timer PWM
 			GpioDataRegs.GPACLEAR.bit.GPIO0 = TRUE;
 			while(--ctr);
 			GpioDataRegs.GPASET.bit.GPIO0 = TRUE;
