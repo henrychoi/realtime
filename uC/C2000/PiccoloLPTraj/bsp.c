@@ -1,27 +1,15 @@
 #include <string.h>                                         /* for memcpy() */
 #include "qpn_port.h"
 #include "bsp.h"
-#include "traj.h"
+#include "stepper.h"
 
 Q_DEFINE_THIS_FILE
 
 /* running from Flash */
 #define FLASH 1
 
-/*----------------------------------------------------------------------------
-*  Target device (in DSP2802x_Device.h) determines CPU frequency
-*      (for examples) - either 60 MHz (for 28026 and 28027) or 40 MHz
-*      (for 28025, 28024, 28023, and 28022).
-*      User does not have to change anything here.
-*---------------------------------------------------------------------------*/
-#if (DSP28_28026 || DSP28_28027) /* DSP28_28026 || DSP28_28027 devices only */
-  #define CPU_FRQ_HZ    60000000
-#else
-  #define CPU_FRQ_HZ    40000000
-#endif
-
-#define CPU_TIMER_PERIOD \
-    ((CPU_FRQ_HZ + BSP_TICKS_PER_SEC/2) / BSP_TICKS_PER_SEC)
+#define CPU_TIMER_PERIOD (CPU_FRQ_HZ/BSP_TICKS_PER_SEC)
+    //((CPU_FRQ_HZ + BSP_TICKS_PER_SEC/2) / BSP_TICKS_PER_SEC)
 
 static void PieInit(void);
 static void PLLset(Uint16 val);
@@ -33,6 +21,7 @@ static void CopyFlash(void);
 /* CPU Timer0 ISR is used for system clock tick */
 #pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); /* place in RAM for speed */
 static interrupt void cpu_timer0_isr(void) {
+	LD_toggle();
     QF_tickISR();                         /* handle the QF-nano time events */
 
       /* Acknowledge this interrupt to receive more interrupts from group 1 */
@@ -44,9 +33,7 @@ static interrupt void cpu_timer0_isr(void) {
 static interrupt void gpio12_isr(void) {
 	int i;
 	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
-	for(i=0; i < N_TRAJ; ++i) {
-		QActive_postISR((QActive*)&AO_traj[i], GOSTOP_SIG);
-	}
+	QActive_postISR((QActive*)&AO_stepper, GO_SIG);
 	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
 	//other interrupts in PIEIFRx group.
 	PieCtrlRegs.PIEACK.bit.ACK12 = TRUE;//acknowledge PIE group 12
@@ -81,8 +68,11 @@ void BSP_init(void) {
     SysCtrlRegs.PCLKCR0.bit.ADCENCLK = 1;    // Enable ADC peripheral clock
     (*(void (*)(void))0x3D7C80)();           // Auto-calibrate from TI OTP
     SysCtrlRegs.PCLKCR0.bit.ADCENCLK = 0;    // Disable ADC clock
-    EDIS;
 
+    //GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//select the peripheral function. 0 => GPIO
+    GpioCtrlRegs.GPADIR .bit.GPIO3 = 1;// 1=OUTput, 0=INput
+	EDIS;
+	LD_on();
 
     // Switch to Internal Oscillator 1 and turn off all other clock
     // sources to minimize power consumption
@@ -140,50 +130,21 @@ void BSP_init(void) {
     // Note: not all peripherals are available on all 280x derivates.
     // Refer to the datasheet for your particular device.
     SysCtrlRegs.PCLKCR0.bit.ADCENCLK    = 0; // ADC
-
     SysCtrlRegs.PCLKCR3.bit.COMP1ENCLK  = 0; // COMP1
     SysCtrlRegs.PCLKCR3.bit.COMP2ENCLK  = 0; // COMP2
-
     SysCtrlRegs.PCLKCR0.bit.I2CAENCLK   = 0; // I2C
-
-    SysCtrlRegs.PCLKCR0.bit.SPIAENCLK   = 0; // SPI-A
-
+    SysCtrlRegs.PCLKCR0.bit.SPIAENCLK   = TRUE;// SPI-A
     SysCtrlRegs.PCLKCR0.bit.SCIAENCLK   = 0; // SCI-A
-
     SysCtrlRegs.PCLKCR1.bit.ECAP1ENCLK  = 0; // eCAP1
-
     SysCtrlRegs.PCLKCR1.bit.EPWM1ENCLK  = 0; // ePWM1
     SysCtrlRegs.PCLKCR1.bit.EPWM2ENCLK  = 0; // ePWM2
     SysCtrlRegs.PCLKCR1.bit.EPWM3ENCLK  = 0; // ePWM3
     SysCtrlRegs.PCLKCR1.bit.EPWM4ENCLK  = 0; // ePWM4
-
     SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC   = 0; // Enable TBCLK
     EDIS;
 
 
     EALLOW;                                               /* GPIO config... */
-    //GPIO0~2 used for STP pin
-    GpioCtrlRegs.GPAMUX1.bit.GPIO0 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO0 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO0 = TRUE;//turn off
-    GpioCtrlRegs.GPAMUX1.bit.GPIO1 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO1 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO1 = TRUE;//turn off
-    GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO2 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO2 = TRUE;//turn off
-
-	//GPIO3~5 used for DIR pin
-    GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO3 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO3 = TRUE;//turn off
-    GpioCtrlRegs.GPAMUX1.bit.GPIO4 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO4 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO4 = TRUE;//turn off
-    GpioCtrlRegs.GPAMUX1.bit.GPIO5 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO5 = 1;// 1=OUTput, 0=INput
-	GpioDataRegs.GPASET .bit.GPIO5 = TRUE;//turn off
-
 	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
     GpioCtrlRegs.GPAPUD .bit.GPIO12 = TRUE;//disable pull-up
 
@@ -209,12 +170,12 @@ void BSP_init(void) {
     CpuTimer0Regs.TCR.bit.SOFT = 0;
     CpuTimer0Regs.TCR.bit.FREE = 0;   // 0 = Timer Free Run Disabled
     CpuTimer0Regs.TCR.bit.TIE  = 1;   // 1 = Enable Timer Interrupt
+	LD_off();
 }
 
 /*..........................................................................*/
 void QF_onStartup(void) {
     CpuTimer0Regs.TCR.bit.TSS = 0;     /* start the system clock tick timer */
-
 
     IER |= M_INT1// Enable CPU INT1, which is connected to CPU-Timer 0:
     	 + M_INT12;//XINT3 is connected to INT12

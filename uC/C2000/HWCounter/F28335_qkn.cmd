@@ -137,7 +137,6 @@ SECTIONS
                          LOAD_END(_RamfuncsLoadEnd),
                          RUN_START(_RamfuncsRunStart),
                          PAGE = 0
-
    ramconsts           : LOAD = FLASHD,
                          RUN = RAML0,
                          LOAD_START(_RamconstLoadStart),
