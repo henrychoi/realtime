@@ -198,6 +198,7 @@ void QF_onIdle(void) {
 }
 /*--------------------------------------------------------------------------*/
 void Q_onAssert(char const Q_ROM * const Q_ROM_VAR file, int line) {
+	LD_on();
     /* Next two lines for debug only to halt the processor here.
     * I MUST to change this policy for the production release!
     */
