@@ -365,16 +365,7 @@ void dSPIN_Regs_Struct_Reset(dSPIN_RegsStruct_TypeDef* dSPIN_RegsStruct) {
   * @retval None
   */
 void dSPIN_Registers_Set(dSPIN_RegsStruct_TypeDef* dSPIN_RegsStruct) {
-	uint32_t readback_val;
-
-	dSPIN_Set_Param(dSPIN_CONFIG, dSPIN_RegsStruct->CONFIG);
-	readback_val = dSPIN_Get_Param(dSPIN_CONFIG);
-	Q_ALLEGE(readback_val == dSPIN_RegsStruct->CONFIG);
-
 	dSPIN_Set_Param(dSPIN_ABS_POS, dSPIN_RegsStruct->ABS_POS);
-	readback_val = dSPIN_Get_Param(dSPIN_ABS_POS);
-	Q_ALLEGE(readback_val == dSPIN_RegsStruct->ABS_POS);
-
 	dSPIN_Set_Param(dSPIN_EL_POS, dSPIN_RegsStruct->EL_POS);
 	dSPIN_Set_Param(dSPIN_MARK, dSPIN_RegsStruct->MARK);
 	dSPIN_Set_Param(dSPIN_SPEED, dSPIN_RegsStruct->SPEED);
@@ -396,6 +387,7 @@ void dSPIN_Registers_Set(dSPIN_RegsStruct_TypeDef* dSPIN_RegsStruct) {
 	dSPIN_Set_Param(dSPIN_STALL_TH, dSPIN_RegsStruct->STALL_TH);
 	dSPIN_Set_Param(dSPIN_STEP_MODE, dSPIN_RegsStruct->STEP_MODE);
 	dSPIN_Set_Param(dSPIN_ALARM_EN, dSPIN_RegsStruct->ALARM_EN);
+	dSPIN_Set_Param(dSPIN_CONFIG, dSPIN_RegsStruct->CONFIG);
 }
 
 /**
@@ -416,6 +408,8 @@ void dSPIN_Nop(void)
   */
 void dSPIN_Set_Param(dSPIN_Registers_TypeDef param, uint32_t value)
 {
+	uint32_t readback_val;
+
 	/* Send SetParam operation code to dSPIN */
 	dSPIN_Write_Byte(dSPIN_SET_PARAM | param);
 	switch (param)
@@ -439,6 +433,8 @@ void dSPIN_Set_Param(dSPIN_Registers_TypeDef param, uint32_t value)
 			/* Send parameter - byte 0 to dSPIN */
 		   	dSPIN_Write_Byte((uint8_t)(value));
 	}
+	readback_val = dSPIN_Get_Param(param);
+	Q_ALLEGE(readback_val == value);
 }
 
 /**
@@ -756,7 +752,7 @@ uint8_t dSPIN_Write_Byte(uint8_t byte) {
 	SpiaRegs.SPICCR.bit.SPISWRESET = FALSE;//Disable SPI
 	GpioDataRegs.GPASET.bit.GPIO19 = TRUE;/* nSS signal deactivation - high */
 
-	//for(i = 0; i ; --i);//t_disCS > 800 ns
+	for(i = 0; i ; --i);//t_disCS > 800 ns
 
 	//Q_ASSERT(!SpiaRegs.SPIFFRX.bit.RXFFOVF);//something really wrong!
 	//SpiaRegs.SPIFFRX.bit.RXFFOVFCLR = 1;  // Clear Overflow flag
@@ -794,34 +790,6 @@ static QState Stepper_initial(Stepper* const me) {
 	uint16_t status;
 	dSPIN_RegsStruct_TypeDef dSPIN_RegsStruct;
 	dSPIN_Regs_Struct_Reset(&dSPIN_RegsStruct);
-	dSPIN_RegsStruct.ACC = AccDec_Steps_to_Par(466);
-	dSPIN_RegsStruct.DEC = AccDec_Steps_to_Par(466);
-	dSPIN_RegsStruct.MAX_SPEED = MaxSpd_Steps_to_Par(488);
-	dSPIN_RegsStruct.MIN_SPEED = MinSpd_Steps_to_Par(0);
-	dSPIN_RegsStruct.FS_SPD = FSSpd_Steps_to_Par(252);
-	dSPIN_RegsStruct.KVAL_HOLD = Kval_Perc_to_Par(10);
-	dSPIN_RegsStruct.KVAL_RUN = Kval_Perc_to_Par(10);
-	dSPIN_RegsStruct.KVAL_ACC = Kval_Perc_to_Par(10);
-	dSPIN_RegsStruct.KVAL_DEC = Kval_Perc_to_Par(10);
-	dSPIN_RegsStruct.INT_SPD = IntSpd_Steps_to_Par(200);
-	dSPIN_RegsStruct.ST_SLP  = BEMF_Slope_Perc_to_Par(0.038);
-	dSPIN_RegsStruct.FN_SLP_ACC = BEMF_Slope_Perc_to_Par(0.063);
-	dSPIN_RegsStruct.FN_SLP_DEC = BEMF_Slope_Perc_to_Par(0.063);
-	dSPIN_RegsStruct.K_THERM = KTherm_to_Par(1);
-	dSPIN_RegsStruct.OCD_TH = dSPIN_OCD_TH_2250mA;
-	dSPIN_RegsStruct.STALL_TH = StallTh_to_Par(1000);
-	dSPIN_RegsStruct.STEP_MODE= dSPIN_STEP_SEL_1_8;
-	dSPIN_RegsStruct.ALARM_EN = dSPIN_ALARM_EN_OVERCURRENT
-			| dSPIN_ALARM_EN_THERMAL_SHUTDOWN| dSPIN_ALARM_EN_THERMAL_WARNING
-			| dSPIN_ALARM_EN_UNDER_VOLTAGE
-			| dSPIN_ALARM_EN_STALL_DET_A| dSPIN_ALARM_EN_STALL_DET_B
-			| dSPIN_ALARM_EN_SW_TURN_ON | dSPIN_ALARM_EN_WRONG_NPERF_CMD;
-	dSPIN_RegsStruct.CONFIG = dSPIN_CONFIG_INT_16MHZ_OSCOUT_2MHZ
-			| dSPIN_CONFIG_SW_USER//don't want to hard on home switch
-			| dSPIN_CONFIG_VS_COMP_DISABLE//Motor supply voltage compensation OFF
-			| dSPIN_CONFIG_OC_SD_ENABLE//bridge does NOT shutdown on overcurrent
-			| dSPIN_CONFIG_SR_290V_us//slew rate
-			| dSPIN_CONFIG_PWM_DIV_2 | dSPIN_CONFIG_PWM_MUL_1;
 
 	EALLOW;
 	switch(me->id) {
@@ -863,8 +831,8 @@ static QState Stepper_initial(Stepper* const me) {
 	SpiaRegs.SPICCR.bit.SPICHAR = (8-1) & 0x0F;//8-bit word
 	SpiaRegs.SPICTL.bit.MASTER_SLAVE = 1; //this board is a master
 	//SpiaRegs.SPICCR.bit.SPILBK = TRUE;//Loopback mode; uncomment for test
-	SpiaRegs.SPICCR.bit.CLKPOLARITY = 0;//output on rising edge
-	SpiaRegs.SPICTL.bit.CLK_PHASE = 0;//delayed clock
+	SpiaRegs.SPICCR.bit.CLKPOLARITY = 1;//output on FALLING edge
+	SpiaRegs.SPICTL.bit.CLK_PHASE = 0;
 #define SPI_BAUD 1000000 //max SPI freq = 5 MHz
 	SpiaRegs.SPIBRR = (CPU_FRQ_HZ/SPI_BAUD)/4U - 1;
     SpiaRegs.SPIPRI.bit.FREE = 1;// Set so breakpoints don't disturb xmission
@@ -890,13 +858,47 @@ static QState Stepper_initial(Stepper* const me) {
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 1;
 	EDIS;
 
-    status = dSPIN_Get_Status();
-	Q_ALLEGE(status == 0);//a sanity check against actual chip
-    //Q_ALLEGE(!dSPIN_Flag());
+    Q_ALLEGE(!dSPIN_Flag());
     Q_ALLEGE(!dSPIN_Busy_HW());
-	//The current state of the FIFO:
-	//SPIFFRX: 0x201F: FIFO enabled interrupt level bits = 0x1F
-	//SPIFFTX: 0xE080: FIFO operational, and interrupt has occurred
+    status = dSPIN_Get_Status();
+
+	Q_ALLEGE(status & dSPIN_STATUS_BUSY);
+   	Q_ALLEGE(!(status & dSPIN_STATUS_SW_EVN));
+   	Q_ALLEGE((status & dSPIN_STATUS_MOT_STATUS) == dSPIN_STATUS_MOT_STATUS_STOPPED);
+   	Q_ALLEGE(!(status & dSPIN_STATUS_NOTPERF_CMD));
+   	Q_ALLEGE(!(status & dSPIN_STATUS_WRONG_CMD));
+   	//Q_ALLEGE(status & dSPIN_STATUS_UVLO);
+   	Q_ALLEGE(status & dSPIN_STATUS_TH_SD);
+   	Q_ALLEGE(status & dSPIN_STATUS_OCD);
+
+	dSPIN_RegsStruct.CONFIG = dSPIN_CONFIG_INT_16MHZ_OSCOUT_2MHZ
+			| dSPIN_CONFIG_SW_USER//don't want to hard stop on home switch
+			| dSPIN_CONFIG_VS_COMP_DISABLE//Motor supply voltage compensation OFF
+			| dSPIN_CONFIG_OC_SD_ENABLE//bridge does NOT shutdown on overcurrent
+			| dSPIN_CONFIG_SR_290V_us//slew rate
+			| dSPIN_CONFIG_PWM_DIV_2 | dSPIN_CONFIG_PWM_MUL_1;
+	dSPIN_RegsStruct.ACC = AccDec_Steps_to_Par(466);
+	dSPIN_RegsStruct.DEC = AccDec_Steps_to_Par(466);
+	dSPIN_RegsStruct.MAX_SPEED = MaxSpd_Steps_to_Par(488);
+	dSPIN_RegsStruct.MIN_SPEED = MinSpd_Steps_to_Par(0);
+	dSPIN_RegsStruct.FS_SPD = FSSpd_Steps_to_Par(252);
+	dSPIN_RegsStruct.KVAL_HOLD = Kval_Perc_to_Par(10);
+	dSPIN_RegsStruct.KVAL_RUN = Kval_Perc_to_Par(10);
+	dSPIN_RegsStruct.KVAL_ACC = Kval_Perc_to_Par(10);
+	dSPIN_RegsStruct.KVAL_DEC = Kval_Perc_to_Par(10);
+	dSPIN_RegsStruct.INT_SPD = IntSpd_Steps_to_Par(200);
+	dSPIN_RegsStruct.ST_SLP  = BEMF_Slope_Perc_to_Par(0.038);
+	dSPIN_RegsStruct.FN_SLP_ACC = BEMF_Slope_Perc_to_Par(0.063);
+	dSPIN_RegsStruct.FN_SLP_DEC = BEMF_Slope_Perc_to_Par(0.063);
+	dSPIN_RegsStruct.K_THERM = KTherm_to_Par(1);
+	dSPIN_RegsStruct.OCD_TH = dSPIN_OCD_TH_2250mA;
+	dSPIN_RegsStruct.STALL_TH = StallTh_to_Par(1000);
+	dSPIN_RegsStruct.STEP_MODE= dSPIN_STEP_SEL_1_8;
+	dSPIN_RegsStruct.ALARM_EN = dSPIN_ALARM_EN_OVERCURRENT
+			| dSPIN_ALARM_EN_THERMAL_SHUTDOWN| dSPIN_ALARM_EN_THERMAL_WARNING
+			| dSPIN_ALARM_EN_UNDER_VOLTAGE
+			| dSPIN_ALARM_EN_STALL_DET_A| dSPIN_ALARM_EN_STALL_DET_B
+			| dSPIN_ALARM_EN_SW_TURN_ON | dSPIN_ALARM_EN_WRONG_NPERF_CMD;
 
 	dSPIN_Registers_Set(&dSPIN_RegsStruct);
 	status = dSPIN_Get_Status();
