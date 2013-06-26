@@ -856,11 +856,11 @@ static QState Stepper_initial(Stepper* const me) {
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 0;
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 1;
 	EDIS;
+	dSPIN_Soft_Stop();
+	dSPIN_Reset_Device();
 
-    Q_ALLEGE(!dSPIN_Flag());
     Q_ALLEGE(!dSPIN_Busy_HW());
     status = dSPIN_Get_Status();
-	Q_ALLEGE(status & dSPIN_STATUS_BUSY);
    	Q_ALLEGE(!(status & dSPIN_STATUS_SW_EVN));
    	Q_ALLEGE((status & dSPIN_STATUS_MOT_STATUS) == dSPIN_STATUS_MOT_STATUS_STOPPED);
    	Q_ALLEGE(!(status & dSPIN_STATUS_NOTPERF_CMD));
@@ -890,7 +890,7 @@ static QState Stepper_initial(Stepper* const me) {
 	dSPIN_RegsStruct.K_THERM = KTherm_to_Par(1);
 	dSPIN_RegsStruct.OCD_TH = dSPIN_OCD_TH_2250mA;
 	dSPIN_RegsStruct.STALL_TH = StallTh_to_Par(1000);
-	dSPIN_RegsStruct.STEP_MODE= dSPIN_STEP_SEL_1_8;
+	dSPIN_RegsStruct.STEP_MODE= dSPIN_STEP_SEL_1_2;
 	dSPIN_RegsStruct.ALARM_EN = dSPIN_ALARM_EN_OVERCURRENT
 			| dSPIN_ALARM_EN_THERMAL_SHUTDOWN| dSPIN_ALARM_EN_THERMAL_WARNING
 			| dSPIN_ALARM_EN_UNDER_VOLTAGE
@@ -900,8 +900,14 @@ static QState Stepper_initial(Stepper* const me) {
 			;
 
 	dSPIN_Registers_Set(&dSPIN_RegsStruct);
-	status = dSPIN_Get_Status();
-	//Let's check all settings against expected for sanity check
+
+    status = dSPIN_Get_Status();
+    Q_ALLEGE(status & dSPIN_STATUS_HIZ);
+	Q_ALLEGE(status & dSPIN_STATUS_BUSY);
+    Q_ALLEGE(!dSPIN_Flag());
+    Q_ALLEGE(!dSPIN_Busy_HW());
+
+    dSPIN_Go_Until(ACTION_RESET, FWD, 5000);
 
 	return Q_TRAN(&Stepper_idle);
 }
