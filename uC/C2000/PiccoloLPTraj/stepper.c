@@ -799,7 +799,8 @@ static QState Stepper_homing_down(Stepper* const me) {
     case Q_ENTRY_SIG:
     	QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
     	dSPIN_Go_Until(ACTION_RESET, REV, HOMING_SPEED);
-    case NBUSY_SIG: return Q_TRAN(Stepper_idle);
+    case NBUSY_SIG://stopped; now we are homed
+    	return Q_TRAN(Stepper_idle);
 	default: return Q_SUPER(&Stepper_homing);
     }
 }

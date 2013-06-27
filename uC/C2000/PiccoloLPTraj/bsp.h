@@ -2,7 +2,7 @@
 #define bsp_h
 #include "DSP2802x_Device.h"                   /* defines the C28027 device */
 
-#define BSP_TICKS_PER_SEC 1U
+#define BSP_TICKS_PER_SEC 10U
 /*----------------------------------------------------------------------------
 *  Target device (in DSP2802x_Device.h) determines CPU frequency
 *      (for examples) - either 60 MHz (for 28026 and 28027) or 40 MHz
