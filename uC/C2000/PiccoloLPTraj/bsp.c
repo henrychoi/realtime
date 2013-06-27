@@ -17,21 +17,65 @@ static void PLLset(Uint16 val);
 static void InitFlash(void);
 static void CopyFlash(void);
 
+//Global variables are already in RAM
+uint8_t cpu_timer0_inited = FALSE, top_flag_prev, btm_flag_prev, busy_prev;
+
+#pragma CODE_SECTION(top_flag, "ramfuncs"); /* place in RAM for speed */
+uint8_t top_flag(uint8_t stepper_id) {
+	switch(stepper_id) {
+	case 0: return GpioDataRegs.GPADAT.bit.GPIO2;
+	default: Q_ERROR();
+	}
+}
+#pragma CODE_SECTION(btm_flag, "ramfuncs"); /* place in RAM for speed */
+uint8_t btm_flag(uint8_t stepper_id) {
+	switch(stepper_id) {
+	case 0: return GpioDataRegs.GPADAT.bit.GPIO3;
+	default: Q_ERROR();
+	}
+}
 /*..........................................................................*/
 /* CPU Timer0 ISR is used for system clock tick */
-#pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); /* place in RAM for speed */
+#pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); //place in RAM for speed
 static interrupt void cpu_timer0_isr(void) {
-	LD_toggle();
+	uint8_t top_flag_now = top_flag(0), btm_flag_now = btm_flag(0)
+	      , busy_now = dSPIN_Busy_HW(0);
+
+	if(cpu_timer0_inited) {
+		if(top_flag_now == top_flag_prev) {
+			if(btm_flag_now != btm_flag_prev) {
+				if(btm_flag_prev) { //bottom --> below || top --> above
+					//Not interested in either of these
+				} else { //below --> bottom || above --> top: bad either way
+					QActive_postISR((QActive*)&AO_stepper
+							, top_flag_now ? TOP_SIG : BOTTOM_SIG);
+				}
+			}
+		} else { // above <--> below event
+			if(top_flag_prev) { //above --> below: not interested
+			} else { //below --> above; used for homing
+				QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG);
+			}
+		}
+
+		if(busy_prev != busy_now && !busy_now)
+			QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG);
+	} else cpu_timer0_inited = TRUE;
+
+	top_flag_prev = top_flag_now;
+	btm_flag_prev = btm_flag_now;
+	busy_prev = busy_now;
+
     QF_tickISR();                         /* handle the QF-nano time events */
 
       /* Acknowledge this interrupt to receive more interrupts from group 1 */
     //PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
     PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
+	LD_toggle();
 }
 
 //#pragma CODE_SECTION(gpio12_isr, "ramfuncs"); /* place in RAM for speed */
 static interrupt void gpio12_isr(void) {
-	int i;
 	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
 	QActive_postISR((QActive*)&AO_stepper, GO_SIG);
 	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
@@ -47,7 +91,6 @@ static interrupt void illegal_isr(void) {
 
 /*..........................................................................*/
 void BSP_init(void) {
-
     DINT;                                    // Global Disable all Interrupts
     IER = 0x0000;                            // Disable CPU interrupts
     IFR = 0x0000;                            // Clear all CPU interrupt flags
@@ -145,6 +188,21 @@ void BSP_init(void) {
 
 
     EALLOW;                                               /* GPIO config... */
+	//Configure GPIO2 and GPIO3 to receive optical switch input
+	//GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//Used for Optical switch A
+	//GpioCtrlRegs.GPADIR .bit.GPIO2 = 0;// 1=OUTput, 0=INput
+    GpioCtrlRegs.GPAPUD .bit.GPIO2 = TRUE;//disable pull-up
+	//GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//Used for Optical switch B
+	//GpioCtrlRegs.GPADIR .bit.GPIO3 = 0;// 1=OUTput, 0=INput
+    GpioCtrlRegs.GPAPUD .bit.GPIO3 = TRUE;//disable pull-up
+
+    //Use HW to debouce the optical switch; qualify using 6 samples (the max)
+    GpioCtrlRegs.GPAQSEL1.bit.GPIO2 = 3;
+    GpioCtrlRegs.GPAQSEL1.bit.GPIO3 = 3;
+    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
+    //Be careful about this period if some GPI are used for other purpose
+    //GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
+
 	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
     GpioCtrlRegs.GPAPUD .bit.GPIO12 = TRUE;//disable pull-up
 

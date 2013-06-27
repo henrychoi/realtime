@@ -17,8 +17,11 @@
 
 void BSP_init(void);
 
-#define LD_on()     GpioDataRegs.GPACLEAR.bit.GPIO3  = TRUE
-#define LD_off()    GpioDataRegs.GPASET.bit.GPIO3    = TRUE
-#define LD_toggle() GpioDataRegs.GPATOGGLE.bit.GPIO3 = TRUE
+#define LD_on()
+#define LD_off()
+#define LD_toggle()
+
+uint8_t top_flag(uint8_t stepper_id);
+uint8_t btm_flag(uint8_t stepper_id);
 
 #endif                                                             /* bsp_h */

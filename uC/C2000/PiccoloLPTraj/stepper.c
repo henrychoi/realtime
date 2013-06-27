@@ -22,8 +22,7 @@ Q_DEFINE_THIS_FILE
 /**
   * @brief dSPIN Init structure definition
   */
-typedef struct
-{
+typedef struct {
   uint32_t ABS_POS;
   uint16_t EL_POS;
   uint32_t MARK;
@@ -48,7 +47,7 @@ typedef struct
   uint8_t  STEP_MODE;
   uint8_t  ALARM_EN;
   uint16_t CONFIG;
-}dSPIN_RegsStruct_TypeDef;
+} dSPIN_RegsStruct_TypeDef;
 
 /* dSPIN overcurrent threshold options */
 typedef enum {
@@ -321,7 +320,6 @@ void dSPIN_Hard_Stop(void);
 void dSPIN_Soft_HiZ(void);
 void dSPIN_Hard_HiZ(void);
 uint16_t dSPIN_Get_Status(void);
-uint8_t dSPIN_Busy_HW(void);
 uint8_t dSPIN_Busy_SW(void);
 uint8_t dSPIN_Flag(void);
 uint16_t dSPIN_Get_Status(void);
@@ -696,11 +694,15 @@ uint16_t dSPIN_Get_Status(void)
 
 /**
   * @brief  Checks if the dSPIN is Busy by hardware - active Busy signal.
-  * @param  None
   * @retval one if chip is busy, otherwise zero
   */
-uint8_t dSPIN_Busy_HW(void) {
-	return !GpioDataRegs.GPADAT.bit.GPIO0;
+#pragma CODE_SECTION(dSPIN_Busy_HW, "ramfuncs");//place in RAM for speed
+uint8_t dSPIN_Busy_HW(uint8_t id) {
+	switch(id) {
+	case 0:	return !GpioDataRegs.GPADAT.bit.GPIO0;
+	default: Q_ERROR();
+	}
+	return FALSE;
 }
 
 /**
@@ -773,18 +775,80 @@ typedef struct Stepper {
 } Stepper;
 
 //protected: //necessary forward declaration
-static QState Stepper_idle(Stepper* const me);
+static QState Stepper_lost(Stepper* const me);
+static QState Stepper_trouble(Stepper* const me);
+static QState Stepper_homing(Stepper* const me);
+static QState Stepper_homing_up(Stepper* const me);
 
 //Global objects are placed in DRAML0 block.  See linker cmd file for headroom
 Stepper AO_stepper;
+#define HOMING_SPEED 10000
+//.............................................................................
 
-static QState Stepper_idle(Stepper* const me) {
+static QState Stepper_homed(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case GO_SIG:
 	default: return Q_SUPER(&QHsm_top);
     }
 }
-
+static QState Stepper_idle(Stepper* const me) {
+    switch (Q_SIG(me)) {
+	default: return Q_SUPER(&Stepper_homed);
+    }
+}
+static QState Stepper_homing_down(Stepper* const me) {
+    switch (Q_SIG(me)) {
+    case Q_ENTRY_SIG:
+    	QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
+    	dSPIN_Go_Until(ACTION_RESET, REV, HOMING_SPEED);
+    case NBUSY_SIG: return Q_TRAN(Stepper_idle);
+	default: return Q_SUPER(&Stepper_homing);
+    }
+}
+static QState Stepper_homing_up_stopping(Stepper* const me) {
+    switch (Q_SIG(me)) {
+    case Q_ENTRY_SIG:
+        QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
+        dSPIN_Soft_Stop();
+        return Q_HANDLED();
+    case NBUSY_SIG: return Q_TRAN(Stepper_homing_down);
+	default: return Q_SUPER(&Stepper_homing_up);
+    }
+}
+static QState Stepper_homing_up(Stepper* const me) {
+    switch (Q_SIG(me)) {
+    case Q_ENTRY_SIG:
+        QActive_arm(&me->super, ~0);//Set to maximum QF_TIMEEVT_CTR_SIZE for now
+        dSPIN_Run(FWD, HOMING_SPEED);
+        return Q_HANDLED();
+    case ABOVE_SIG:
+        return Q_TRAN(Stepper_homing_up_stopping);
+	default: return Q_SUPER(&Stepper_homing);
+    }
+}
+static QState Stepper_homing(Stepper* const me) {
+    switch (Q_SIG(me)) {
+    case Q_INIT_SIG: return Q_TRAN(top_flag(me->id) ? &Stepper_homing_down
+                                                    : &Stepper_homing_up);
+    case Q_ENTRY_SIG:
+    	QActive_disarm(&me->super);
+    	return Q_HANDLED();
+    case Q_TIMEOUT_SIG:
+    	dSPIN_Soft_Stop();
+    	return Q_TRAN(Stepper_trouble);
+	default: return Q_SUPER(&QHsm_top);
+    }
+}
+static QState Stepper_trouble(Stepper* const me) {
+    switch (Q_SIG(me)) {
+	default: return Q_SUPER(&Stepper_lost);
+    }
+}
+static QState Stepper_lost(Stepper* const me) {
+    switch (Q_SIG(me)) {
+    case HOME_SIG: return Q_TRAN(&Stepper_homing);
+	default: return Q_SUPER(&QHsm_top);
+    }
+}
 static QState Stepper_initial(Stepper* const me) {
 	uint16_t status;
 	dSPIN_RegsStruct_TypeDef dSPIN_RegsStruct;
@@ -848,18 +912,18 @@ static QState Stepper_initial(Stepper* const me) {
 	//SpiaRegs.SPIFFTX.bit.SPIRST = 0;//resume FIFOs; SPI FIFO config unchanged
 	//SpiaRegs.SPICCR.bit.SPISWRESET = FALSE;//Enable SPI
 
-	EALLOW;
+	//EALLOW;
 	//SpiaRegs.SPICCR.bit.SPILBK = FALSE;//Loopback mode; uncomment for test
     //Reset FIFO
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 0;//Reset FIFO pointer to 0, and hold in reset
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 1;//Reenable tx FIFO
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 0;
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 1;
-	EDIS;
+	//EDIS;
 	dSPIN_Soft_Stop();
 	dSPIN_Reset_Device();
 
-    Q_ALLEGE(!dSPIN_Busy_HW());
+    Q_ALLEGE(!dSPIN_Busy_HW(me->id));
     status = dSPIN_Get_Status();
    	Q_ALLEGE(!(status & dSPIN_STATUS_SW_EVN));
    	Q_ALLEGE((status & dSPIN_STATUS_MOT_STATUS) == dSPIN_STATUS_MOT_STATUS_STOPPED);
@@ -905,11 +969,11 @@ static QState Stepper_initial(Stepper* const me) {
     Q_ALLEGE(status & dSPIN_STATUS_HIZ);
 	Q_ALLEGE(status & dSPIN_STATUS_BUSY);
     Q_ALLEGE(!dSPIN_Flag());
-    Q_ALLEGE(!dSPIN_Busy_HW());
+    Q_ALLEGE(!dSPIN_Busy_HW(me->id));
 
-    dSPIN_Go_Until(ACTION_RESET, FWD, 5000);
+    //dSPIN_Go_Until(ACTION_RESET, FWD, 5000);
 
-	return Q_TRAN(&Stepper_idle);
+	return Q_TRAN(&Stepper_lost);
 }
 
 void Stepper_init(void) {
