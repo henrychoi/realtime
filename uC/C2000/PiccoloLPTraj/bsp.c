@@ -24,14 +24,14 @@ uint8_t cpu_timer0_inited = FALSE, top_flag_prev, btm_flag_prev, busy_prev;
 uint8_t top_flag(uint8_t stepper_id) {
 	switch(stepper_id) {
 	case 0: return GpioDataRegs.GPADAT.bit.GPIO2;
-	default: Q_ERROR();
+	default: Q_ERROR(); return 0;
 	}
 }
 #pragma CODE_SECTION(btm_flag, "ramfuncs"); /* place in RAM for speed */
 uint8_t btm_flag(uint8_t stepper_id) {
 	switch(stepper_id) {
 	case 0: return GpioDataRegs.GPADAT.bit.GPIO3;
-	default: Q_ERROR();
+	default: Q_ERROR(); return 0;
 	}
 }
 /*..........................................................................*/
@@ -77,7 +77,7 @@ static interrupt void cpu_timer0_isr(void) {
 //#pragma CODE_SECTION(gpio12_isr, "ramfuncs"); /* place in RAM for speed */
 static interrupt void gpio12_isr(void) {
 	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
-	QActive_postISR((QActive*)&AO_stepper, GO_SIG);
+	QActive_postISR((QActive*)&AO_stepper, HOME_SIG);
 	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
 	//other interrupts in PIEIFRx group.
 	PieCtrlRegs.PIEACK.bit.ACK12 = TRUE;//acknowledge PIE group 12

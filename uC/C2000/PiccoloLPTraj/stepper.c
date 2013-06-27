@@ -700,9 +700,8 @@ uint16_t dSPIN_Get_Status(void)
 uint8_t dSPIN_Busy_HW(uint8_t id) {
 	switch(id) {
 	case 0:	return !GpioDataRegs.GPADAT.bit.GPIO0;
-	default: Q_ERROR();
+	default: Q_ERROR(); return 0;
 	}
-	return FALSE;
 }
 
 /**
