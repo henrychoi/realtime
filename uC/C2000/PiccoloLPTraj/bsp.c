@@ -48,18 +48,21 @@ static interrupt void cpu_timer0_isr(void) {
 					//Not interested in either of these
 				} else { //below --> bottom || above --> top: bad either way
 					QActive_postISR((QActive*)&AO_stepper
-							, top_flag_now ? TOP_SIG : BOTTOM_SIG);
+							, top_flag_now ? TOP_SIG : BOTTOM_SIG
+							, top_flag_now << 1 | btm_flag_now);
 				}
 			}
 		} else { // above <--> below event
 			if(top_flag_prev) { //above --> below: not interested
 			} else { //below --> above; used for homing
-				QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG);
+				QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG
+						, top_flag_now << 1 | btm_flag_now);
 			}
 		}
 
 		if(busy_prev != busy_now && !busy_now)
-			QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG);
+			QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG
+					, top_flag_now << 1 | btm_flag_now);
 	} else cpu_timer0_inited = TRUE;
 
 	top_flag_prev = top_flag_now;
@@ -73,16 +76,31 @@ static interrupt void cpu_timer0_isr(void) {
     PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
 	LD_toggle();
 }
-
-//#pragma CODE_SECTION(gpio12_isr, "ramfuncs"); /* place in RAM for speed */
-static interrupt void gpio12_isr(void) {
+static interrupt void xint2_isr(void) {
+	//One of the steppers pulled down FLAG.  Something is wrong
+	int i;
+	for(i=0; i < 1; ++i) {
+		uint16_t status;
+		if(!dSPIN_Alarm(i)) continue;
+		//OK, this IC has an alarm latched.  Get the current status
+		status = dSPIN_Get_Status(i) //filter out uninteresting status
+               & (dSPIN_STATUS_STEP_LOSS_A | dSPIN_STATUS_STEP_LOSS_B
+            	| dSPIN_STATUS_OCD | dSPIN_STATUS_TH_WRN | dSPIN_STATUS_TH_SD
+            	| dSPIN_STATUS_UVLO | dSPIN_STATUS_WRONG_CMD | dSPIN_STATUS_HIZ);
+		if(status & (dSPIN_STATUS_STEP_LOSS_A | dSPIN_STATUS_STEP_LOSS_B))
+			QActive_postISR((QActive*)&AO_stepper, STEP_LOSS_SIG, status);
+		else QActive_postISR((QActive*)&AO_stepper, ALARM_SIG, status);
+	}
+	PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
+}
+//#pragma CODE_SECTION(xint3_isr, "ramfuncs"); /* place in RAM for speed */
+static interrupt void xint3_isr(void) {
 	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
-	QActive_postISR((QActive*)&AO_stepper, HOME_SIG);
+	QActive_postISR((QActive*)&AO_stepper, HOME_SIG, 0);
 	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
 	//other interrupts in PIEIFRx group.
 	PieCtrlRegs.PIEACK.bit.ACK12 = TRUE;//acknowledge PIE group 12
 }
-
 /*..........................................................................*/
 // Illegal operation TRAP
 static interrupt void illegal_isr(void) {
@@ -91,6 +109,7 @@ static interrupt void illegal_isr(void) {
 
 /*..........................................................................*/
 void BSP_init(void) {
+	int i;
     DINT;                                    // Global Disable all Interrupts
     IER = 0x0000;                            // Disable CPU interrupts
     IFR = 0x0000;                            // Clear all CPU interrupt flags
@@ -155,13 +174,94 @@ void BSP_init(void) {
     PieInit();
 
     EALLOW;
-    PieVectTable.TINT0 = &cpu_timer0_isr;  // hook the CPU timer0 ISR
-    /* . . . hook other ISRs */
-    PieVectTable.XINT3 = &gpio12_isr;
-    EDIS;
+    PieVectTable.TINT0 = &cpu_timer0_isr;// hook the CPU timer0 ISR
+    PieVectTable.XINT3 = &xint3_isr;     // . . . hook other ISRs
+    PieVectTable.XINT2 = &xint2_isr;
 
+    //SPIA configuration.  See controlSUITE SPI example (Example_2833xSpi_FFDLB)
+    //GpioCtrlRegs.GPAPUD.bit.GPIO16 = 0;// Enable pull-up on SPISIMOA
+    //GpioCtrlRegs.GPAPUD.bit.GPIO17 = 0;// Enable pull-up on SPISOMIA
+    //GpioCtrlRegs.GPAPUD.bit.GPIO18 = 0;// Enable pull-up on SPICLKA
+    //GpioCtrlRegs.GPAPUD.bit.GPIO19 = 0;// Enable pull-up on SPISTEA--ignore
+    // Set qualification for selected pins to asynch only
+    // This will select asynch (no qualification) for the selected pins.
+	GpioCtrlRegs.GPAQSEL2.bit.GPIO16 = 3;// Asynch input SPISIMOA
+    GpioCtrlRegs.GPAQSEL2.bit.GPIO17 = 3;// Asynch input SPISOMIA
+    GpioCtrlRegs.GPAQSEL2.bit.GPIO18 = 3;// Asynch input SPICLKA
+    // Configure SPI-A pins using GPIO regs
+    // This specifies which of the possible GPIO pins will be SPI functional pins.
+    GpioCtrlRegs.GPAMUX2.bit.GPIO16 = 1; // Configure as SPISIMOA
+    GpioCtrlRegs.GPAMUX2.bit.GPIO17 = 1; // Configure as SPISOMIA
+    GpioCtrlRegs.GPAMUX2.bit.GPIO18 = 1; // Configure as SPICLKA
 
-    EALLOW;
+	SpiaRegs.SPICCR.bit.SPICHAR = (8-1) & 0x0F;//8-bit word
+	SpiaRegs.SPICTL.bit.MASTER_SLAVE = 1; //this board is a master
+	//SpiaRegs.SPICCR.bit.SPILBK = TRUE;//Loopback mode; uncomment for test
+	SpiaRegs.SPICCR.bit.CLKPOLARITY = 0;//0: RISING edge, 1: FALLING edge
+	SpiaRegs.SPICTL.bit.CLK_PHASE = 1;//
+#define SPI_BAUD 4000000 //max SPI freq = 5 MHz
+	SpiaRegs.SPIBRR = (CPU_FRQ_HZ/SPI_BAUD)/4U - 1;
+    SpiaRegs.SPIPRI.bit.FREE = 1;// Set so breakpoints don't disturb xmission
+    //SpiaRegs.SPIPRI.all = 0x0030;//free run, continue SPI operation regardless of suspend
+	//SpiaRegs.SPIFFTX.bit.SPIFFENA = FALSE;//FIFO enhancement required for TX/RX FIFO?
+    //SpiaRegs.SPIFFTX.bit.TXFFIENA = TRUE;//TX FIFO interrupt enable
+    //SpiaRegs.SPIFFTX.bit.TXFFIL = 8;//Set TX FIFO interrupt level to half the Q
+    //SpiaRegs.SPIFFTX.bit.TXFIFO=1;
+
+    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
+    //Be careful about this period if some GPI are used for other purpose
+    //GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
+
+	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
+    GpioCtrlRegs.GPAPUD.bit.GPIO12 = TRUE;//disable pull-up
+
+    //Use HW to debouce the button press
+    GpioCtrlRegs.GPAQSEL1.bit.GPIO12 = 3;//qualify using 6 samples
+    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
+    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
+
+    //GpioCtrlRegs.GPAMUX1.bit.GPIO12 = 0;//select the peripheral function. 0 => GPIO
+    //GpioCtrlRegs.GPADIR .bit.GPIO12 = 0;// 1=OUTput, 0=INput
+    GpioIntRegs.GPIOXINT3SEL.all = 12;
+    XIntruptRegs.XINT3CR.bit.ENABLE = TRUE;
+    XIntruptRegs.XINT3CR.bit.POLARITY = 1;//interrupt on rising edge
+
+	//FLAG input drive XINT4 interrupt
+	//GpioCtrlRegs.GPAMUX1.bit.GPIO1 = 0;
+	//GpioCtrlRegs.GPADIR .bit.GPIO1 = 0;// 1=OUTput, 0=INput
+    GpioCtrlRegs.GPAPUD.bit.GPIO1 = TRUE;//disable pull-up
+    GpioIntRegs.GPIOXINT2SEL.all = 1;//TODO: change this to XINT4 on the forcebox
+    XIntruptRegs.XINT2CR.bit.ENABLE = TRUE;
+    XIntruptRegs.XINT2CR.bit.POLARITY = 0;//interrupt on FALLING edge
+
+    for(i=0; i < 1; ++i) {
+		switch(i) {
+		case 0:
+			//nBUSY input
+			//GpioCtrlRegs.GPAMUX1.bit.GPIO0 = 0;
+			//GpioCtrlRegs.GPADIR .bit.GPIO0 = 0;// 1=OUTput, 0=INput
+
+			//Configure GPIO2 and GPIO3 to receive optical switch input
+			//GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//Used for Optical switch A
+			//GpioCtrlRegs.GPADIR.bit.GPIO2 = 0;// 1=OUTput, 0=INput
+			GpioCtrlRegs.GPAPUD.bit.GPIO2 = TRUE;//disable pull-up
+			//GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//Used for Optical switch B
+			//GpioCtrlRegs.GPADIR .bit.GPIO3 = 0;// 1=OUTput, 0=INput
+			GpioCtrlRegs.GPAPUD.bit.GPIO3 = TRUE;//disable pull-up
+
+			//nCS output
+			//GpioCtrlRegs.GPAMUX2.bit.GPIO19 = 0;
+			GpioDataRegs.GPASET.bit.GPIO19 = TRUE;//At first, pull up nCS
+			GpioCtrlRegs.GPADIR.bit.GPIO19 = 1;// 1=OUTput, 0=INput
+
+		    //Use HW to debouce the optical switch; qualify using 6 samples (the max)
+		    GpioCtrlRegs.GPAQSEL1.bit.GPIO2 = 3;
+		    GpioCtrlRegs.GPAQSEL1.bit.GPIO3 = 3;
+		    break;
+		default: Q_ERROR();
+		}
+	}
+
     // LOW SPEED CLOCKS prescale register settings
     SysCtrlRegs.LOSPCP.all              = 0x0002; // Sysclk / 4
     SysCtrlRegs.XCLK.bit.XCLKOUTDIV     = 2;
@@ -185,39 +285,6 @@ void BSP_init(void) {
     SysCtrlRegs.PCLKCR1.bit.EPWM4ENCLK  = 0; // ePWM4
     SysCtrlRegs.PCLKCR0.bit.TBCLKSYNC   = 0; // Enable TBCLK
     EDIS;
-
-
-    EALLOW;                                               /* GPIO config... */
-	//Configure GPIO2 and GPIO3 to receive optical switch input
-	//GpioCtrlRegs.GPAMUX1.bit.GPIO2 = 0;//Used for Optical switch A
-	//GpioCtrlRegs.GPADIR .bit.GPIO2 = 0;// 1=OUTput, 0=INput
-    GpioCtrlRegs.GPAPUD .bit.GPIO2 = TRUE;//disable pull-up
-	//GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//Used for Optical switch B
-	//GpioCtrlRegs.GPADIR .bit.GPIO3 = 0;// 1=OUTput, 0=INput
-    GpioCtrlRegs.GPAPUD .bit.GPIO3 = TRUE;//disable pull-up
-
-    //Use HW to debouce the optical switch; qualify using 6 samples (the max)
-    GpioCtrlRegs.GPAQSEL1.bit.GPIO2 = 3;
-    GpioCtrlRegs.GPAQSEL1.bit.GPIO3 = 3;
-    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
-    //Be careful about this period if some GPI are used for other purpose
-    //GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
-
-	//Configure GPIO12 to receive SW3; see TI doc sprufn3d.pdf
-    GpioCtrlRegs.GPAPUD .bit.GPIO12 = TRUE;//disable pull-up
-
-    //Use HW to debouce the button press
-    GpioCtrlRegs.GPAQSEL1.bit.GPIO12 = 3;//qualify using 6 samples
-    //According to sprufn3d.pdf Table 53, sample freq = Fsysclk / (2xQUALPRD1)
-    GpioCtrlRegs.GPACTRL.bit.QUALPRD1 = 0xFF;//Sampling period for GPIO8~15
-
-    GpioCtrlRegs.GPAMUX1.bit.GPIO12 = 0;//select the peripheral function. 0 => GPIO
-    GpioCtrlRegs.GPADIR .bit.GPIO12 = 0;// 1=OUTput, 0=INput
-    GpioIntRegs.GPIOXINT3SEL.all = 12;
-    EDIS;
-
-    XIntruptRegs.XINT3CR.bit.ENABLE = TRUE;
-    XIntruptRegs.XINT3CR.bit.POLARITY = 1;//interrupt on rising edge
 
     // initialize the CPU Timer used for system clock tick
     CpuTimer0Regs.PRD.all      = CPU_TIMER_PERIOD;

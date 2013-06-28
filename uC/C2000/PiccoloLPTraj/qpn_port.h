@@ -37,7 +37,7 @@
 
 #define Q_NFSM//Undefine if using FSM instead of HSM
 //Actually need jmax, amax, smax, DP, so 4 byte is not enough
-#define Q_PARAM_SIZE 0//2
+#define Q_PARAM_SIZE 4
 #define QF_TIMEEVT_CTR_SIZE     2
 
 /* maximum # active objects--must match EXACTLY the QF_active[] definition  */
