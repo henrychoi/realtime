@@ -17,8 +17,9 @@ static void PLLset(Uint16 val);
 static void InitFlash(void);
 static void CopyFlash(void);
 
+#define N_STEPPER 1
 //Global variables are already in RAM
-uint8_t cpu_timer0_inited = FALSE, top_flag_prev, btm_flag_prev, busy_prev;
+uint8_t top_flag_prev[N_STEPPER], btm_flag_prev[N_STEPPER], busy_prev[N_STEPPER];
 
 #pragma CODE_SECTION(top_flag, "ramfuncs"); /* place in RAM for speed */
 uint8_t top_flag(uint8_t stepper_id) {
@@ -38,37 +39,37 @@ uint8_t btm_flag(uint8_t stepper_id) {
 /* CPU Timer0 ISR is used for system clock tick */
 #pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); //place in RAM for speed
 static interrupt void cpu_timer0_isr(void) {
-	uint8_t top_flag_now = top_flag(0), btm_flag_now = btm_flag(0)
-	      , busy_now = dSPIN_Busy_HW(0);
+	int i;
+	for(i=0; i < N_STEPPER; ++i) {
+		uint8_t top_flag_now = top_flag(i), btm_flag_now = btm_flag(i)
+			  , busy_now = dSPIN_Busy_HW(i);
 
-	if(cpu_timer0_inited) {
-		if(top_flag_now == top_flag_prev) {
-			if(btm_flag_now != btm_flag_prev) {
-				if(btm_flag_prev) { //bottom --> below || top --> above
-					//Not interested in either of these
-				} else { //below --> bottom || above --> top: bad either way
-					QActive_postISR((QActive*)&AO_stepper
-							, top_flag_now ? TOP_SIG : BOTTOM_SIG
+			if(top_flag_now == top_flag_prev[i]) {
+				if(btm_flag_now != btm_flag_prev[i]) {
+					if(btm_flag_prev[i]) { //bottom --> below || top --> above
+						//Not interested in either of these
+					} else { //below --> bottom || above --> top: bad either way
+						QActive_postISR((QActive*)&AO_stepper
+								, top_flag_now ? TOP_SIG : BOTTOM_SIG
+								, top_flag_now << 1 | btm_flag_now);
+					}
+				}
+			} else { // above <--> below event
+				if(top_flag_prev[i]) { //above --> below: not interested
+				} else { //below --> above; used for homing
+					QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG
 							, top_flag_now << 1 | btm_flag_now);
 				}
 			}
-		} else { // above <--> below event
-			if(top_flag_prev) { //above --> below: not interested
-			} else { //below --> above; used for homing
-				QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG
+
+			if(busy_prev[i] != busy_now && !busy_now)
+				QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG
 						, top_flag_now << 1 | btm_flag_now);
-			}
-		}
 
-		if(busy_prev != busy_now && !busy_now)
-			QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG
-					, top_flag_now << 1 | btm_flag_now);
-	} else cpu_timer0_inited = TRUE;
-
-	top_flag_prev = top_flag_now;
-	btm_flag_prev = btm_flag_now;
-	busy_prev = busy_now;
-
+		top_flag_prev[i] = top_flag_now;
+		btm_flag_prev[i] = btm_flag_now;
+		busy_prev[i] = busy_now;
+	}
     QF_tickISR();                         /* handle the QF-nano time events */
 
       /* Acknowledge this interrupt to receive more interrupts from group 1 */
@@ -79,7 +80,7 @@ static interrupt void cpu_timer0_isr(void) {
 static interrupt void xint2_isr(void) {
 	//One of the steppers pulled down FLAG.  Something is wrong
 	int i;
-	for(i=0; i < 1; ++i) {
+	for(i=0; i < N_STEPPER; ++i) {
 		uint16_t status;
 		if(!dSPIN_Alarm(i)) continue;
 		//OK, this IC has an alarm latched.  Get the current status
@@ -234,7 +235,7 @@ void BSP_init(void) {
     XIntruptRegs.XINT2CR.bit.ENABLE = TRUE;
     XIntruptRegs.XINT2CR.bit.POLARITY = 0;//interrupt on FALLING edge
 
-    for(i=0; i < 1; ++i) {
+    for(i=0; i < N_STEPPER; ++i) {
 		switch(i) {
 		case 0:
 			//nBUSY input
@@ -300,17 +301,24 @@ void BSP_init(void) {
 
 /*..........................................................................*/
 void QF_onStartup(void) {
+	int i;
     CpuTimer0Regs.TCR.bit.TSS = 0;     /* start the system clock tick timer */
 
     IER |= M_INT1// Enable CPU INT1, which is connected to CPU-Timer 0:
     	 + M_INT12;//XINT3 is connected to INT12
 
     // Enable PIE: Group 1 interrupt 7 which is connected to CPU-Timer 0:
-    PieCtrlRegs.PIEIER1.bit.INTx7 = 1;
-    //XINT3 is connected to INT12.1
-    PieCtrlRegs.PIEIER12.bit.INTx1 = TRUE;
+    PieCtrlRegs.PIEIER1.bit.INTx7 = TRUE;
+    PieCtrlRegs.PIEIER1.bit.INTx5 = TRUE;//XINT2 is connected to INT1.5
+    PieCtrlRegs.PIEIER12.bit.INTx1 = TRUE;//XINT3 is connected to INT12.1
 
-    // Enable higher priority real-time debug events:
+	for(i=0; i < N_STEPPER; ++i) {
+		top_flag_prev[i] = top_flag(i);
+		btm_flag_prev[i] = btm_flag(i);
+		busy_prev[i] = dSPIN_Busy_HW(i);
+	}
+
+	// Enable higher priority real-time debug events:
     ERTM;   // Enable Global realtime interrupt DBGM
 }
 /*..........................................................................*/
@@ -421,7 +429,7 @@ void PLLset(Uint16 val) {
 void PieInit(void) {
     int16  i;
     Uint32 *dest = (Uint32 *)&PieVectTable;
-
+#ifdef NECESSARY//these are already set to 0 on RESET
     PieCtrlRegs.PIECTRL.bit.ENPIE = 0;         // disable the PIE Vector Table
 
                                               // Clear all PIEIER registers...
@@ -451,7 +459,7 @@ void PieInit(void) {
     PieCtrlRegs.PIEIFR10.all = 0;
     PieCtrlRegs.PIEIFR11.all = 0;
     PieCtrlRegs.PIEIFR12.all = 0;
-
+#endif
     EALLOW;
     for (i = 0; i < 128; ++i) {
         *dest++ = (Uint32)&illegal_isr;
