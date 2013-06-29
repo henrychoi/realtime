@@ -2,6 +2,7 @@
 #include "qpn_port.h"
 #include "bsp.h"
 #include "stepper.h"
+#include "l6470.h"
 
 Q_DEFINE_THIS_FILE
 
@@ -17,7 +18,6 @@ static void PLLset(Uint16 val);
 static void InitFlash(void);
 static void CopyFlash(void);
 
-#define N_STEPPER 1
 //Global variables are already in RAM
 uint8_t top_flag_prev[N_STEPPER], btm_flag_prev[N_STEPPER], busy_prev[N_STEPPER];
 
@@ -50,20 +50,20 @@ static interrupt void cpu_timer0_isr(void) {
 						//Not interested in either of these
 					} else { //below --> bottom || above --> top: bad either way
 						QActive_postISR((QActive*)&AO_stepper
-								, top_flag_now ? TOP_SIG : BOTTOM_SIG
+								, top_flag_now ? Z_TOP_SIG : Z_BOTTOM_SIG
 								, top_flag_now << 1 | btm_flag_now);
 					}
 				}
 			} else { // above <--> below event
 				if(top_flag_prev[i]) { //above --> below: not interested
 				} else { //below --> above; used for homing
-					QActive_postISR((QActive*)&AO_stepper, ABOVE_SIG
+					QActive_postISR((QActive*)&AO_stepper, Z_ABOVE_SIG
 							, top_flag_now << 1 | btm_flag_now);
 				}
 			}
 
 			if(busy_prev[i] != busy_now && !busy_now)
-				QActive_postISR((QActive*)&AO_stepper, NBUSY_SIG
+				QActive_postISR((QActive*)&AO_stepper, Z_NBUSY_SIG
 						, top_flag_now << 1 | btm_flag_now);
 
 		top_flag_prev[i] = top_flag_now;
@@ -89,15 +89,15 @@ static interrupt void xint2_isr(void) {
             	| dSPIN_STATUS_OCD | dSPIN_STATUS_TH_WRN | dSPIN_STATUS_TH_SD
             	| dSPIN_STATUS_UVLO | dSPIN_STATUS_WRONG_CMD | dSPIN_STATUS_HIZ);
 		if(status & (dSPIN_STATUS_STEP_LOSS_A | dSPIN_STATUS_STEP_LOSS_B))
-			QActive_postISR((QActive*)&AO_stepper, STEP_LOSS_SIG, status);
-		else QActive_postISR((QActive*)&AO_stepper, ALARM_SIG, status);
+			QActive_postISR((QActive*)&AO_stepper, Z_STEP_LOSS_SIG, status);
+		else QActive_postISR((QActive*)&AO_stepper, Z_ALARM_SIG, status);
 	}
 	PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
 }
 //#pragma CODE_SECTION(xint3_isr, "ramfuncs"); /* place in RAM for speed */
 static interrupt void xint3_isr(void) {
 	//GpioDataRegs.GPATOGGLE.bit.GPIO0 = TRUE;
-	QActive_postISR((QActive*)&AO_stepper, HOME_SIG, 0);
+	QActive_postISR((QActive*)&AO_stepper, Z_HOME_SIG, 0);
 	//See sprufn3d.pdf Figure 77: Write 1 to PIEACKx bit "to clear" to enable
 	//other interrupts in PIEIFRx group.
 	PieCtrlRegs.PIEACK.bit.ACK12 = TRUE;//acknowledge PIE group 12
