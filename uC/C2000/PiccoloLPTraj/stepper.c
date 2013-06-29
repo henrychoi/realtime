@@ -13,15 +13,27 @@ typedef struct Stepper {
     uint32_t status;
 // public:
 } Stepper;
-#define Stepper_id(me_) ((me_)->status & 0x3)
-#define STEPPER_POS_MASK 0x00FFFFFC
-#define Stepper_pos(me_) (((me_)->status & STEPPER_POS_MASK) >> 2)
-#define STEPPER_Z        0x80000000
-#define STEPPER_OVERC    0x40000000
-#define STEPPER_UNDERV   0x20000000
-#define STEPPER_TEMP     0x10000000
-#define STEPPER_LOST     0x08000000
-#define STEPPER_HOMED    0x04000000
+#define STEPPER_ID_MASK   0x00000003
+#define Stepper_id(me_)   ((me_)->status & STEPPER_ID_MASK)
+#define STEPPER_POS_MASK  0x00FFFFFC
+#define Stepper_pos(me_)  (((me_)->status & STEPPER_POS_MASK) >> 2)
+#define STEPPER_ZONE_MASK 0x03000000
+
+#define STEPPER_Z         0x80000000
+#define STEPPER_OVERC     0x40000000
+#define STEPPER_UNDERV    0x20000000
+#define STEPPER_TEMP      0x10000000
+#define STEPPER_LOST      0x08000000
+#define STEPPER_HOMED     0x04000000
+
+//#pragma CODE_SECTION(Stepper_setPosZone, "ramfuncs");//place in RAM for speed
+uint8_t Stepper_setPosZone(Stepper* const me) {
+	uint8_t zone = Axis_zone(top_flag(Stepper_id(me)), btm_flag(Stepper_id(me)));
+	me->status &= ~(STEPPER_ZONE_MASK | STEPPER_POS_MASK);
+	me->status |= ((uint32_t)zone) << 24
+				| dSPIN_Get_Param(Stepper_id(me), dSPIN_ABS_POS) << 2;
+	return zone;
+}
 
 //protected: //necessary forward declaration
 static QState Stepper_on(Stepper* const me);
@@ -117,10 +129,7 @@ static QState Stepper_on(Stepper* const me) {
 static QState Stepper_idle(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG: {
-    	uint8_t zone = Axis_zone(top_flag(Stepper_id(me)), btm_flag(Stepper_id(me)));
-    	me->status &= ~STEPPER_POS_MASK;
-    	me->status |= dSPIN_Get_Param(Stepper_id(me), dSPIN_ABS_POS) << 2;
-    	me->status |= ((uint32_t)zone) << 24;
+    	uint8_t zone = Stepper_setPosZone(me);
 		QActive_post((QActive*)&AO_zrp, Z_IDLE_SIG, me->status);
     	switch(zone) {
     	case Z_TOP_SIG: return Q_TRAN(&Stepper_top);

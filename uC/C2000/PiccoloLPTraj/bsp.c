@@ -319,7 +319,7 @@ void QF_onStartup(void) {
     ERTM;   // Enable Global realtime interrupt DBGM
 }
 /*..........................................................................*/
-#pragma CODE_SECTION(QF_onIdle, "ramfuncs");      /* place in RAM for speed */
+#pragma CODE_SECTION(QF_onIdle, "ramfuncs");//place in RAM for speed
 void QF_onIdle(void) {
 #ifdef NDEBUG
     asm(" IDLE");               /* go to IDLE mode with interrupts DISABLED */
