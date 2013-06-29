@@ -10,11 +10,18 @@ typedef struct Stepper {
     QActive super;//must be the first element of the struct for inheritance
 
 /* private: */
-    uint32_t step;
-    uint16_t alarm;
-    uint8_t id, lost;
+    uint32_t status;
 // public:
 } Stepper;
+#define Stepper_id(me_) ((me_)->status & 0x3)
+#define STEPPER_POS_MASK 0x00FFFFFC
+#define Stepper_pos(me_) (((me_)->status & STEPPER_POS_MASK) >> 2)
+#define STEPPER_Z        0x80000000
+#define STEPPER_OVERC    0x40000000
+#define STEPPER_UNDERV   0x20000000
+#define STEPPER_TEMP     0x10000000
+#define STEPPER_LOST     0x08000000
+#define STEPPER_HOMED    0x04000000
 
 //protected: //necessary forward declaration
 static QState Stepper_on(Stepper* const me);
@@ -38,7 +45,7 @@ static QState Stepper_moving(Stepper* const me) {
     case Z_TOP_SIG:
     case Z_BOTTOM_SIG:
     case Z_STOP_SIG:
-    	dSPIN_Soft_Stop(me->id);
+    	dSPIN_Soft_Stop(Stepper_id(me));
     	return Q_HANDLED();
     case Z_NBUSY_SIG: return Q_TRAN(&Stepper_idle);
 	default: return Q_SUPER(&Stepper_on);
@@ -46,13 +53,13 @@ static QState Stepper_moving(Stepper* const me) {
 }
 static QState Stepper_homing(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case Q_INIT_SIG: return Q_TRAN(top_flag(me->id) ? &Stepper_homing_down
+    case Q_INIT_SIG: return Q_TRAN(top_flag(Stepper_id(me)) ? &Stepper_homing_down
                                                     : &Stepper_homing_up);
     case Q_TIMEOUT_SIG://Give up homing on any of these events
     case Z_TOP_SIG:
     case Z_BOTTOM_SIG:
     case Z_STOP_SIG:
-    	dSPIN_Soft_Stop(me->id);
+    	dSPIN_Soft_Stop(Stepper_id(me));
     	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_moving);
     }
@@ -61,9 +68,9 @@ static QState Stepper_homing_down(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
     	//QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
-    	dSPIN_Go_Until(me->id, ACTION_RESET, REV, HOMING_SPEED);
+    	dSPIN_Go_Until(Stepper_id(me), ACTION_RESET, REV, HOMING_SPEED);
         return Q_HANDLED();
-    case Z_NBUSY_SIG: me->lost = FALSE; return Q_TRAN(Stepper_idle);
+    case Z_NBUSY_SIG: me->status |= STEPPER_HOMED; return Q_TRAN(Stepper_idle);
 	default: return Q_SUPER(&Stepper_homing);
     }
 }
@@ -71,7 +78,7 @@ static QState Stepper_homing_up_stopping(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
         //QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
-        dSPIN_Soft_Stop(me->id);
+        dSPIN_Soft_Stop(Stepper_id(me));
         return Q_HANDLED();
     case Z_NBUSY_SIG://begin the move downward
     	return Q_TRAN(Stepper_homing_down);
@@ -82,7 +89,7 @@ static QState Stepper_homing_up(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
         //QActive_arm(&me->super, ~0);//Set to maximum QF_TIMEEVT_CTR_SIZE for now
-        dSPIN_Run(me->id, FWD, HOMING_SPEED);
+        dSPIN_Run(Stepper_id(me), FWD, HOMING_SPEED);
         return Q_HANDLED();
     case Z_ABOVE_SIG: return Q_TRAN(Stepper_homing_up_stopping);
 	default: return Q_SUPER(&Stepper_homing);
@@ -95,22 +102,35 @@ static QState Stepper_off(Stepper* const me) {
 }
 static QState Stepper_on(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case Q_ENTRY_SIG: me->lost = TRUE; me->alarm = 0; return Q_HANDLED();
-    case Z_STEP_LOSS_SIG: me->lost = TRUE; return Q_HANDLED();
-    case Z_ALARM_SIG: me->alarm = Q_PAR(me); return Q_HANDLED();
+    //case Q_ENTRY_SIG: me->status &= ~STEPPER_HOMED; return Q_HANDLED();
+    case Z_STEP_LOSS_SIG: me->status |= STEPPER_LOST; return Q_HANDLED();
+    case Z_ALARM_SIG:
+		if(Q_PAR(me) & dSPIN_STATUS_HIZ) me->status |= STEPPER_Z;
+		if(Q_PAR(me) & dSPIN_STATUS_UVLO) me->status |= STEPPER_UNDERV;
+		if(Q_PAR(me) & dSPIN_STATUS_OCD) me->status |= STEPPER_OVERC;
+		if(Q_PAR(me) & (dSPIN_STATUS_TH_WRN | dSPIN_STATUS_TH_SD))
+			me->status |= STEPPER_TEMP;
+    	return Q_HANDLED();
 	default: return Q_SUPER(&QHsm_top);
     }
 }
 static QState Stepper_idle(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case Q_ENTRY_SIG:
-    	me->step = dSPIN_Get_Param(me->id, dSPIN_ABS_POS);
-    	return btm_flag(me->id)
-    		? Q_TRAN(top_flag(me->id) ? &Stepper_top : &Stepper_bottom)
-    		: Q_HANDLED();
+    case Q_ENTRY_SIG: {
+    	uint8_t zone = Axis_zone(top_flag(Stepper_id(me)), btm_flag(Stepper_id(me)));
+    	me->status &= ~STEPPER_POS_MASK;
+    	me->status |= dSPIN_Get_Param(Stepper_id(me), dSPIN_ABS_POS) << 2;
+    	me->status |= ((uint32_t)zone) << 24;
+		QActive_post((QActive*)&AO_zrp, Z_IDLE_SIG, me->status);
+    	switch(zone) {
+    	case Z_TOP_SIG: return Q_TRAN(&Stepper_top);
+    	case Z_BOTTOM_SIG: return Q_TRAN(&Stepper_bottom);
+    	default: return Q_HANDLED();
+    	}
+    }
     case Z_HOME_SIG: return Q_TRAN(&Stepper_homing);
     case Z_GO_SIG:
-    	dSPIN_Go_To(me->id, Q_PAR(me));
+    	dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
     	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_on);
     }
@@ -118,8 +138,8 @@ static QState Stepper_idle(Stepper* const me) {
 static QState Stepper_top(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Z_GO_SIG:
-    	if(Q_PAR(me) < me->step) {
-			dSPIN_Go_To(me->id, Q_PAR(me));
+    	if(Q_PAR(me) < Stepper_pos(me)) {
+			dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
 			return Q_TRAN(&Stepper_moving);
     	} else { // illegal request
     		//TODO: return an error msg to the requester
@@ -131,8 +151,8 @@ static QState Stepper_top(Stepper* const me) {
 static QState Stepper_bottom(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Z_GO_SIG:
-    	if(Q_PAR(me) > me->step) {
-			dSPIN_Go_To(me->id, Q_PAR(me));
+    	if(Q_PAR(me) > Stepper_pos(me)) {
+			dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
 			return Q_TRAN(&Stepper_moving);
     	} else { // illegal request
     		//TODO: return an error msg to the requester
@@ -149,25 +169,26 @@ static QState Stepper_initial(Stepper* const me) {
 	//SpiaRegs.SPIFFTX.bit.SPIRST = 0;
 	//SpiaRegs.SPICCR.bit.SPISWRESET = FALSE;
 
-    //status = dSPIN_Get_Status(id);
-	//Q_ALLEGE(status == 0);//a sanity check on SPI loopback
+    status = dSPIN_Get_Status(Stepper_id(me));
+	Q_ALLEGE(status == 0);//a sanity check on SPI loopback
 
 	//SpiaRegs.SPIFFTX.bit.SPIRST = 0;//resume FIFOs; SPI FIFO config unchanged
 	//SpiaRegs.SPICCR.bit.SPISWRESET = FALSE;//Enable SPI
 
-	//EALLOW;
-	//SpiaRegs.SPICCR.bit.SPILBK = FALSE;//Loopback mode; uncomment for test
+	EALLOW;
+	SpiaRegs.SPICCR.bit.SPILBK = FALSE;//Loopback mode; uncomment for test
     //Reset FIFO
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 0;//Reset FIFO pointer to 0, and hold in reset
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 1;//Reenable tx FIFO
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 0;
     //SpiaRegs.SPIFFRX.bit.RXFIFORESET = 1;
-	//EDIS;
-	dSPIN_Soft_Stop(me->id);
-	dSPIN_Reset_Device(me->id);
+	EDIS;
 
-    if(dSPIN_Busy_HW(me->id)) return Q_TRAN(&Stepper_off);
-    status = dSPIN_Get_Status(me->id);
+	dSPIN_Soft_Stop(Stepper_id(me));
+	dSPIN_Reset_Device(Stepper_id(me));
+
+    if(dSPIN_Busy_HW(Stepper_id(me))) return Q_TRAN(&Stepper_off);
+    status = dSPIN_Get_Status(Stepper_id(me));
 
    	if(status & dSPIN_STATUS_SW_EVN
    		|| (status & dSPIN_STATUS_MOT_STATUS) != dSPIN_STATUS_MOT_STATUS_STOPPED
@@ -207,18 +228,59 @@ static QState Stepper_initial(Stepper* const me) {
 			//| dSPIN_ALARM_EN_SW_TURN_ON
 			//| dSPIN_ALARM_EN_WRONG_NPERF_CMD//IC doesn't seem to take this
 			;
-	dSPIN_Registers_Set(me->id, &dSPIN_RegsStruct);
+	dSPIN_Registers_Set(Stepper_id(me), &dSPIN_RegsStruct);
 
-    status = dSPIN_Get_Status(me->id);
+    status = dSPIN_Get_Status(Stepper_id(me));
     if(!(status & dSPIN_STATUS_HIZ)
     	|| !(status & dSPIN_STATUS_BUSY)
-    	|| dSPIN_Busy_HW(me->id))
+    	|| dSPIN_Busy_HW(Stepper_id(me)))
 		return Q_TRAN(&Stepper_off);
 
 	return Q_TRAN(&Stepper_idle);
 }
 
-void Stepper_init(void) {
-    AO_stepper.id = 0;
+#define AXIS_IS_OFF    0x0
+#define AXIS_IS_ON     0x2
+#define AXIS_IS_IDLE   AXIS_IS_ON
+#define AXIS_IS_MOVING (AXIS_IS_ON | 0x1)
+typedef struct ZRP {
+/* protected: */
+    QActive super;//must be the first element of the struct for inheritance
+/* private: */
+// public:
+    uint32_t axis_status[N_STEPPER];
+} ZRP;
+//protected: //necessary forward declaration
+ZRP AO_zrp;//ZRP singleton
+static QState ZRP_allon(ZRP* const me) {
+	int i;
+    switch(Q_SIG(me)) {
+	default: return Q_SUPER(&QHsm_top);
+    }
+}
+static QState ZRP_someoff(ZRP* const me) {
+	int i;
+    switch(Q_SIG(me)) {
+    case Q_ENTRY_SIG:
+    	for(i=0; i < N_STEPPER; ++i) me->axis_status[i] = 0;
+    	return Q_HANDLED();
+    case Z_IDLE_SIG: {
+    	uint8_t id = Q_PAR(me) & 0x3;
+    	Q_ASSERT(id < N_STEPPER);
+    	me->axis_status[id] = (Q_PAR(me) & 0xFFFFFFFC) | AXIS_IS_IDLE;
+    	for(id = TRUE, i=0; i < N_STEPPER; ++i)
+    		if(!(me->axis_status[i] & AXIS_IS_IDLE)) { id = FALSE; break; }
+    	return id ? Q_TRAN(&ZRP_allon) : Q_HANDLED();
+    }
+	default: return Q_SUPER(&QHsm_top);
+    }
+}
+static QState ZRP_initial(ZRP* const me) {
+	return Q_SUPER(&ZRP_someoff);
+}
+void ZRP_init(void) {
+    AO_stepper.status = 0;
     QActive_ctor(&AO_stepper.super, Q_STATE_CAST(&Stepper_initial));
+
+    QActive_ctor(&AO_zrp.super, Q_STATE_CAST(&ZRP_initial));
 }

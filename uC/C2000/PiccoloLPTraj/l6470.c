@@ -24,6 +24,7 @@ uint8_t dSPIN_Write_Byte(uint8_t id, uint8_t byte) {
 	SpiaRegs.SPIDAT = byte << 8;
 	SpiaRegs.SPICTL.bit.TALK = TRUE;
 
+	Q_ASSERT(!SpiaRegs.SPIFFRX.bit.RXFFOVF);//something really wrong!
 	while(!SpiaRegs.SPISTS.bit.INT_FLAG);//while(!SpiaRegs.SPIFFRX.bit.RXFFST);
 	ret = SpiaRegs.SPIDAT & 0x00FF;//ret = (uint8_t)(SpiaRegs.SPIRXBUF & 0x00FF);
 
@@ -37,7 +38,6 @@ uint8_t dSPIN_Write_Byte(uint8_t id, uint8_t byte) {
 
 	for(i = 0; i ; --i);//t_disCS > 800 ns
 
-	//Q_ASSERT(!SpiaRegs.SPIFFRX.bit.RXFFOVF);//something really wrong!
 	//SpiaRegs.SPIFFRX.bit.RXFFOVFCLR = 1;  // Clear Overflow flag
     //return SpiaRegs.SPIFFRX.bit.RXFFST ? SpiaRegs.SPIRXBUF : 0;
 	return ret;
