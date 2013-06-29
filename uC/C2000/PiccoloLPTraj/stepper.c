@@ -13,18 +13,20 @@ typedef struct Stepper {
     uint32_t status;
 // public:
 } Stepper;
-#define STEPPER_ID_MASK   0x00000003
-#define Stepper_id(me_)   ((me_)->status & STEPPER_ID_MASK)
-#define STEPPER_POS_MASK  0x00FFFFFC
-#define Stepper_pos(me_)  (((me_)->status & STEPPER_POS_MASK) >> 2)
-#define STEPPER_ZONE_MASK 0x03000000
+#define STEPPER_ID_MASK     0x00000003
+#define Stepper_status2id(status_) ((status_) & STEPPER_ID_MASK)
+#define Stepper_id(me_)     Stepper_status2id((me_)->status)
+#define STEPPER_POS_MASK    0x00FFFFFC
+#define Stepper_pos(me_)    (((me_)->status & STEPPER_POS_MASK) >> 2)
+#define STEPPER_ZONE_MASK   0x03000000
 
-#define STEPPER_Z         0x80000000
-#define STEPPER_OVERC     0x40000000
-#define STEPPER_UNDERV    0x20000000
-#define STEPPER_TEMP      0x10000000
-#define STEPPER_LOST      0x08000000
-#define STEPPER_HOMED     0x04000000
+#define STEPPER_Z           0x80000000
+#define STEPPER_OVERC       0x40000000
+#define STEPPER_UNDERV      0x20000000
+#define STEPPER_TEMP        0x10000000
+#define STEPPER_LOST        0x08000000
+#define STEPPER_HOMED       0x04000000
+#define STEPPER_STATUS_MASK 0xFFFFFFFC
 
 //#pragma CODE_SECTION(Stepper_setPosZone, "ramfuncs");//place in RAM for speed
 uint8_t Stepper_setPosZone(Stepper* const me) {
@@ -274,9 +276,9 @@ static QState ZRP_someoff(ZRP* const me) {
     	for(i=0; i < N_STEPPER; ++i) me->axis_status[i] = 0;
     	return Q_HANDLED();
     case Z_IDLE_SIG: {
-    	uint8_t id = Q_PAR(me) & 0x3;
+    	uint8_t id = Stepper_status2id(Q_PAR(me));
     	Q_ASSERT(id < N_STEPPER);
-    	me->axis_status[id] = (Q_PAR(me) & 0xFFFFFFFC) | AXIS_IS_IDLE;
+    	me->axis_status[id] = (Q_PAR(me) & STEPPER_STATUS_MASK) | AXIS_IS_IDLE;
     	for(id = TRUE, i=0; i < N_STEPPER; ++i)
     		if(!(me->axis_status[i] & AXIS_IS_IDLE)) { id = FALSE; break; }
     	return id ? Q_TRAN(&ZRP_allon) : Q_HANDLED();
@@ -284,9 +286,7 @@ static QState ZRP_someoff(ZRP* const me) {
 	default: return Q_SUPER(&QHsm_top);
     }
 }
-static QState ZRP_initial(ZRP* const me) {
-	return Q_SUPER(&ZRP_someoff);
-}
+static QState ZRP_initial(ZRP* const me) { return Q_TRAN(&ZRP_someoff); }
 void ZRP_init(void) {
     AO_stepper.status = 0;
     QActive_ctor(&AO_stepper.super, Q_STATE_CAST(&Stepper_initial));

@@ -8,10 +8,9 @@ static QEvt l_stepperQ[4], l_zrpQ[4];
 /* QF_active[] array defines all active object control blocks --------------*/
 QActiveCB const Q_ROM Q_ROM_VAR QF_active[] = {
     { (QActive*)0, (QEvt*)0, 0U}
-  , { (QActive*)&AO_stepper, l_stepperQ, Q_DIM(l_stepperQ)}
-//, { (QActive*)&AO_zrp, l_zrpQ, Q_DIM(l_zrpQ)}
+	, { (QActive*)&AO_stepper, l_stepperQ, Q_DIM(l_stepperQ)}
+    , { (QActive*)&AO_zrp, l_zrpQ, Q_DIM(l_zrpQ)}
 };
-
 /* make sure that the QF_active[] array matches QF_MAX_ACTIVE in qpn_port.h */
 Q_ASSERT_COMPILE(QF_MAX_ACTIVE == Q_DIM(QF_active) - 1);
 
