@@ -11,25 +11,26 @@ typedef struct Stepper {
 
 /* private: */
     uint32_t status;
+    uint8_t id;
 // public:
 } Stepper;
-#define STEPPER_ID_MASK     0x00000003
-#define Stepper_status2id(status_) ((status_) & STEPPER_ID_MASK)
-#define Stepper_id(me_)     Stepper_status2id((me_)->status)
-#define STEPPER_POS_MASK    0x00FFFFFC
-#define Stepper_pos(me_)    (((me_)->status & STEPPER_POS_MASK) >> 2)
-#define STEPPER_ZONE_MASK   0x03000000
+#define STEPPER_ID_MASK            0xC0000000
+#define Stepper_status2id(status_) ((status_) >> 30)
+#define Stepper_id(me_)            ((me_)->id)
+#define STEPPER_POS_MASK           0x003FFFFF
+#define Stepper_pos(status_)       u222i32(status_)
+#define STEPPER_ZONE_MASK          0x00C00000
+#define Stepper_zone(status_)      (((status_) >> 22) & 0x3)
+#define STEPPER_Z                  0x20000000
+#define STEPPER_OVERC              0x10000000
+#define STEPPER_UNDERV             0x80000000
+#define STEPPER_TEMP               0x04000000
+#define STEPPER_LOST               0x02000000
+#define STEPPER_HOMED              0x01000000
+#define STEPPER_STATUS_MASK        0x3FFFFFFF
 
-#define STEPPER_Z           0x80000000
-#define STEPPER_OVERC       0x40000000
-#define STEPPER_UNDERV      0x20000000
-#define STEPPER_TEMP        0x10000000
-#define STEPPER_LOST        0x08000000
-#define STEPPER_HOMED       0x04000000
-#define STEPPER_STATUS_MASK 0xFFFFFFFC
-
-//#pragma CODE_SECTION(Stepper_setPosZone, "ramfuncs");//place in RAM for speed
-uint8_t Stepper_setPosZone(Stepper* const me) {
+//#pragma CODE_SECTION(Stepper_getPosZone, "ramfuncs");//place in RAM for speed
+uint8_t Stepper_getPosZone(Stepper* const me) {
 	uint8_t zone = Axis_zone(top_flag(Stepper_id(me)), btm_flag(Stepper_id(me)));
 	me->status &= ~(STEPPER_ZONE_MASK | STEPPER_POS_MASK);
 	me->status |= ((uint32_t)zone) << 24
@@ -51,9 +52,12 @@ Stepper AO_stepper;
 //.............................................................................
 static QState Stepper_moving(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case Q_ENTRY_SIG:
+    case Q_ENTRY_SIG: {
+    	uint8_t zone = Stepper_getPosZone(me);//This gets the current flag status
+		QActive_post((QActive*)&AO_zrp, Z_MOVING_SIG, me->status);
         QActive_arm(&me->super, ~0);//TODO: adjust based on distance
         return Q_HANDLED();
+    }
     case Q_EXIT_SIG: QActive_disarm(&me->super); return Q_HANDLED();
     case Q_TIMEOUT_SIG:
     case Z_TOP_SIG:
@@ -67,8 +71,9 @@ static QState Stepper_moving(Stepper* const me) {
 }
 static QState Stepper_homing(Stepper* const me) {
     switch (Q_SIG(me)) {
-    case Q_INIT_SIG: return Q_TRAN(top_flag(Stepper_id(me)) ? &Stepper_homing_down
-                                                    : &Stepper_homing_up);
+    case Q_INIT_SIG:
+    	return Q_TRAN(top_flag(Stepper_id(me)) ? &Stepper_homing_down
+                                               : &Stepper_homing_up);
     case Q_TIMEOUT_SIG://Give up homing on any of these events
     case Z_TOP_SIG:
     case Z_BOTTOM_SIG:
@@ -131,7 +136,7 @@ static QState Stepper_on(Stepper* const me) {
 static QState Stepper_idle(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG: {
-    	uint8_t zone = Stepper_setPosZone(me);
+    	uint8_t zone = Stepper_getPosZone(me);
 		QActive_post((QActive*)&AO_zrp, Z_IDLE_SIG, me->status);
     	switch(zone) {
     	case Z_TOP_SIG: return Q_TRAN(&Stepper_top);
@@ -141,7 +146,7 @@ static QState Stepper_idle(Stepper* const me) {
     }
     case Z_HOME_SIG: return Q_TRAN(&Stepper_homing);
     case Z_GO_SIG:
-    	dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
+    	dSPIN_Go_To(Stepper_id(me), i322u22(Q_PAR(me)));
     	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_on);
     }
@@ -149,8 +154,8 @@ static QState Stepper_idle(Stepper* const me) {
 static QState Stepper_top(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Z_GO_SIG:
-    	if(Q_PAR(me) < Stepper_pos(me)) {
-			dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
+    	if((int32_t)Q_PAR(me) < Stepper_pos(me->status)) {
+			dSPIN_Go_To(Stepper_id(me), i322u22(Q_PAR(me)));
 			return Q_TRAN(&Stepper_moving);
     	} else { // illegal request
     		//TODO: return an error msg to the requester
@@ -162,8 +167,8 @@ static QState Stepper_top(Stepper* const me) {
 static QState Stepper_bottom(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Z_GO_SIG:
-    	if(Q_PAR(me) > Stepper_pos(me)) {
-			dSPIN_Go_To(Stepper_id(me), Q_PAR(me));
+    	if((int32_t)Q_PAR(me) > Stepper_pos(me->status)) {
+			dSPIN_Go_To(Stepper_id(me), i322u22(Q_PAR(me)));
 			return Q_TRAN(&Stepper_moving);
     	} else { // illegal request
     		//TODO: return an error msg to the requester
@@ -250,23 +255,104 @@ static QState Stepper_initial(Stepper* const me) {
 	return Q_TRAN(&Stepper_idle);
 }
 
-#define AXIS_IS_OFF    0x0
-#define AXIS_IS_ON     0x2
+#define AXIS_IS_OFF    0x00000000
+#define AXIS_IS_ON     0x80000000
 #define AXIS_IS_IDLE   AXIS_IS_ON
-#define AXIS_IS_MOVING (AXIS_IS_ON | 0x1)
+#define AXIS_IS_MOVING (AXIS_IS_ON | 0x40000000)
+
 typedef struct ZRP {
 /* protected: */
     QActive super;//must be the first element of the struct for inheritance
 /* private: */
 // public:
     uint32_t axis_status[N_STEPPER];
+    int32_t target_pos[N_STEPPER];
 } ZRP;
 //protected: //necessary forward declaration
+static QState ZRP_idle(ZRP* const me);
+
 ZRP AO_zrp;//ZRP singleton
+
 static QState ZRP_allon(ZRP* const me) {
-	int i;
     switch(Q_SIG(me)) {
 	default: return Q_SUPER(&QHsm_top);
+    }
+}
+static QState ZRP_moving(ZRP* const me) {
+    switch(Q_SIG(me)) {
+    case Z_STOP_SIG:
+    	//foreach stepper, ^STOP
+    	QActive_post((QActive*)&AO_stepper, Z_STOP_SIG, 0);
+    	//TODO: ^ANSWER(attempting stop)
+    	return Q_HANDLED();
+    case Z_IDLE_SIG: {
+    	uint8_t id = Stepper_status2id(Q_PAR(me));
+    	int i;
+    	Q_ASSERT(id < N_STEPPER);
+    	me->axis_status[id] = AXIS_IS_IDLE | (Q_PAR(me) & STEPPER_STATUS_MASK);
+    	for(id = TRUE, i=0; i < N_STEPPER; ++i)
+    		if(!(me->axis_status[i] & AXIS_IS_IDLE)) { id = FALSE; break; }
+    	return id ? Q_TRAN(&ZRP_idle) : Q_HANDLED();
+    }
+    case Z_MOVING_SIG: {
+    	uint8_t id = Stepper_status2id(Q_PAR(me));
+    	Q_ASSERT(id < N_STEPPER);
+    	me->axis_status[id] = AXIS_IS_MOVING | (Q_PAR(me) & STEPPER_STATUS_MASK);
+    	return Q_HANDLED();
+    }
+	default: return Q_SUPER(&ZRP_allon);
+    }
+}
+static QState ZRP_move_pending(ZRP* const me) {
+    switch(Q_SIG(me)) {
+    case Z_MOVING_SIG: {
+    	uint8_t id = Stepper_status2id(Q_PAR(me));
+    	Q_ASSERT(id < N_STEPPER);
+    	me->axis_status[id] = AXIS_IS_MOVING | (Q_PAR(me) & STEPPER_STATUS_MASK);
+    	return Q_TRAN(&ZRP_moving);
+    }
+    case Z_HOME_SIG:
+    case Z_GO_SIG: //TODO:
+    	return Q_HANDLED();
+    case Z_STOP_SIG://TODO
+    	return Q_HANDLED();
+	default: return Q_SUPER(&ZRP_allon);
+    }
+}
+static QState ZRP_idle(ZRP* const me) {
+    switch(Q_SIG(me)) {
+    case Z_GO_SIG: { //the msg sender wrote target_pos
+    	int32_t pos[N_STEPPER];
+    	int i;
+    	uint8_t new_pos = FALSE;
+
+    	for(i=0; i < N_STEPPER; ++i) {
+			uint8_t zone = Stepper_zone(me->axis_status[i]);
+			pos[i] = Stepper_pos(me->axis_status[i]);
+			if((zone == AXIS_TOP    && (me->target_pos[i] > pos[i]))
+			|| (zone == AXIS_BOTTOM && (me->target_pos[i] < pos[i]))) {
+				//TODO: ^ANSWER(invalid request)
+				return Q_HANDLED();
+			}
+		}
+		for(i=0; i < N_STEPPER; ++i) { //foreach stepper, ^MOVE
+			if(me->target_pos[i] == pos[i]) continue;
+			new_pos = TRUE;
+			QActive_post((QActive*)&AO_stepper, Z_GO_SIG, me->target_pos[i]);
+		}
+		if(!new_pos) { //not going anywhere?
+			//TODO: ^ANSWER(invalid request)
+			return Q_HANDLED();
+		}
+		//TODO: ^ANSWER(attempting moving)
+		return Q_TRAN(&ZRP_move_pending);
+    }
+    case Z_HOME_SIG:
+    	//foreach stepper, ^HOME
+    	QActive_post((QActive*)&AO_stepper, Z_HOME_SIG, 0);
+    	//TODO: ^ANSWER(attempting homing)
+    	return Q_TRAN(&ZRP_move_pending);
+    default: return Q_SUPER(&ZRP_allon);
     }
 }
 static QState ZRP_someoff(ZRP* const me) {
@@ -278,17 +364,17 @@ static QState ZRP_someoff(ZRP* const me) {
     case Z_IDLE_SIG: {
     	uint8_t id = Stepper_status2id(Q_PAR(me));
     	Q_ASSERT(id < N_STEPPER);
-    	me->axis_status[id] = (Q_PAR(me) & STEPPER_STATUS_MASK) | AXIS_IS_IDLE;
+    	me->axis_status[id] = AXIS_IS_IDLE | (Q_PAR(me) & STEPPER_STATUS_MASK);
     	for(id = TRUE, i=0; i < N_STEPPER; ++i)
     		if(!(me->axis_status[i] & AXIS_IS_IDLE)) { id = FALSE; break; }
-    	return id ? Q_TRAN(&ZRP_allon) : Q_HANDLED();
+    	return id ? Q_TRAN(&ZRP_idle) : Q_HANDLED();
     }
 	default: return Q_SUPER(&QHsm_top);
     }
 }
 static QState ZRP_initial(ZRP* const me) { return Q_TRAN(&ZRP_someoff); }
 void ZRP_init(void) {
-    AO_stepper.status = 0;
+	AO_stepper.id = 0; AO_stepper.status = 0;
     QActive_ctor(&AO_stepper.super, Q_STATE_CAST(&Stepper_initial));
 
     QActive_ctor(&AO_zrp.super, Q_STATE_CAST(&ZRP_initial));

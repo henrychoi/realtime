@@ -306,4 +306,11 @@ void dSPIN_Reset_Device(uint8_t id);
 void dSPIN_Registers_Set(uint8_t id
 		, dSPIN_RegsStruct_TypeDef* dSPIN_RegsStruct);
 void dSPIN_Regs_Struct_Reset(dSPIN_RegsStruct_TypeDef* dSPIN_RegsStruct);
+
+#define I22_MASK 0x1FFFFFU
+#define i322u22(i32) (((i32) >= 0 ? (I22_MASK + 1) : 0)  | ((i32) & I22_MASK))
+
+#define u222i32(u22) ((((u22) & (I22_MASK + 1)) ? ~I22_MASK : 0) \
+					  | ((u22) & I22_MASK))
+
 #endif//l6470_h

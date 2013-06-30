@@ -21,6 +21,7 @@ enum StepperSignals {
   , Z_NBUSY_SIG
   , Z_STEP_LOSS_SIG, Z_ALARM_SIG
   , Z_IDLE_SIG//stepper reached IDLE
+  , Z_MOVING_SIG//stepper started moving
 };
 
 extern struct Stepper AO_stepper;
