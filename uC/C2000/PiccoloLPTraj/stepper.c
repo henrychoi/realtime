@@ -333,7 +333,7 @@ static QState Stepper_initial(Stepper* const me) {
 		return Q_TRAN(&Stepper_off);
 
     //TODO: Turn on homing LED
-    Stepper_getPosZone(me);
+    Stepper_getPosZone(me);//Get the current zone
 	return Q_TRAN(&Stepper_idle);
 }
 
