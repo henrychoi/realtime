@@ -5,12 +5,30 @@
 
 Q_DEFINE_THIS_FILE
 
+//Global variables are already in RAM, so don't worry about moving these to RAM
+uint8_t prev_busy[N_STEPPER], prev_zone[N_STEPPER];
+
+#pragma CODE_SECTION(top_flag, "ramfuncs"); /* place in RAM for speed */
+uint8_t top_flag(uint8_t stepper_id) {
+	switch(stepper_id) {
+	case 0: return GpioDataRegs.GPADAT.bit.GPIO2;
+	default: Q_ERROR(); return 0;
+	}
+}
+#pragma CODE_SECTION(btm_flag, "ramfuncs"); /* place in RAM for speed */
+uint8_t btm_flag(uint8_t stepper_id) {
+	switch(stepper_id) {
+	case 0: return GpioDataRegs.GPADAT.bit.GPIO3;
+	default: Q_ERROR(); return 0;
+	}
+}
 typedef struct Stepper {
 /* protected: */
     QActive super;//must be the first element of the struct for inheritance
 
 /* private: */
     uint32_t status;
+    uint16_t tick_in_move;
     uint8_t id;
 // public:
 } Stepper;
@@ -51,21 +69,34 @@ Stepper AO_stepper;
 #define HOMING_SPEED 10000
 //.............................................................................
 static QState Stepper_moving(Stepper* const me) {
+	uint8_t zone, prev_zone;
     switch (Q_SIG(me)) {
-    case Q_ENTRY_SIG: {
-    	uint8_t zone = Stepper_getPosZone(me);//This gets the current flag status
+    case Q_ENTRY_SIG:
+    	me->tick_in_move = 100*BSP_TICKS_PER_SEC;//TODO: set based on distance
+    	zone = Stepper_getPosZone(me);//This gets the current flag status
 		QActive_post((QActive*)&AO_zrp, Z_MOVING_SIG, me->status);
-        QActive_arm(&me->super, ~0);//TODO: adjust based on distance
+        QActive_arm(&me->super, 1);//TODO: adjust based on distance
         return Q_HANDLED();
-    }
     case Q_EXIT_SIG: QActive_disarm(&me->super); return Q_HANDLED();
     case Q_TIMEOUT_SIG:
-    case Z_TOP_SIG:
-    case Z_BOTTOM_SIG:
+    	if(!dSPIN_Busy_HW(me->id))//check whether move done
+    		return Q_TRAN(&Stepper_idle);
+
+    	prev_zone = Stepper_zone(me->status);//get prev zone from status
+    	zone = Stepper_getPosZone(me);//Update the current flags
+    	if(zone != prev_zone) {
+    		switch(zone) {
+    		case AXIS_TOP:
+    		case AXIS_BOTTOM:
+    			goto stop_axis;
+    		}
+    	}
+    	if(--me->tick_in_move) return Q_HANDLED(); //move timer not expired yet
+    	else goto stop_axis;
     case Z_STOP_SIG:
+stop_axis:
     	dSPIN_Soft_Stop(Stepper_id(me));
-    	return Q_HANDLED();
-    case Z_NBUSY_SIG: return Q_TRAN(&Stepper_idle);
+    	return Q_TRAN(&Stepper_moving);//internal/self transition
 	default: return Q_SUPER(&Stepper_on);
     }
 }
@@ -74,43 +105,88 @@ static QState Stepper_homing(Stepper* const me) {
     case Q_INIT_SIG:
     	return Q_TRAN(top_flag(Stepper_id(me)) ? &Stepper_homing_down
                                                : &Stepper_homing_up);
-    case Q_TIMEOUT_SIG://Give up homing on any of these events
-    case Z_TOP_SIG:
-    case Z_BOTTOM_SIG:
-    case Z_STOP_SIG:
-    	dSPIN_Soft_Stop(Stepper_id(me));
-    	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_moving);
     }
 }
 static QState Stepper_homing_down(Stepper* const me) {
+	uint8_t zone, prev_zone;
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
     	//QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
     	dSPIN_Go_Until(Stepper_id(me), ACTION_RESET, REV, HOMING_SPEED);
         return Q_HANDLED();
-    case Z_NBUSY_SIG: me->status |= STEPPER_HOMED; return Q_TRAN(Stepper_idle);
+    case Q_TIMEOUT_SIG:
+    	if(!dSPIN_Busy_HW(me->id)) {//homed and stopped
+    		me->status |= STEPPER_HOMED;
+    		return Q_TRAN(Stepper_idle);
+    	}
+    	prev_zone = Stepper_zone(me->status);//get prev zone from status
+    	zone = Stepper_getPosZone(me);//Update the current flags
+    	if(zone != prev_zone) {
+    		switch(zone) {
+    		case AXIS_TOP:
+    		case AXIS_BOTTOM:
+    	    	dSPIN_Soft_Stop(Stepper_id(me));
+    	    	return Q_TRAN(&Stepper_moving);
+    		}
+    	}
+    	if(--me->tick_in_move) return Q_HANDLED(); //move timer not expired yet
+    	dSPIN_Soft_Stop(Stepper_id(me));
+    	return Q_TRAN(&Stepper_moving);
+
 	default: return Q_SUPER(&Stepper_homing);
     }
 }
 static QState Stepper_homing_up_stopping(Stepper* const me) {
+	uint8_t zone, prev_zone;
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
         //QActive_arm(&me->super, 2*BSP_TICKS_PER_SEC);//2 sec should be enough?
         dSPIN_Soft_Stop(Stepper_id(me));
         return Q_HANDLED();
-    case Z_NBUSY_SIG://begin the move downward
-    	return Q_TRAN(Stepper_homing_down);
+    case Q_TIMEOUT_SIG:
+    	if(!dSPIN_Busy_HW(me->id)) //begin the move downward
+        	return Q_TRAN(&Stepper_homing_down);
+    	prev_zone = Stepper_zone(me->status);//get prev zone from status
+    	zone = Stepper_getPosZone(me);//Update the current flags
+    	if(zone != prev_zone) {
+    		switch(zone) {
+    		case AXIS_TOP:
+    		case AXIS_BOTTOM:
+    	    	dSPIN_Soft_Stop(Stepper_id(me));
+    	    	return Q_TRAN(&Stepper_moving);
+    		}
+    	}
+    	if(--me->tick_in_move) return Q_HANDLED(); //move timer not expired yet
+    	dSPIN_Soft_Stop(Stepper_id(me));
+    	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_homing_up);
     }
 }
 static QState Stepper_homing_up(Stepper* const me) {
+	uint8_t zone, prev_zone;
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG:
         //QActive_arm(&me->super, ~0);//Set to maximum QF_TIMEEVT_CTR_SIZE for now
         dSPIN_Run(Stepper_id(me), FWD, HOMING_SPEED);
         return Q_HANDLED();
-    case Z_ABOVE_SIG: return Q_TRAN(Stepper_homing_up_stopping);
+    case Q_TIMEOUT_SIG:
+    	Q_ASSERT(dSPIN_Busy_HW(me->id));
+    	prev_zone = Stepper_zone(me->status);//get prev zone from status
+    	zone = Stepper_getPosZone(me);//Update the current flags
+    	if(zone != prev_zone) {
+    		switch(zone) {
+    		case AXIS_TOP:
+    		case AXIS_BOTTOM:
+    	    	dSPIN_Soft_Stop(Stepper_id(me));
+    	    	return Q_TRAN(&Stepper_moving);
+    	    case AXIS_ABOVE: //return Q_TRAN(Stepper_homing_up_stopping);
+    	    	return Q_TRAN(&Stepper_homing_down);
+    		}
+    	}
+    	if(--me->tick_in_move) return Q_HANDLED(); //move timer not expired yet
+    	dSPIN_Soft_Stop(Stepper_id(me));
+    	return Q_TRAN(&Stepper_moving);
 	default: return Q_SUPER(&Stepper_homing);
     }
 }
@@ -137,13 +213,17 @@ static QState Stepper_idle(Stepper* const me) {
     switch (Q_SIG(me)) {
     case Q_ENTRY_SIG: {
     	uint8_t zone = Stepper_getPosZone(me);
+    	//TODO: turn off homing LED
 		QActive_post((QActive*)&AO_zrp, Z_IDLE_SIG, me->status);
     	switch(zone) {
-    	case Z_TOP_SIG: return Q_TRAN(&Stepper_top);
-    	case Z_BOTTOM_SIG: return Q_TRAN(&Stepper_bottom);
+    	case AXIS_TOP: return Q_TRAN(&Stepper_top);
+    	case AXIS_BOTTOM: return Q_TRAN(&Stepper_bottom);
     	default: return Q_HANDLED();
     	}
     }
+    case Q_EXIT_SIG:
+    	//TODO: turn on homing LED
+    	return Q_HANDLED();
     case Z_HOME_SIG: return Q_TRAN(&Stepper_homing);
     case Z_GO_SIG:
     	dSPIN_Go_To(Stepper_id(me), i322u22(Q_PAR(me)));
@@ -252,6 +332,8 @@ static QState Stepper_initial(Stepper* const me) {
     	|| dSPIN_Busy_HW(Stepper_id(me)))
 		return Q_TRAN(&Stepper_off);
 
+    //TODO: Turn on homing LED
+    Stepper_getPosZone(me);
 	return Q_TRAN(&Stepper_idle);
 }
 

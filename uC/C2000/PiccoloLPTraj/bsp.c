@@ -18,53 +18,11 @@ static void PLLset(Uint16 val);
 static void InitFlash(void);
 static void CopyFlash(void);
 
-//Global variables are already in RAM
-uint8_t busy_prev[N_STEPPER], prev_zone[N_STEPPER];
-
-#pragma CODE_SECTION(top_flag, "ramfuncs"); /* place in RAM for speed */
-uint8_t top_flag(uint8_t stepper_id) {
-	switch(stepper_id) {
-	case 0: return GpioDataRegs.GPADAT.bit.GPIO2;
-	default: Q_ERROR(); return 0;
-	}
-}
-#pragma CODE_SECTION(btm_flag, "ramfuncs"); /* place in RAM for speed */
-uint8_t btm_flag(uint8_t stepper_id) {
-	switch(stepper_id) {
-	case 0: return GpioDataRegs.GPADAT.bit.GPIO3;
-	default: Q_ERROR(); return 0;
-	}
-}
 /*..........................................................................*/
 /* CPU Timer0 ISR is used for system clock tick */
 #pragma CODE_SECTION(cpu_timer0_isr, "ramfuncs"); //place in RAM for speed
 static interrupt void cpu_timer0_isr(void) {
-	int i;
-	for(i=0; i < N_STEPPER; ++i) {
-		uint8_t top = top_flag(i), btm = btm_flag(i)
-				, now_zone = Axis_zone(top, btm), busy_now = dSPIN_Busy_HW(i);
-		if(now_zone != prev_zone[i]) {
-			switch(now_zone) {
-			case AXIS_TOP:
-				QActive_postISR((QActive*)&AO_stepper, Z_TOP_SIG, top << 1 | btm);
-				break;
-			case AXIS_ABOVE:
-				QActive_postISR((QActive*)&AO_stepper, Z_ABOVE_SIG, top << 1 | btm);
-				break;
-			case AXIS_BOTTOM:
-				QActive_postISR((QActive*)&AO_stepper, Z_BOTTOM_SIG, top << 1 | btm);
-				break;
-			}
-		}
-
-		if(busy_prev[i] != busy_now && !busy_now)
-			QActive_postISR((QActive*)&AO_stepper, Z_NBUSY_SIG, top << 1 | btm);
-
-		prev_zone[i] = now_zone;
-		busy_prev[i] = busy_now;
-	}
     QF_tickISR();                         /* handle the QF-nano time events */
-
       /* Acknowledge this interrupt to receive more interrupts from group 1 */
     //PieCtrlRegs.PIEACK.all = PIEACK_GROUP1;
     PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
@@ -293,18 +251,11 @@ void BSP_init(void) {
     //SpiaRegs.SPIFFTX.bit.TXFFIENA = TRUE;//TX FIFO interrupt enable
     //SpiaRegs.SPIFFTX.bit.TXFFIL = 8;//Set TX FIFO interrupt level to half the Q
     //SpiaRegs.SPIFFTX.bit.TXFIFO=1;
-
-	for(i=0; i < N_STEPPER; ++i) {
-		uint8_t top = top_flag(i), btm = btm_flag(i);
-		prev_zone[i] = Axis_zone(top, btm);
-		busy_prev[i] = dSPIN_Busy_HW(i);
-	}
 	EDIS;
 }
 
 /*..........................................................................*/
 void QF_onStartup(void) {
-	int i;
     CpuTimer0Regs.TCR.bit.TSS = 0;     /* start the system clock tick timer */
 
     IER |= M_INT1// Enable CPU INT1, which is connected to CPU-Timer 0:

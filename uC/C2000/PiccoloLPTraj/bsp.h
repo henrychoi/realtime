@@ -21,7 +21,4 @@ void BSP_init(void);
 #define LD_off()
 #define LD_toggle()
 
-uint8_t top_flag(uint8_t stepper_id);
-uint8_t btm_flag(uint8_t stepper_id);
-
 #endif                                                             /* bsp_h */
