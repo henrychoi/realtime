@@ -30,32 +30,33 @@ __interrupt void timerB1_ISR(void) {
     QK_ISR_EXIT();                         /* inform QK-nano about ISR exit */
 }
 
-static QState Excitation_ready(Excitation* const me) {
-#define DESIRED_DELAY 7700//(TBCCR0 - 4000)
+static QState Excitation_off(Excitation* const me) { return Q_SUPER(&QHsm_top); }
+static QState Excitation_on(Excitation* const me) {
+#define DESIRED_DELAY 7872//(TBCCR0 - 4000)
+	uint16_t t;
     switch(Q_SIG(me)) {
     case Q_ENTRY_SIG: //QActive_arm(&me->super, 1); return Q_HANDLED();
     //case Q_TIMEOUT_SIG:
-#ifdef SPIN_LOOP
     	Clock_read(); t = tick;
-    	Clock_read();
-    	t = tick + DESIRED_DELAY;
+    	Clock_read(); t = tick + DESIRED_DELAY;
     	do {
     		Clock_read();
     	} while(tick < t);
-#endif//SPIN_LOOP
+
     	Clock_read(); me->t = tick;
     	TBCCR1 = TBR + DESIRED_DELAY;
     	while(TBCCR1 > TBCCR0) TBCCR1 -= TBCCR0;
     	TBCCTL1 = CCIE;//Enable timer B1 interrupt
     	return Q_HANDLED();
-    case TIMERB1_SIG:
+    case Q_EXIT_SIG:
     	Clock_read();
     	return Q_HANDLED();
+    case TIMERB1_SIG: return Q_TRAN(&Excitation_off);
     default: return Q_SUPER(&QHsm_top);
     }
 }
 static QState Excitation_initial(Excitation* const me) {
-    return Q_TRAN(&Excitation_ready);
+    return Q_TRAN(&Excitation_on);
 }
 void Excitation_init(void) {
     QActive_ctor(&AO_excitation.super, Q_STATE_CAST(&Excitation_initial));
