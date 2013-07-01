@@ -1,8 +1,8 @@
 #include "qpn_port.h"
 #include "bsp.h"
 
-#define CPU_HZ (6000000U)//Why does it seem to be 6 Mhz? Supposed to be 8 MHz
-#define TIMER_CLK_HZ (CPU_HZ/8U)
+#define CPU_HZ (8000000U)//Why does it seem to be 6 Mhz? Supposed to be 8 MHz
+#define TIMER_CLK_HZ (CPU_HZ/1U)
 #define TIMER_VAL (TIMER_CLK_HZ/SYSTICK_HZ)
 
 /*..........................................................................*/
