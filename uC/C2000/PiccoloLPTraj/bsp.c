@@ -40,11 +40,12 @@ static interrupt void xint2_isr(void) {
 			QActive_postISR((QActive*)&AO_stepper, Z_STEP_LOSS_SIG, status);
 		else {
 			//filter out uninteresting status
-			status &= (dSPIN_STATUS_OCD
+			status &= dSPIN_STATUS_OCD
 					| dSPIN_STATUS_TH_WRN | dSPIN_STATUS_TH_SD
 					| dSPIN_STATUS_UVLO | dSPIN_STATUS_WRONG_CMD
-					| dSPIN_STATUS_HIZ);
-			QActive_postISR((QActive*)&AO_stepper, Z_ALARM_SIG, status);
+					| dSPIN_STATUS_HIZ;
+			if(status)
+				QActive_postISR((QActive*)&AO_stepper, Z_ALARM_SIG, status);
 		}
 	}
 	PieCtrlRegs.PIEACK.bit.ACK1 = TRUE;//acknowledge PIE group 1
@@ -191,7 +192,6 @@ void BSP_init(void) {
     CpuTimer0Regs.TCR.bit.SOFT = 0;
     CpuTimer0Regs.TCR.bit.FREE = 0;   // 0 = Timer Free Run Disabled
     CpuTimer0Regs.TCR.bit.TIE  = 1;   // 1 = Enable Timer Interrupt
-	LD_off();
 
     EALLOW;
     for(i=0; i < N_STEPPER; ++i) {
@@ -208,15 +208,14 @@ void BSP_init(void) {
 			//GpioCtrlRegs.GPAMUX1.bit.GPIO3 = 0;//Used for Optical switch B
 			//GpioCtrlRegs.GPADIR .bit.GPIO3 = 0;// 1=OUTput, 0=INput
 			GpioCtrlRegs.GPAPUD.bit.GPIO3 = TRUE;//disable pull-up
+			//Use HW to debouce the optical switch; qualify using max samples
+		    GpioCtrlRegs.GPAQSEL1.bit.GPIO2 = 3;
+		    GpioCtrlRegs.GPAQSEL1.bit.GPIO3 = 3;
 
 			//nCS output
 			//GpioCtrlRegs.GPAMUX2.bit.GPIO19 = 0;
 			GpioDataRegs.GPASET.bit.GPIO19 = TRUE;//At first, pull up nCS
 			GpioCtrlRegs.GPADIR.bit.GPIO19 = 1;// 1=OUTput, 0=INput
-
-		    //Use HW to debouce the optical switch; qualify using 6 samples (the max)
-		    GpioCtrlRegs.GPAQSEL1.bit.GPIO2 = 3;
-		    GpioCtrlRegs.GPAQSEL1.bit.GPIO3 = 3;
 		    break;
 		default: Q_ERROR();
 		}
@@ -242,8 +241,8 @@ void BSP_init(void) {
 	SpiaRegs.SPICTL.bit.MASTER_SLAVE = 1; //this board is a master
 	SpiaRegs.SPICCR.bit.SPILBK = TRUE;//Loopback mode; uncomment for test
 	SpiaRegs.SPICCR.bit.CLKPOLARITY = 0;//0: RISING edge, 1: FALLING edge
-	SpiaRegs.SPICTL.bit.CLK_PHASE = 1;//
-#define SPI_BAUD 4000000 //max SPI freq = 5 MHz
+	SpiaRegs.SPICTL.bit.CLK_PHASE = 1;//RX is delayed from TX by half clock
+#define SPI_BAUD 4000000//max baud for L6470 = 5 MHz
 	SpiaRegs.SPIBRR = (CPU_FRQ_HZ/SPI_BAUD)/4U - 1;
     SpiaRegs.SPIPRI.bit.FREE = 1;// Set so breakpoints don't disturb xmission
     //SpiaRegs.SPIPRI.all = 0x0030;//free run, continue SPI operation regardless of suspend
@@ -252,6 +251,8 @@ void BSP_init(void) {
     //SpiaRegs.SPIFFTX.bit.TXFFIL = 8;//Set TX FIFO interrupt level to half the Q
     //SpiaRegs.SPIFFTX.bit.TXFIFO=1;
 	EDIS;
+
+	LD_off();//done with setup
 }
 
 /*..........................................................................*/

@@ -5,9 +5,6 @@
 
 Q_DEFINE_THIS_FILE
 
-//Global variables are already in RAM, so don't worry about moving these to RAM
-uint8_t prev_busy[N_STEPPER], prev_zone[N_STEPPER];
-
 #pragma CODE_SECTION(top_flag, "ramfuncs"); /* place in RAM for speed */
 uint8_t top_flag(uint8_t stepper_id) {
 	switch(stepper_id) {
@@ -52,7 +49,7 @@ uint8_t Stepper_getPosZone(Stepper* const me) {
 	uint8_t zone = Axis_zone(top_flag(Stepper_id(me)), btm_flag(Stepper_id(me)));
 	me->status &= ~(STEPPER_ZONE_MASK | STEPPER_POS_MASK);
 	me->status |= ((uint32_t)zone) << 24
-				| dSPIN_Get_Param(Stepper_id(me), dSPIN_ABS_POS) << 2;
+				| dSPIN_Get_Param(Stepper_id(me), dSPIN_ABS_POS);
 	return zone;
 }
 
@@ -64,6 +61,7 @@ static QState Stepper_bottom(Stepper* const me);
 static QState Stepper_homing_down(Stepper* const me);
 static QState Stepper_homing_up(Stepper* const me);
 
+//Global variables are already in RAM, so don't worry about moving these to RAM
 //Global objects are placed in DRAML0 block.  See linker cmd file for headroom
 Stepper AO_stepper;
 #define HOMING_SPEED 10000
@@ -272,7 +270,7 @@ static QState Stepper_initial(Stepper* const me) {
 	//SpiaRegs.SPICCR.bit.SPISWRESET = FALSE;//Enable SPI
 
 	EALLOW;
-	SpiaRegs.SPICCR.bit.SPILBK = FALSE;//Loopback mode; uncomment for test
+	SpiaRegs.SPICCR.bit.SPILBK = FALSE;//Turn off loopback to talk to real IC
     //Reset FIFO
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 0;//Reset FIFO pointer to 0, and hold in reset
     //SpiaRegs.SPIFFTX.bit.TXFIFO = 1;//Reenable tx FIFO
