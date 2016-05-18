@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.toolchain.base.2113414296/PATH/delimiter=;
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.toolchain.base.2113414296/PATH/operation=replace
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.toolchain.base.2113414296/PATH/value=D\:\\uC\\WinBuild\\bin;D\:\\uC\\gcc-arm\\bin;C\:\\WINDOWS\\system32;C\:\\WINDOWS;C\:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0;C\:\\qp\\qtools\\bin
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.toolchain.base.2113414296/append=true
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.toolchain.base.2113414296/appendContributed=true

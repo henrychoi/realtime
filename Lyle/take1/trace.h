@@ -1,0 +1,22 @@
+#ifndef TRACE_H_
+#define TRACE_H_
+
+// For QS tracing
+enum TraceType { /* application-specific trace records */
+	TRACE_MSG_ERROR = QS_USER,
+	TRACE_MSG_OUT,
+	TRACE_ADV_EVT,
+	TRACE_BLE_EVT,
+	TRACE_CONN_EVT,
+	TRACE_NUS_DATA,
+	TRACE_QS_CMD,
+};
+
+enum TraceMsgError {
+	MSG_ERROR_LENGTH,
+	MSG_ERROR_CHECKSUM,
+	MSG_ERROR_DISCONTINUITY,
+	MSG_ERROR_UNSUPPORTED,
+	MSG_ERROR_UNEXPECTED,
+};
+#endif /* TRACE_H_ */
