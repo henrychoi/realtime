@@ -3,9 +3,10 @@
 
 enum DPPSignals {
     NUS_SIG = Q_USER_SIG, /* Received from the NUS server */
+	DISPLAY_DONE_SIG,
     MAX_PUB_SIG,    /* the last published signal */
 
-    TIMEOUT_SIG,    /* used by Philosophers for time events */
+    SYSTICK_SIG,    /* used by tick event for time events */
     MAX_SIG         /* the last signal */
 };
 
@@ -18,14 +19,14 @@ typedef struct {
     uint8_t param[4];
 } NUSEvt;
 
-extern QActive* const AO_Table;
+extern QActive* const AO_Panel;
 
 enum AO_ID {
-	AO_TABLE = 1
+	AO_PANEL = 1
 };
 
-enum TableState {
-	TABLE_STATE_ACTIVE = 0x100,
+enum PanelState {
+	PANEL_STATE_ACTIVE = 0x100,
 };
 
 #define BSP_TICKS_PER_SEC 10

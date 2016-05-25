@@ -52,8 +52,7 @@ NRF_FLAGS = \
 INC_PATHS = -Imsg -I$(QPC)/include -I$(QPC)/source -I$(QP_PORT_DIR)
 #	-I$(QPC)/3rd_party/CMSIS/Include \
 
-C_SOURCE_FILES = main.c table.c msg.c
-#	 msg/msg_rx.c
+C_SOURCE_FILES = main.c msg.c
 
 C_SOURCE_FILES += $(QPC)/include/qstamp.c \
 	$(QPC)/source/qv.c \
@@ -80,15 +79,16 @@ C_SOURCE_FILES += \
 	$(SDK_PATH)/components/libraries/fifo/app_fifo.c
 C_SOURCE_FILES += $(SDK_PATH)/components/libraries/timer/app_timer.c
 C_SOURCE_FILES += $(SDK_PATH)/components/libraries/util/app_util_platform.c \
-	$(SDK_PATH)/components/libraries/fstorage/fstorage.c \
-	$(SDK_PATH)/components/libraries/util/nrf_assert.c \
-	$(SDK_PATH)/components/libraries/util/nrf_log.c \
-	$(SDK_PATH)/components/libraries/uart/retarget.c \
-	$(SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
+	$(SDK_PATH)/components/libraries/fstorage/fstorage.c
+#	$(SDK_PATH)/components/libraries/util/nrf_assert.c
+#	$(SDK_PATH)/components/libraries/util/nrf_log.c
+# C_SOURCE_FILES += $(SDK_PATH)/components/libraries/uart/retarget.c
+C_SOURCE_FILES += $(SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
 	$(SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c \
 	$(SDK_PATH)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
 	$(SDK_PATH)/components/drivers_nrf/pstorage/pstorage.c \
 	$(SDK_PATH)/components/drivers_nrf/uart/nrf_drv_uart.c
+C_SOURCE_FILES += $(SDK_PATH)/components/drivers_nrf/spi_master/nrf_drv_spi.c
 C_SOURCE_FILES += $(SDK_PATH)/components/drivers_nrf/timer/nrf_drv_timer.c
 C_SOURCE_FILES += $(SDK_PATH)/components/ble/ble_services/ble_nus/ble_nus.c \
 	$(SDK_PATH)/components/ble/ble_advertising/ble_advertising.c \
@@ -96,7 +96,8 @@ C_SOURCE_FILES += $(SDK_PATH)/components/ble/ble_services/ble_nus/ble_nus.c \
 	$(SDK_PATH)/components/ble/common/ble_conn_params.c \
 	$(SDK_PATH)/components/ble/common/ble_srv_common.c \
 	$(SDK_PATH)/components/toolchain/system_nrf51.c \
-	$(SDK_PATH)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
+	$(SDK_PATH)/components/softdevice/common/softdevice_handler/softdevice_handler.c
+
 
 #assembly files common to all targets
 ASM_SOURCE_FILES  = $(SDK_PATH)/components/toolchain/gcc/gcc_startup_nrf51.s
@@ -113,6 +114,7 @@ INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/hal
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/delay
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/gpiote
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/pstorage
+INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/spi_master
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/timer
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/uart
 INC_PATHS += -I$(SDK_PATH)/components/libraries/timer

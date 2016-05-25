@@ -169,9 +169,6 @@ public class Msg {
         /* produce an empty record to "flush" the Msg trace buffer */
         beginRec(MsgType.EMPTY);
         endRec();
-
-        /* produce the reset record to inform QSPY of a new session */
-        //target_info_((byte)0xFF); /* send Reset and Target info */
     }
 
     // end public /////////////////////////////////////////////////////////////

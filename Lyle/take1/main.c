@@ -257,6 +257,7 @@ uint8_t QS_onStartup(void const *arg) {
     APP_ERROR_CHECK(err_code);
 
     /* setup the QS filters... */
+    QS_FILTER_ON(QS_QF_TICK);
     QS_FILTER_ON(TRACE_MSG_ERROR);
     QS_FILTER_ON(TRACE_ADV_EVT);
     QS_FILTER_ON(TRACE_BLE_EVT);
@@ -380,10 +381,6 @@ static void nus_data_handler(ble_nus_t * p_nus, uint8_t * p_data, uint16_t lengt
         QS_MEM(p_data, length);
     QS_END()
     MSG_parse(p_data, length);
-    //char* greeting = "Hi there!";
-    //uint32_t err_code = ble_nus_string_send(p_nus, (uint8_t*)greeting
-    //		, strlen(greeting));
-    //Q_ASSERT(err_code == NRF_SUCCESS);
 }
 
 
@@ -699,6 +696,104 @@ uint8_t MSG_onStartup() {
     return 1; /* return success */
 }
 
+#include "nrf_drv_spi.h"
+
+#define N_LED 1
+static const nrf_drv_spi_t spi = NRF_DRV_SPI_INSTANCE(SPI0_INSTANCE_INDEX);
+
+/* Active object class -----------------------------------------------------*/
+typedef struct {
+/* protected: */
+    QActive super;
+
+/* private: */
+    QTimeEvt timeEvt;
+    uint8_t cursor, bufIdx;
+    uint8_t array[2]//double buffered, to create next frame while writing
+				  [(N_LED + 2) * 4];//Include start and end frames
+} Panel;
+
+/* Local objects -----------------------------------------------------------*/
+static Panel l_panel; /* the single instance of the Table active object */
+
+/* Global-scope objects ----------------------------------------------------*/
+QActive * const AO_Table = &l_panel.super; /* "opaque" AO pointer */
+
+static QState Panel_active(Panel* const me, QEvt const* const e) {
+	switch(e->sig) {
+	case Q_ENTRY_SIG:
+	    QTimeEvt_armX(&me->timeEvt, 1, 0U);
+	    return Q_HANDLED();
+
+	case NUS_SIG: {
+		const NUSEvt* pe = (const NUSEvt*)e;
+		switch(pe->type) {
+		case MSG_STATE: // state query
+			MSG_BEGIN(MSG_STATE);
+			MSG_I16(PANEL_STATE_ACTIVE | AO_PANEL);
+			MSG_END();
+			break;
+		default: break;
+		}
+	} return Q_HANDLED();
+
+	case DISPLAY_DONE_SIG:
+		me->cursor = !me->cursor;//flip the ping-pong buffer
+		return Q_HANDLED();
+
+	case SYSTICK_SIG:
+        Q_ASSERT(nrf_drv_spi_transfer(&spi
+        		, me->array[me->cursor], sizeof(me->array[0]), NULL, 0)
+        		== NRF_SUCCESS);
+	    return Q_HANDLED();
+	default:
+		return Q_SUPER(&QHsm_top);
+	}
+}
+
+void spi_event_handler(nrf_drv_spi_evt_t const * p_event)
+{
+	QEvt* pe = Q_NEW(QEvt, DISPLAY_DONE_SIG);
+    QF_PUBLISH(pe, p_event);
+}
+
+
+static QState Panel_initial(Panel* const me, QEvt const* const e) {
+    uint8_t n;
+    (void)e; /* suppress the compiler warning about unused parameter */
+
+    QS_OBJ_DICTIONARY(&l_panel);
+    QS_FUN_DICTIONARY(&QHsm_top);
+    QS_FUN_DICTIONARY(&Panel_initial);
+    QS_FUN_DICTIONARY(&Panel_active);
+
+    QS_SIG_DICTIONARY(NUS_SIG, (void *)0);
+
+    QActive_subscribe(&me->super, NUS_SIG);
+    me->bufIdx = 0;
+
+    nrf_drv_spi_config_t spi_config = NRF_DRV_SPI_DEFAULT_CONFIG(SPI0_INSTANCE_INDEX);
+    //spi_config.miso_pin = NRF_DRV_SPI_PIN_NOT_USED;
+    Q_ASSERT(nrf_drv_spi_init(&spi, &spi_config, spi_event_handler)
+    		== NRF_SUCCESS);
+
+    return Q_TRAN(&Panel_active);
+}
+
+void Panel_ctor(void) {
+    uint8_t n;
+    Panel *me = &l_panel;
+
+    QActive_ctor(&me->super, Q_STATE_CAST(&Panel_initial));
+    QTimeEvt_ctorX(&me->timeEvt, &me->super, SYSTICK_SIG, 0U);
+
+    memset(me->array[1], 0, 4);//start of frame is all 0s
+    memset(me->array[0], 0, (N_LED + 1) * 4);
+    //end frames is all 1s
+    memset(&me->array[0][(N_LED + 1) * 4], 0xFF, sizeof(uint32_t));
+    memset(&me->array[1][(N_LED + 1) * 4], 0xFF, sizeof(uint32_t));
+}
+
 int main(void)
 {
     bool erase_bonds;
@@ -716,8 +811,7 @@ int main(void)
     static QSubscrList subscrSto[MAX_PUB_SIG];
     static QF_MPOOL_EL(NUSEvt) smlPoolSto[4]; /* small pool */
 
-    extern void Table_ctor(void);
-    Table_ctor(); /* instantiate the Table active object */
+    Panel_ctor(); /* instantiate the Table active object */
 
     QF_init();    /* initialize the framework and the underlying RT kernel */
     BSP_init();   /* initialize the Board Support Package */
@@ -735,7 +829,7 @@ int main(void)
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
 
     QACTIVE_START(AO_Table,                  /* AO to start */
-                  AO_TABLE, /* QP priority of the AO */
+                  AO_PANEL, /* QP priority of the AO */
                   tableQueueSto,             /* event queue storage */
                   Q_DIM(tableQueueSto),      /* queue length [events] */
                   (void *)0,                 /* stack storage (not used) */
