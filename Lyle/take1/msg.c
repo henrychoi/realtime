@@ -585,7 +585,7 @@ uint8_t const *QSpyRecord_getMem(QSpyRecord * const me, uint32_t *pLen) {
 static void QSpyRecord_processUser(QSpyRecord * const me) {
 	uint8_t fmt;
 	uint32_t u32;
-	NUSEvt* pe = Q_NEW(NUSEvt, NUS_SIG);
+	AppEvt* pe = Q_NEW(AppEvt, NUS_SIG);
 	pe->type = me->rec; // NUS message type
 
     while (me->len > 0) {

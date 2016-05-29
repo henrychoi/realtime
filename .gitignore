@@ -1,3 +1,4 @@
 *~
 *.[oas]
-
+.settings/
+_build/

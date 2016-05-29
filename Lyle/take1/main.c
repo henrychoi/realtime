@@ -717,7 +717,7 @@ typedef struct {
 static Panel l_panel; /* the single instance of the Table active object */
 
 /* Global-scope objects ----------------------------------------------------*/
-QActive * const AO_Table = &l_panel.super; /* "opaque" AO pointer */
+QActive * const AO_Panel = &l_panel.super; /* "opaque" AO pointer */
 
 static QState Panel_active(Panel* const me, QEvt const* const e) {
 	switch(e->sig) {
@@ -726,11 +726,11 @@ static QState Panel_active(Panel* const me, QEvt const* const e) {
 	    return Q_HANDLED();
 
 	case NUS_SIG: {
-		const NUSEvt* pe = (const NUSEvt*)e;
+		const AppEvt* pe = (const AppEvt*)e;
 		switch(pe->type) {
 		case MSG_STATE: // state query
 			MSG_BEGIN(MSG_STATE);
-			MSG_I16(PANEL_STATE_ACTIVE | AO_PANEL);
+			MSG_I16(PANEL_STATE_ACTIVE | AO_ARRAY);
 			MSG_END();
 			break;
 		default: break;
@@ -809,7 +809,7 @@ int main(void)
 
     static QEvt const *tableQueueSto[4];
     static QSubscrList subscrSto[MAX_PUB_SIG];
-    static QF_MPOOL_EL(NUSEvt) smlPoolSto[4]; /* small pool */
+    static QF_MPOOL_EL(AppEvt) smlPoolSto[4]; /* small pool */
 
     Panel_ctor(); /* instantiate the Table active object */
 
@@ -828,8 +828,8 @@ int main(void)
     /* initialize event pools... */
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
 
-    QACTIVE_START(AO_Table,                  /* AO to start */
-                  AO_PANEL, /* QP priority of the AO */
+    QACTIVE_START(AO_Panel,                  /* AO to start */
+                  AO_ARRAY, /* QP priority of the AO */
                   tableQueueSto,             /* event queue storage */
                   Q_DIM(tableQueueSto),      /* queue length [events] */
                   (void *)0,                 /* stack storage (not used) */

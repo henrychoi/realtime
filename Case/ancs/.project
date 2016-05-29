@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>take1</name>
+	<name>ancs_nRF51DK</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -35,9 +35,9 @@
 			<location>D:/uC/Nordic/nRF5_SDK_11.0.0/components</location>
 		</link>
 		<link>
-			<name>qpc</name>
+			<name>qpn</name>
 			<type>2</type>
-			<location>D:/QP/qpc</location>
+			<location>D:/QP/qpn</location>
 		</link>
 	</linkedResources>
 </projectDescription>

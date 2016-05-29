@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="3.3.0">
+ <documentation>Simple model template for QP/C</documentation>
+ <framework name="qpc"/>
+ <package name="Events" stereotype="0x01">
+  <class name="AppEvt" superclass="qpc::QEvt"/>
+ </package>
+ <package name="AOs" stereotype="0x02">
+  <class name="Array" superclass="qpc::QHsm">
+   <documentation>Test active object</documentation>
+   <statechart>
+    <state name="selfie">
+     <tran trig="v SELFIE_BTN" target="../../1">
+      <tran_glyph conn="15,33,0,3,-5,5">
+       <action box="-6,-7,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="4,33,13,7"/>
+    </state>
+    <state name="normal">
+     <tran trig="v SELFIE_BTN" target="../../0">
+      <tran_glyph conn="20,17,3,0,-12,16">
+       <action box="-10,-3,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state name="connected">
+      <initial target="../2/1">
+       <initial_glyph conn="45,27,4,2,-6">
+        <action box="0,-2,10,2"/>
+       </initial_glyph>
+      </initial>
+      <state name="alerting">
+       <tran trig="ANIMATION_DONE">
+        <choice target="../../../2/1">
+         <guard brief="Nunread == 0"/>
+         <choice_glyph conn="64,26,5,2,-11,-5">
+          <action box="-11,-2,10,2"/>
+         </choice_glyph>
+        </choice>
+        <choice target="../../../2/2">
+         <guard brief="else"/>
+         <choice_glyph conn="64,26,5,2,7,-5">
+          <action box="2,-2,10,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="64,31,0,-1,-5">
+         <action box="0,-2,14,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="60,31,21,8"/>
+      </state>
+      <state name="idle">
+       <tran trig="v NEW" target="../../1">
+        <tran_glyph conn="78,23,2,0,8">
+         <action box="0,1,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state name="caughtup">
+        <tran trig="v UNREAD" target="../../2">
+         <tran_glyph conn="55,14,1,3,11">
+          <action box="2,-2,10,2"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="44,11,11,10"/>
+       </state>
+       <state name="behind">
+        <tran trig="Nunread == 0" target="../../1">
+         <tran_glyph conn="66,18,3,1,-11">
+          <action box="-9,-2,10,2"/>
+         </tran_glyph>
+        </tran>
+        <state_glyph node="66,11,14,10"/>
+       </state>
+       <state_glyph node="42,8,40,15"/>
+      </state>
+      <state_glyph node="38,5,46,35"/>
+     </state>
+     <state name="disconnected">
+      <state_glyph node="22,31,14,8"/>
+     </state>
+     <state_glyph node="20,2,66,39"/>
+    </state>
+    <state_diagram size="90,45"/>
+   </statechart>
+  </class>
+ </package>
+ <directory name="."/>
+</model>

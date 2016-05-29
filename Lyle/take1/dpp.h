@@ -17,12 +17,12 @@ typedef struct {
 /* public: */
     uint8_t type;
     uint8_t param[4];
-} NUSEvt;
+} AppEvt;
 
 extern QActive* const AO_Panel;
 
 enum AO_ID {
-	AO_PANEL = 1
+	AO_ARRAY = 1
 };
 
 enum PanelState {
