@@ -577,7 +577,7 @@ void QS_usr_dict(enum_t const rec,
     QS_STR_(name);
     QS_endRec();
     QS_CRIT_EXIT_();
-    QS_onFlush();
+    QS_onStartTX();
 }
 
 /****************************************************************************/

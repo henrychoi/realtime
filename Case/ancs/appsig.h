@@ -3,10 +3,9 @@
 
 enum AppSignals {
 	BLE_SIG = Q_USER_SIG, /* Received from the alert service */
-    ALERT_SIG,
-	UNREAD_SIG,
+    ANCS_SIG,
 	SELFIE_SIG,
-	DISPLAY_DONE_SIG,
+	//DISPLAY_DONE_SIG,
     //MAX_PUB_SIG,    /* the last published signal */
 
     //SYSTICK_SIG,    /* used by tick event for time events */

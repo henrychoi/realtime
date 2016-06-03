@@ -51,9 +51,14 @@ NRF_FLAGS = \
 INC_PATHS = -I. -IQS -I$(QPN)/include -I$(QPN)/source -I$(QP_PORT_DIR)
 
 #source common to all targets
-C_SOURCE_FILES += main.c qp.c array.c \
+C_SOURCE_FILES += main.c qp.c array.c ble.c \
 	$(QPN)/source/qepn.c $(QPN)/source/qfn.c $(QPN)/source/qvn.c \
 	QS/qs.c QS/qs_rx.c \
+	$(SDK_PATH)/components/ble/common/ble_advdata.c \
+	$(SDK_PATH)/components/ble/ble_advertising/ble_advertising.c \
+	$(SDK_PATH)/components/ble/ble_db_discovery/ble_db_discovery.c \
+	$(SDK_PATH)/components/ble/common/ble_conn_params.c \
+	$(SDK_PATH)/components/ble/ble_services/ble_ancs_c/ble_ancs_c.c \
 	$(SDK_PATH)/components/toolchain/system_nrf51.c \
 	$(SDK_PATH)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
 	$(SDK_PATH)/components/libraries/util/app_error.c \
@@ -63,39 +68,31 @@ C_SOURCE_FILES += main.c qp.c array.c \
 	$(SDK_PATH)/components/drivers_nrf/spi_master/nrf_drv_spi.c \
 	$(SDK_PATH)/components/drivers_nrf/uart/nrf_drv_uart.c \
 	$(SDK_PATH)/components/drivers_nrf/gpiote/nrf_drv_gpiote.c \
+	$(SDK_PATH)/components/ble/device_manager/device_manager_peripheral.c \
+	$(SDK_PATH)/components/libraries/timer/app_timer.c \
+	$(SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
+	$(SDK_PATH)/components/drivers_nrf/pstorage/pstorage.c \
+	$(SDK_PATH)/components/libraries/fstorage/fstorage.c \
 
 #$(SDK_PATH)/examples/bsp/bsp.c \
 $(SDK_PATH)/examples/bsp/bsp_btn_ble.c \
-$(SDK_PATH)/components/ble/common/ble_advdata.c \
-$(SDK_PATH)/components/ble/ble_advertising/ble_advertising.c \
-$(SDK_PATH)/components/ble/ble_db_discovery/ble_db_discovery.c \
-$(SDK_PATH)/components/ble/ble_services/ble_ancs_c/ble_ancs_c.c \
-$(SDK_PATH)/components/ble/common/ble_conn_params.c \
 $(SDK_PATH)/components/ble/common/ble_srv_common.c \
-$(SDK_PATH)/components/ble/device_manager/device_manager_peripheral.c \
 $(SDK_PATH)/components/drivers_nrf/common/nrf_drv_common.c \
 $(SDK_PATH)/components/drivers_nrf/uart/nrf_drv_uart.c \
-$(SDK_PATH)/components/drivers_nrf/pstorage/pstorage.c \
 $(SDK_PATH)/components/libraries/button/app_button.c \
 $(SDK_PATH)/components/libraries/fifo/app_fifo.c \
-$(SDK_PATH)/components/libraries/fstorage/fstorage.c \
-$(SDK_PATH)/components/libraries/scheduler/app_scheduler.c \
-$(SDK_PATH)/components/libraries/timer/app_timer.c \
-$(SDK_PATH)/components/libraries/timer/app_timer_appsh.c \
 $(SDK_PATH)/components/libraries/trace/app_trace.c \
-$(SDK_PATH)/components/libraries/uart/retarget.c \
 $(SDK_PATH)/components/libraries/uart/app_uart_fifo.c \
 $(SDK_PATH)/components/libraries/util/app_util_platform.c \
 $(SDK_PATH)/components/libraries/util/nrf_assert.c \
 $(SDK_PATH)/components/libraries/util/nrf_log.c \
-$(SDK_PATH)/components/drivers_nrf/delay/nrf_delay.c \
 
 #assembly files common to all targets
 ASM_SOURCE_FILES  = gcc_startup_nrf51.s
 
 #includes common to all targets
 INC_PATHS += -Iconfig
-INC_PATHS += -I$(SDK_PATH)/examples/bsp
+#INC_PATHS += -I$(SDK_PATH)/examples/bsp #only for pca10028.h
 INC_PATHS += -I$(SDK_PATH)/components/ble/ble_db_discovery
 INC_PATHS += -I$(SDK_PATH)/components/ble/ble_advertising
 INC_PATHS += -I$(SDK_PATH)/components/ble/common
@@ -113,13 +110,13 @@ INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/spi_master
 INC_PATHS += -I$(SDK_PATH)/components/drivers_nrf/timer
 INC_PATHS += -I$(SDK_PATH)/components/libraries/fifo
 INC_PATHS += -I$(SDK_PATH)/components/libraries/fstorage/config
-INC_PATHS += -I$(SDK_PATH)/components/libraries/scheduler
+INC_PATHS += -I$(SDK_PATH)/components/libraries/timer
 INC_PATHS += -I$(SDK_PATH)/components/libraries/uart
 INC_PATHS += -I$(SDK_PATH)/components/libraries/util
-INC_PATHS += -I$(SDK_PATH)/components/libraries/button
+#INC_PATHS += -I$(SDK_PATH)/components/libraries/button
 INC_PATHS += -I$(SDK_PATH)/components/libraries/fstorage
 INC_PATHS += -I$(SDK_PATH)/components/libraries/experimental_section_vars
-#INC_PATHS += -I$(SDK_PATH)/components/libraries/trace
+INC_PATHS += -I$(SDK_PATH)/components/libraries/trace
 INC_PATHS += -I$(SDK_PATH)/components/softdevice/common/softdevice_handler
 INC_PATHS += -I$(SDK_PATH)/components/softdevice/s130/headers
 INC_PATHS += -I$(SDK_PATH)/components/softdevice/s130/headers/nrf51

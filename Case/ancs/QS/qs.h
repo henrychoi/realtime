@@ -317,15 +317,7 @@ uint8_t QS_onStartup(void const *arg);
 */
 void QS_onCleanup(void);
 
-/*! Callback to flush the QS trace data to the host */
-/**
-* @description
-* This is a platform-dependent "callback" function to flush the QS trace
-* buffer to the host. The function typically busy-waits until all the data
-* in the buffer is sent to the host. This is acceptable only in the initial
-* transient.
-*/
-void QS_onFlush(void);
+void QS_onStartTX(void);
 
 /*! Callback to obtain a timestamp for a QS record. */
 /**
@@ -358,7 +350,7 @@ QSTimeCtr QS_onGetTime(void);
 * @sa QS_onStartup(), example of setting up a QS filter in QS_FILTER_ON
 */
 #define QS_INIT(arg_) ((QS_onStartup(arg_) != (uint8_t)0) \
-                      ? (QS_onFlush(), (uint8_t)1) : (uint8_t)0)
+                      ? (QS_onStartTX(), (uint8_t)1) : (uint8_t)0)
 
 /*! Cleanup the QS facility. */
 /**
@@ -993,19 +985,12 @@ enum {
         QS_U16_((uint16_t)(loc_)); \
         QS_STR_(module_); \
     QS_END_NOCRIT_() \
-    QS_onFlush(); \
+    QS_onStartTX(); \
     for (delay_ctr_ = (delay_); delay_ctr_ > (uint32_t)0; --delay_ctr_) {} \
 } while (0)
 
-/*! Flush the QS trace data to the host */
-/**
-* @description
-* This macro invokes the QS_flush() platform-dependent callback function
-* to flush the QS trace buffer to the host. The function typically
-* busy-waits until all the data in the buffer is sent to the host.
-* This is acceptable only in the initial transient.
-*/
-#define QS_FLUSH()   (QS_onFlush())
+/*! Start QS tranmission */
+#define QS_START_TX()   (QS_onStartTX())
 
 /*! Output the critical section entry */
 #define QF_QS_CRIT_ENTRY() \

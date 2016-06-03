@@ -18,36 +18,37 @@ struct Pixel { uint8_t brightness, b, g, r; } __attribute((packed));
 #define N_B_LED (N_LED - N_L_LED - N_T_LED - N_R_LED) // = 4
 #define N_END_CLK      (N_LED     >> 1) //# end frame CLK = N_LED / 2
 #define N_END_CLK_BYTE (N_END_CLK >> 3)
-struct SpiBuffer {
+struct Apa102Data {
 	uint8_t start[4]; //all 0
 	struct Pixel pixels[N_LED];
 	uint8_t end[N_END_CLK_BYTE];
 };
 
 /* Active object class -----------------------------------------------------*/
-typedef struct {
+typedef struct Apa102Array {
 /* protected: */
     QActive super;
 
 /* private: */
     //uint8_t cursor;
     uint8_t wavefront;
-    struct SpiBuffer buf[1];//double buffer?
+    struct Apa102Data buf[1];//double buffer?
 } Array;
 
 /* Local objects -----------------------------------------------------------*/
 Array l_Array; /* the single instance of the Table active object */
 
 /* Global-scope objects ----------------------------------------------------*/
-QActive * const AO_Array = &l_Array.super; /* "opaque" AO pointer */
+QActive * const AO_array = &l_Array.super; /* "opaque" AO pointer */
 
 static QState Array_normal(Array* const me);
 
 static QState Array_normal(Array* const me) {
 	switch(Q_SIG(me)) {
 	case Q_ENTRY_SIG: {
-		QStateHandler target;
-	    QActive_armX(&me->super, 0U, 1, 1U);
+		//QStateHandler target;
+	    QActive_armX(&me->super, /* timer instance = */ 0U
+	    		, 1, /* periodic = */ 1U);
 	    me->wavefront = 0;
 
 	    for (struct Pixel* pixel = me->buf[0].pixels;
@@ -61,7 +62,7 @@ static QState Array_normal(Array* const me) {
         BSP_setTP();
 		// Display the current screen
         Q_ASSERT(nrf_drv_spi_transfer(&spi
-        		, (uint8_t*)&me->buf[0], sizeof(struct SpiBuffer), NULL, 0)
+        		, (uint8_t*)&me->buf[0], sizeof(struct Apa102Data), NULL, 0)
         		== NRF_SUCCESS);
         BSP_clearTP();
 
@@ -71,27 +72,27 @@ static QState Array_normal(Array* const me) {
 	    for (uint8_t i=0; i < N_LED; ++i) {
 	    	uint8_t distance = (me->wavefront + N_LED - i);
 	    	if (distance > N_LED) distance -= N_LED;
-	    	if (distance > 31) distance = 31;
+	    	if (distance > 10) distance = 10;
 	    	struct Pixel* pixel = &me->buf[0].pixels[i];
-	    	pixel->brightness = 7<<5 | (31 - distance);
+	    	pixel->brightness = 7<<5 | (10 - distance);
 	    }
         BSP_clearTP();
 
 	    if (++me->wavefront >= N_LED) me->wavefront = 0;
 		//me->cursor = blit;//flip the ping-pong buffer
 	}   return Q_HANDLED();
-	case DISPLAY_DONE_SIG:
-		return Q_HANDLED();
+	//case DISPLAY_DONE_SIG:
+	//	return Q_HANDLED();
 	default:
 		return Q_SUPER(&QHsm_top);
 	}
 }
-#if 1
+#if 0
 void spi_event_handler(nrf_drv_spi_evt_t const * p_event) {
-    //QACTIVE_POST_ISR(AO_Array, DISPLAY_DONE_SIG, 0U);
+    QACTIVE_POST_ISR(AO_array, DISPLAY_DONE_SIG, 0U);
 }
 #endif
-//#include "ble_ans_c.h"
+
 static QState Array_initial(Array* const me) {
     nrf_drv_spi_config_t spi_config =
     		NRF_DRV_SPI_DEFAULT_CONFIG(SPI0_INSTANCE_INDEX);

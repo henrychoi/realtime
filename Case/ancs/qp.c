@@ -29,7 +29,11 @@ QSTimeCtr QS_tickTime_;
 QSTimeCtr QS_i_getTime;
 #endif
 
+uint8_t BSP_readButton() {
 #define BTN_PIN 17
+	return !nrf_gpio_pin_read(BTN_PIN);
+}
+
 const nrf_drv_timer_t TIMER1 = NRF_DRV_TIMER_INSTANCE(1);
 void Timer1_handler(nrf_timer_event_t event_type, void* p_context) {
     if (event_type != NRF_TIMER_EVENT_COMPARE0) return;
@@ -45,16 +49,33 @@ void Timer1_handler(nrf_timer_event_t event_type, void* p_context) {
     QF_tickXISR(0U); /* process time events for rate 0 */
 }
 
+
+/**@brief Function for putting the chip into sleep mode.
+ *
+ * @note This function will not return.
+ */
+void BSP_stop() {
+    uint32_t new_cnf = NRF_GPIO->PIN_CNF[BTN_PIN];
+    uint32_t new_sense = GPIO_PIN_CNF_SENSE_Low;
+    new_cnf &= ~GPIO_PIN_CNF_SENSE_Msk;
+    new_cnf |= (new_sense << GPIO_PIN_CNF_SENSE_Pos);
+    NRF_GPIO->PIN_CNF[BTN_PIN] = new_cnf;
+
+    // Go to system-off mode (this function will not return;
+    // wakeup will cause a reset).
+    Q_ALLEGE(sd_power_system_off() == NRF_SUCCESS);
+}
+
 static void btn1_event_handler(nrf_drv_gpiote_pin_t pin
 		, nrf_gpiote_polarity_t action) {
     QS_BEGIN(TRACE_SDK_EVT, NULL)
         QS_U8(0, 1);
-        QS_U8(0, nrf_gpio_pin_read(BTN_PIN));
-    QS_END() QS_FLUSH();
+        QS_U8(0, BSP_readButton());
+    QS_END() QS_START_TX();
 }
-#define GPIO_OUT_PIN 21
-void BSP_setTP()   { NRF_GPIO->OUTSET = 1 << GPIO_OUT_PIN; }
-void BSP_clearTP() { NRF_GPIO->OUTCLR = 1 << GPIO_OUT_PIN; }
+#define GPIO_TP 21
+void BSP_setTP()   { NRF_GPIO->OUTSET = 1 << GPIO_TP; }
+void BSP_clearTP() { NRF_GPIO->OUTCLR = 1 << GPIO_TP; }
 
 void BSP_init(void) {
 	uint32_t err_code;
@@ -63,7 +84,6 @@ void BSP_init(void) {
     nrf_drv_timer_extended_compare(&TIMER1, NRF_TIMER_CC_CHANNEL0
     		, nrf_drv_timer_ms_to_ticks(&TIMER1, 1000/BSP_TICKS_PER_SEC)
 			, NRF_TIMER_SHORT_COMPARE0_CLEAR_MASK, true);
-    //nrf_drv_timer_enable(&TIMER1);
 
     // Configure button 1 for low accuracy (why not high accuracy?)
     Q_ALLEGE(nrf_drv_gpiote_init() == NRF_SUCCESS);
@@ -75,7 +95,7 @@ void BSP_init(void) {
     		== NRF_SUCCESS);
     nrf_drv_gpiote_in_event_enable(BTN_PIN, /* int enable = */ true);
 
-    NRF_GPIO->DIRSET = 1 << GPIO_OUT_PIN;
+    NRF_GPIO->DIRSET = 1 << GPIO_TP;
 
     /* initialize the QS software tracing... */
     if (QS_INIT((void *)0) == 0) {
@@ -86,6 +106,7 @@ void BSP_init(void) {
 /* QF callbacks ============================================================*/
 void QF_onStartup(void) {
     nrf_drv_timer_enable(&TIMER1);
+    void advertising_start(); advertising_start();
 }
 void QF_onCleanup(void) {
 }
@@ -189,10 +210,10 @@ uint8_t QS_onStartup(void const *arg) {
     QS_FILTER_ON(TRACE_SDK_EVT);
     QS_FILTER_ON(TRACE_ADV_EVT);
     QS_FILTER_ON(TRACE_BLE_EVT);
-    QS_FILTER_ON(TRACE_CONN_EVT);
+    QS_FILTER_ON(TRACE_DM_EVT);
     QS_FILTER_ON(TRACE_PEER_EVT);
     QS_FILTER_ON(TRACE_SEC_EVT);
-    QS_FILTER_ON(TRACE_ALERT_SVC);
+    QS_FILTER_ON(TRACE_ANCS_EVT);
 
     return (uint8_t)1; /* return success */
 }
@@ -203,8 +224,8 @@ QSTimeCtr QS_onGetTime(void) { /* NOTE: invoked with interrupts DISABLED */
     return QS_tickTime_ + ++QS_i_getTime;
 }
 /*..........................................................................*/
-void QS_onFlush(void) {
 #if 0
+void QS_onFlush(void) {
     static uint16_t b;
 
     QF_INT_DISABLE();
@@ -217,12 +238,14 @@ void QS_onFlush(void) {
     	nrf_drv_uart_tx((const uint8_t*)&b, 1);
     }
     QF_INT_ENABLE();
+}
 #else
+void QS_onStartTX() {
     if (!nrf_drv_uart_tx_in_progress()) {
     	uart_tx1();
     }
-#endif
 }
+#endif
 void QS_onReset(void) {
     NVIC_SystemReset();
 }
